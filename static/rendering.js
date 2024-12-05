@@ -70,6 +70,19 @@ export function drawCircle(x, y, r, color = "#777", hasBorder = false) {
     }
 }
 
+export function drawRect(x, y, w, h, color = "#000", alpha = 0.3) {
+    x = gameToCanvasX(x);
+    y = gameToCanvasY(y);
+    w *= tileSize;
+    h *= tileSize;
+
+    ctx.fillStyle = color;
+    ctx.globalAlpha = alpha;
+    ctx.fillRect(x, y, w, h);
+
+    ctx.globalAlpha = 1;
+}
+
 function gameToCanvasX(x) {
     return (x + canvasWidth / 2) * tileSize;
 }
