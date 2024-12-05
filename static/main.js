@@ -1,9 +1,9 @@
 import { clearCanvas, drawCircle, setBackground, setupCanvas } from "./rendering.js";
 
 async function main() {
-    setupCanvas(32, 24, 13.5);
+    setupCanvas(32, 24, 14);
     setBackground("#aaa");
-    clearCanvas();
+    clearCanvas(true);
 
     drawCircle(0, 0, 0.5);
     drawCircle(3, 0, 0.3, "red", true);
