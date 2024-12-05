@@ -7,18 +7,24 @@ let canvasHeight;
 
 let background = "#222";
 
-export function setupCanvas(_tileSize, width, height) {
-    tileSize = _tileSize;
+let drawOffset = { x: 0, y: 0 };
+
+export function setupCanvas(tileSizePx, width, height) {
+    tileSize = tileSizePx;
     canvasWidth = width;
     canvasHeight = height;
 
-    canvas.width = _tileSize * width;
-    canvas.height = _tileSize * height;
+    canvas.width = tileSizePx * width;
+    canvas.height = tileSizePx * height;
 
     canvas.style.width = `${canvas.width}px`;
     canvas.style.height = `${canvas.height}px`;
 
     clearCanvas();
+}
+
+export function setDrawOffset(x, y) {
+    drawOffset = { x, y };
 }
 
 export function setBackground(color) {
@@ -84,8 +90,8 @@ export function drawRect(x, y, w, h, color = "#000", alpha = 0.3) {
 }
 
 function gameToCanvasX(x) {
-    return (x + canvasWidth / 2) * tileSize;
+    return (x + canvasWidth / 2 - drawOffset.x) * tileSize;
 }
 function gameToCanvasY(y) {
-    return (y + canvasHeight / 2) * tileSize;
+    return (y + canvasHeight / 2 - drawOffset.y) * tileSize;
 }
