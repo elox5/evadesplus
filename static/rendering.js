@@ -39,7 +39,7 @@ export function clearCanvas() {
 export function drawGrid(offsetX = 0, offsetY = 0) {
     ctx.strokeStyle = "black";
     ctx.globalAlpha = 0.2;
-    ctx.strokeWidth = 1;
+    ctx.lineWidth = 1;
 
     for (let i = 0; i < canvasWidth; i++) {
         ctx.beginPath();
@@ -58,7 +58,7 @@ export function drawGrid(offsetX = 0, offsetY = 0) {
     ctx.globalAlpha = 1;
 }
 
-export function drawCircle(x, y, r, color = "#777", hasBorder = false) {
+export function drawCircle(x, y, r, color = "#777", hasBorder = true) {
     x = gameToCanvasX(x);
     y = gameToCanvasY(y);
     r *= tileSize;
