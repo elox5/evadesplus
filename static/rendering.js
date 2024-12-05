@@ -25,13 +25,31 @@ export function setBackground(color) {
     background = color;
 }
 
-export function clearCanvas(grid = false) {
+export function clearCanvas() {
     ctx.fillStyle = background;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
 
-    if (grid) {
-        drawGrid();
+export function drawGrid(offsetX = 0, offsetY = 0) {
+    ctx.strokeStyle = "black";
+    ctx.globalAlpha = 0.2;
+    ctx.strokeWidth = 1;
+
+    for (let i = 0; i < canvasWidth; i++) {
+        ctx.beginPath();
+        ctx.moveTo((i + offsetX) * tileSize, 0);
+        ctx.lineTo((i + offsetX) * tileSize, canvas.height);
+        ctx.stroke();
     }
+
+    for (let j = 0; j < canvasHeight; j++) {
+        ctx.beginPath();
+        ctx.moveTo(0, (j + offsetY) * tileSize);
+        ctx.lineTo(canvas.width, (j + offsetY) * tileSize);
+        ctx.stroke();
+    }
+
+    ctx.globalAlpha = 1;
 }
 
 export function drawCircle(x, y, r, color = "#777", hasBorder = false) {
@@ -50,28 +68,6 @@ export function drawCircle(x, y, r, color = "#777", hasBorder = false) {
         ctx.lineWidth = 2;
         ctx.stroke();
     }
-}
-
-function drawGrid() {
-    ctx.strokeStyle = "black";
-    ctx.globalAlpha = 0.2;
-    ctx.strokeWidth = 1;
-
-    for (let i = 0; i < canvasWidth; i++) {
-        ctx.beginPath();
-        ctx.moveTo(i * tileSize, 0);
-        ctx.lineTo(i * tileSize, canvas.height);
-        ctx.stroke();
-    }
-
-    for (let j = 0; j < canvasHeight; j++) {
-        ctx.beginPath();
-        ctx.moveTo(0, j * tileSize);
-        ctx.lineTo(canvas.width, j * tileSize);
-        ctx.stroke();
-    }
-
-    ctx.globalAlpha = 1;
 }
 
 function gameToCanvasX(x) {
