@@ -1,4 +1,5 @@
 import { renderSettings, clearCanvas, drawCircle, drawGrid, drawRect, setBackground, setDrawOffset, setupCanvas } from "./rendering.js";
+import { input } from "./input.js";
 
 async function main() {
     renderSettings.canvasWidth = 24;
@@ -33,6 +34,8 @@ async function handleFrame() {
     }];
 
     renderFrame(player, rects, entities);
+
+    console.log(input);
 }
 
 function renderFrame(player, rects, entities) {
