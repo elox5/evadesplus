@@ -48,8 +48,8 @@ export function drawGrid() {
 
     for (let j = 0; j < renderSettings.canvasHeight; j++) {
         ctx.beginPath();
-        ctx.moveTo(0, (j - drawOffset.y % 1) * renderSettings.tileSize);
-        ctx.lineTo(canvas.width, (j - drawOffset.y % 1) * renderSettings.tileSize);
+        ctx.moveTo(0, (j + drawOffset.y % 1) * renderSettings.tileSize);
+        ctx.lineTo(canvas.width, (j + drawOffset.y % 1) * renderSettings.tileSize);
         ctx.stroke();
     }
 
@@ -91,5 +91,5 @@ function gameToCanvasX(x) {
     return (x + renderSettings.canvasWidth / 2 - drawOffset.x) * renderSettings.tileSize;
 }
 function gameToCanvasY(y) {
-    return (y + renderSettings.canvasHeight / 2 - drawOffset.y) * renderSettings.tileSize;
+    return (renderSettings.canvasHeight / 2 - (y - drawOffset.y)) * renderSettings.tileSize;
 }

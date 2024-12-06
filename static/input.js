@@ -114,7 +114,7 @@ addEventListener("mousemove", (e) => {
     }
 
     mouseInput.x = dx;
-    mouseInput.y = dy;
+    mouseInput.y = -dy;
 
     updateInput();
 });
