@@ -9,7 +9,7 @@ export let inputSettings = {
     mouseInputRange: 4,
 }
 
-let keyboardInput = {
+let keyboardPressed = {
     up: false,
     down: false,
     left: false,
@@ -24,11 +24,11 @@ let mouseInput = {
 let mouseInputActive = false;
 
 function updateInput() {
-    const keyboardTotal = getKeyboardTotal();
+    const keyboardInput = getKeyboardInput();
 
-    if (!mouseInputActive || keyboardTotal.x !== 0 || keyboardTotal.y !== 0) {
-        input.x = keyboardTotal.x;
-        input.y = keyboardTotal.y;
+    if (!mouseInputActive || keyboardInput.x !== 0 || keyboardInput.y !== 0) {
+        input.x = keyboardInput.x;
+        input.y = keyboardInput.y;
     }
     else if (mouseInputActive) {
         input.x = mouseInput.x;
@@ -36,40 +36,40 @@ function updateInput() {
     }
 }
 
-function getKeyboardTotal() {
-    let keyboardTotal = {
+function getKeyboardInput() {
+    let total = {
         x: 0,
         y: 0,
     }
 
-    if (keyboardInput.up) {
-        keyboardTotal.y += 1;
+    if (keyboardPressed.up) {
+        total.y += 1;
     }
-    if (keyboardInput.down) {
-        keyboardTotal.y -= 1;
+    if (keyboardPressed.down) {
+        total.y -= 1;
     }
-    if (keyboardInput.right) {
-        keyboardTotal.x += 1;
+    if (keyboardPressed.right) {
+        total.x += 1;
     }
-    if (keyboardInput.left) {
-        keyboardTotal.x -= 1;
+    if (keyboardPressed.left) {
+        total.x -= 1;
     }
 
-    return keyboardTotal;
+    return normalize(total);
 }
 
 addEventListener("keydown", (e) => {
     if (e.key === "ArrowLeft" || e.key === "a") {
-        keyboardInput.left = true;
+        keyboardPressed.left = true;
     }
     else if (e.key === "ArrowRight" || e.key === "d") {
-        keyboardInput.right = true;
+        keyboardPressed.right = true;
     }
     else if (e.key === "ArrowUp" || e.key === "w") {
-        keyboardInput.up = true;
+        keyboardPressed.up = true;
     }
     else if (e.key === "ArrowDown" || e.key === "s") {
-        keyboardInput.down = true;
+        keyboardPressed.down = true;
     } else {
         return;
     }
@@ -79,16 +79,16 @@ addEventListener("keydown", (e) => {
 
 addEventListener("keyup", (e) => {
     if (e.key === "ArrowLeft" || e.key === "a") {
-        keyboardInput.left = false;
+        keyboardPressed.left = false;
     }
     else if (e.key === "ArrowRight" || e.key === "d") {
-        keyboardInput.right = false;
+        keyboardPressed.right = false;
     }
     else if (e.key === "ArrowUp" || e.key === "w") {
-        keyboardInput.up = false;
+        keyboardPressed.up = false;
     }
     else if (e.key === "ArrowDown" || e.key === "s") {
-        keyboardInput.down = false;
+        keyboardPressed.down = false;
     } else {
         return;
     }
@@ -121,15 +121,29 @@ function calculateMouseInput(e) {
     const centerY = window.innerHeight / 2;
     const range = inputSettings.mouseInputRange;
 
-    let dx = (e.clientX - centerX) / renderSettings.tileSize / range;
-    let dy = (e.clientY - centerY) / renderSettings.tileSize / range;
-
-    let magnitude = Math.sqrt(dx * dx + dy * dy);
-
-    if (magnitude > 1) {
-        dx /= magnitude;
-        dy /= magnitude;
+    let delta = {
+        x: (e.clientX - centerX) / renderSettings.tileSize / range,
+        y: (e.clientY - centerY) / renderSettings.tileSize / range,
     }
 
-    return { x: dx, y: -dy };
+    const magnitude = Math.sqrt(delta.x * delta.x + delta.y * delta.y);
+
+    if (magnitude > 1) {
+        delta = normalize(delta, magnitude);
+    }
+
+    delta.y = -delta.y;
+
+    return delta;
+}
+
+function normalize(v, magnitude = null) {
+    if (magnitude === null) {
+        magnitude = Math.sqrt(v.x * v.x + v.y * v.y);
+    }
+    if (magnitude === 0) {
+        return { x: 0, y: 0 };
+    }
+
+    return { x: v.x / magnitude, y: v.y / magnitude };
 }
