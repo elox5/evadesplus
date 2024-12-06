@@ -123,4 +123,5 @@ addEventListener("mousedown", (e) => {
     mouseInputActive = !mouseInputActive;
     mouseInput.x = 0;
     mouseInput.y = 0;
+    updateInput();
 });
