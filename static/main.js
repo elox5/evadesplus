@@ -1,7 +1,10 @@
-import { clearCanvas, drawCircle, drawGrid, drawRect, setBackground, setDrawOffset, setupCanvas } from "./rendering.js";
+import { renderSettings, clearCanvas, drawCircle, drawGrid, drawRect, setBackground, setDrawOffset, setupCanvas } from "./rendering.js";
 
 async function main() {
-    setupCanvas(32, 24, 14);
+    renderSettings.canvasWidth = 24;
+    renderSettings.canvasHeight = 14;
+
+    setupCanvas();
     setBackground("#aaa");
 
     setInterval(handleFrame, 1000 / 60);
