@@ -23,6 +23,8 @@ let mouseInput = {
 
 let mouseInputActive = false;
 
+let sneaking = false;
+
 function updateInput() {
     const keyboardInput = getKeyboardInput();
 
@@ -33,6 +35,11 @@ function updateInput() {
     else if (mouseInputActive) {
         input.x = mouseInput.x;
         input.y = mouseInput.y;
+    }
+
+    if (sneaking) {
+        input.x *= 0.5;
+        input.y *= 0.5;
     }
 }
 
@@ -59,16 +66,21 @@ function getKeyboardInput() {
 }
 
 addEventListener("keydown", (e) => {
-    if (e.key === "ArrowLeft" || e.key === "a") {
+    if (e.key === "Shift") {
+        sneaking = true;
+        updateInput();
+    }
+
+    if (e.key === "ArrowLeft" || e.code === "KeyA") {
         keyboardPressed.left = true;
     }
-    else if (e.key === "ArrowRight" || e.key === "d") {
+    else if (e.key === "ArrowRight" || e.code === "KeyD") {
         keyboardPressed.right = true;
     }
-    else if (e.key === "ArrowUp" || e.key === "w") {
+    else if (e.key === "ArrowUp" || e.code === "KeyW") {
         keyboardPressed.up = true;
     }
-    else if (e.key === "ArrowDown" || e.key === "s") {
+    else if (e.key === "ArrowDown" || e.code === "KeyS") {
         keyboardPressed.down = true;
     } else {
         return;
@@ -78,16 +90,21 @@ addEventListener("keydown", (e) => {
 });
 
 addEventListener("keyup", (e) => {
-    if (e.key === "ArrowLeft" || e.key === "a") {
+    if (e.key === "Shift") {
+        sneaking = false;
+        updateInput();
+    }
+
+    if (e.key === "ArrowLeft" || e.code === "KeyA") {
         keyboardPressed.left = false;
     }
-    else if (e.key === "ArrowRight" || e.key === "d") {
+    else if (e.key === "ArrowRight" || e.code === "KeyD") {
         keyboardPressed.right = false;
     }
-    else if (e.key === "ArrowUp" || e.key === "w") {
+    else if (e.key === "ArrowUp" || e.code === "KeyW") {
         keyboardPressed.up = false;
     }
-    else if (e.key === "ArrowDown" || e.key === "s") {
+    else if (e.key === "ArrowDown" || e.code === "KeyS") {
         keyboardPressed.down = false;
     } else {
         return;
