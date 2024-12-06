@@ -99,6 +99,24 @@ addEventListener("keyup", (e) => {
 addEventListener("mousemove", (e) => {
     if (!mouseInputActive) return;
 
+    mouseInput = calculateMouseInput(e);
+
+    updateInput();
+});
+
+addEventListener("mousedown", (e) => {
+    mouseInputActive = !mouseInputActive;
+    if (!mouseInputActive) {
+        mouseInput.y = 0;
+        mouseInput.x = 0;
+    }
+    else {
+        mouseInput = calculateMouseInput(e);
+    }
+    updateInput();
+});
+
+function calculateMouseInput(e) {
     const centerX = window.innerWidth / 2;
     const centerY = window.innerHeight / 2;
     const range = inputSettings.mouseInputRange;
@@ -113,15 +131,5 @@ addEventListener("mousemove", (e) => {
         dy /= magnitude;
     }
 
-    mouseInput.x = dx;
-    mouseInput.y = -dy;
-
-    updateInput();
-});
-
-addEventListener("mousedown", (e) => {
-    mouseInputActive = !mouseInputActive;
-    mouseInput.x = 0;
-    mouseInput.y = 0;
-    updateInput();
-});
+    return { x: dx, y: -dy };
+}
