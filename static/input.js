@@ -103,12 +103,12 @@ addEventListener("mousemove", (e) => {
     const centerY = window.innerHeight / 2;
     const range = inputSettings.mouseInputRange;
 
-    let dx = (e.clientX - centerX) / range;
-    let dy = (e.clientY - centerY) / range;
+    let dx = (e.clientX - centerX) / renderSettings.tileSize / range;
+    let dy = (e.clientY - centerY) / renderSettings.tileSize / range;
 
     let magnitude = Math.sqrt(dx * dx + dy * dy);
 
-    if (magnitude > range) {
+    if (magnitude > 1) {
         dx /= magnitude;
         dy /= magnitude;
     }

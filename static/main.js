@@ -10,6 +10,7 @@ const player = {
 };
 
 async function main() {
+    renderSettings.tileSize = 40;
     renderSettings.canvasWidth = 24;
     renderSettings.canvasHeight = 14;
 
@@ -36,7 +37,7 @@ async function handleFrame() {
 
     renderFrame(player, rects, entities);
 
-    const speed = 0.1;
+    const speed = 0.2;
 
     player.x += input.x * speed;
     player.y += input.y * speed;
