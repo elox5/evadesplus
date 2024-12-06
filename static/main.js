@@ -1,6 +1,14 @@
 import { renderSettings, clearCanvas, drawCircle, drawGrid, drawRect, setBackground, setDrawOffset, setupCanvas } from "./rendering.js";
 import { input } from "./input.js";
 
+const player = {
+    x: 50,
+    y: 10,
+    r: 0.5,
+    color: "red",
+    border: false
+};
+
 async function main() {
     renderSettings.canvasWidth = 24;
     renderSettings.canvasHeight = 14;
@@ -13,13 +21,6 @@ async function main() {
 window.main = main;
 
 async function handleFrame() {
-    const player = {
-        x: 50,
-        y: 10,
-        r: 0.5,
-        color: "red",
-        border: false
-    };
     const rects = [{
         x: 45,
         y: 5,
@@ -35,7 +36,10 @@ async function handleFrame() {
 
     renderFrame(player, rects, entities);
 
-    console.log(input);
+    const speed = 0.1;
+
+    player.x += input.x * speed;
+    player.y += input.y * speed;
 }
 
 function renderFrame(player, rects, entities) {

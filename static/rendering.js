@@ -34,22 +34,22 @@ export function clearCanvas() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
-export function drawGrid(offsetX = 0, offsetY = 0) {
+export function drawGrid() {
     ctx.strokeStyle = "black";
     ctx.globalAlpha = 0.2;
     ctx.lineWidth = 1;
 
     for (let i = 0; i < renderSettings.canvasWidth; i++) {
         ctx.beginPath();
-        ctx.moveTo((i + offsetX) * renderSettings.tileSize, 0);
-        ctx.lineTo((i + offsetX) * renderSettings.tileSize, canvas.height);
+        ctx.moveTo((i - drawOffset.x % 1) * renderSettings.tileSize, 0);
+        ctx.lineTo((i - drawOffset.x % 1) * renderSettings.tileSize, canvas.height);
         ctx.stroke();
     }
 
     for (let j = 0; j < renderSettings.canvasHeight; j++) {
         ctx.beginPath();
-        ctx.moveTo(0, (j + offsetY) * renderSettings.tileSize);
-        ctx.lineTo(canvas.width, (j + offsetY) * renderSettings.tileSize);
+        ctx.moveTo(0, (j - drawOffset.y % 1) * renderSettings.tileSize);
+        ctx.lineTo(canvas.width, (j - drawOffset.y % 1) * renderSettings.tileSize);
         ctx.stroke();
     }
 
