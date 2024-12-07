@@ -123,6 +123,7 @@ export function drawRectOutline(x, y, w, h, color = "#000", width = 1) {
 
     ctx.strokeStyle = color;
     ctx.lineWidth = width;
+    ctx.beginPath();
     ctx.strokeRect(x, y, w, h);
 }
 
@@ -134,6 +135,7 @@ export function drawRectFrame(x, y, w, h, color = "#000", width = 1) {
 
     ctx.strokeStyle = color;
     ctx.lineWidth = width;
+    ctx.beginPath();
     ctx.strokeRect(x, y, w, h);
     ctx.moveTo(x + w / 2, y);
     ctx.lineTo(x + w / 2, y + h);

@@ -46,8 +46,8 @@ async function handleFrame() {
 
     let range = inputSettings.mouseInputRange;
     drawLine(player.x, player.y, player.x + (input.x * range), player.y + (input.y * range), "yellow", 2);
-    drawCircleFrame(player.x, player.y, range, "orange", 2);
-    drawRectFrame(45, 5, 4, 5, "#00000077", 2);
+    drawCircleOutline(player.x, player.y, range, "orange", 2);
+    drawRectFrame(45, 5, 4, 5, "black", 2);
 
     const speed = 0.2;
 
