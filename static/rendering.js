@@ -126,6 +126,22 @@ export function drawRectOutline(x, y, w, h, color = "#000", width = 1) {
     ctx.strokeRect(x, y, w, h);
 }
 
+export function drawRectFrame(x, y, w, h, color = "#000", width = 1) {
+    x = gameToCanvasX(x);
+    y = gameToCanvasY(y);
+    w *= renderSettings.tileSize;
+    h *= renderSettings.tileSize;
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.strokeRect(x, y, w, h);
+    ctx.moveTo(x + w / 2, y);
+    ctx.lineTo(x + w / 2, y + h);
+    ctx.moveTo(x, y + h / 2);
+    ctx.lineTo(x + w, y + h / 2);
+    ctx.stroke();
+}
+
 export function drawLine(x1, y1, x2, y2, color = "#000", width = 1) {
     x1 = gameToCanvasX(x1);
     y1 = gameToCanvasY(y1);
