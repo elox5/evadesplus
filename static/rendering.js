@@ -86,6 +86,22 @@ export function drawCircleOutline(x, y, r, color = "#777", width = 1) {
     ctx.stroke();
 }
 
+export function drawCircleFrame(x, y, r, color = "#777", width = 1) {
+    x = gameToCanvasX(x);
+    y = gameToCanvasY(y);
+    r *= renderSettings.tileSize;
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, 2 * Math.PI);
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x - r, y);
+    ctx.moveTo(x, y + r);
+    ctx.lineTo(x, y - r);
+    ctx.stroke();
+}
+
 export function drawRect(x, y, w, h, color = "#000", alpha = 0.3) {
     x = gameToCanvasX(x);
     y = gameToCanvasY(y);
