@@ -158,6 +158,16 @@ export function drawLine(x1, y1, x2, y2, color = "#000", width = 1) {
     ctx.stroke();
 }
 
+export function drawText(x, y, text, color = "#000", size = 16, modifiers = "") {
+    x = gameToCanvasX(x);
+    y = gameToCanvasY(y);
+
+    ctx.fillStyle = color;
+    ctx.font = `${modifiers} ${size}px Nunito`;
+    ctx.textAlign = "center";
+    ctx.fillText(text, x, y);
+}
+
 function gameToCanvasX(x) {
     return (x + renderSettings.canvasWidth / 2 - drawOffset.x) * renderSettings.tileSize;
 }
