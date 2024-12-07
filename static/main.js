@@ -27,7 +27,7 @@ async function handleFrame() {
         y: 5,
         w: 4,
         h: 5,
-        color: "gold",
+        color: "#ff000077",
     }];
     const entities = [{
         x: 45,

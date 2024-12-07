@@ -56,7 +56,7 @@ export function drawGrid() {
     ctx.globalAlpha = 1;
 }
 
-export function drawCircle(x, y, r, color = "#000", hasBorder = false) {
+export function drawCircle(x, y, r, color = "#000", hasOutline = false) {
     x = gameToCanvasX(x);
     y = gameToCanvasY(y);
     r *= renderSettings.tileSize;
@@ -67,7 +67,7 @@ export function drawCircle(x, y, r, color = "#000", hasBorder = false) {
     ctx.arc(x, y, r, 0, 2 * Math.PI);
     ctx.fill();
 
-    if (hasBorder) {
+    if (hasOutline) {
         ctx.strokeStyle = "black";
         ctx.lineWidth = 2;
         ctx.stroke();
@@ -102,17 +102,20 @@ export function drawCircleFrame(x, y, r, color = "#000", width = 1) {
     ctx.stroke();
 }
 
-export function drawRect(x, y, w, h, color = "#000", alpha = 0.3) {
+export function drawRect(x, y, w, h, color = "#000", hasOutline = false) {
     x = gameToCanvasX(x);
     y = gameToCanvasY(y);
     w *= renderSettings.tileSize;
     h *= renderSettings.tileSize;
 
     ctx.fillStyle = color;
-    ctx.globalAlpha = alpha;
     ctx.fillRect(x, y, w, h);
 
-    ctx.globalAlpha = 1;
+    if (hasOutline) {
+        ctx.strokeStyle = "black";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, w, h);
+    }
 }
 
 export function drawRectOutline(x, y, w, h, color = "#000", width = 1) {
