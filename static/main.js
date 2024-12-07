@@ -21,7 +21,13 @@ async function main() {
 
     setInterval(handleFrame, 1000 / 60);
 
-    connect();
+    const transport = await connect();
+
+    const testStream = await transport.createUnidirectionalStream();
+
+    let encoder = new TextEncoder("utf-8");
+    let data = encoder.encode("Hello!");
+    testStream.getWriter().write(data);
 }
 window.main = main;
 

@@ -1,8 +1,11 @@
+use crate::game::game::World;
 use anyhow::Result;
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
+    sync::Arc,
     time::Duration,
 };
+use tokio::sync::Mutex;
 use wtransport::{
     endpoint::{endpoint_side::Server, IncomingSession},
     Endpoint, Identity, ServerConfig,
@@ -10,10 +13,11 @@ use wtransport::{
 
 pub struct WebTransportServer {
     endpoint: Endpoint<Server>,
+    world_arc: Arc<Mutex<World>>,
 }
 
 impl WebTransportServer {
-    pub fn new(identity: Identity) -> Result<Self> {
+    pub fn new(identity: Identity, world_arc: Arc<Mutex<World>>) -> Result<Self> {
         let config = ServerConfig::builder()
             .with_bind_address(SocketAddr::new(
                 IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
@@ -25,7 +29,10 @@ impl WebTransportServer {
 
         let endpoint = Endpoint::server(config)?;
 
-        Ok(Self { endpoint })
+        Ok(Self {
+            endpoint,
+            world_arc,
+        })
     }
 
     pub fn local_addr(&self) -> SocketAddr {
@@ -35,41 +42,41 @@ impl WebTransportServer {
     pub async fn serve(self) -> Result<()> {
         println!("WebTransport server listening on {}", &self.local_addr());
 
-        for id in 0.. {
+        loop {
             let incomming_session = self.endpoint.accept().await;
 
-            println!(
-                "Accepting session {} (id: {})",
-                incomming_session.remote_address(),
-                id
-            );
+            println!("Accepting session {}", incomming_session.remote_address());
+
+            let mut world = self.world_arc.lock().await;
+
+            let player = world.create_player();
+
+            let id = player.id;
 
             tokio::spawn(Self::handle_session(incomming_session, id));
         }
-
-        Ok(())
     }
 
-    async fn handle_session(session: IncomingSession, id: u32) {
+    async fn handle_session(session: IncomingSession, id: u64) {
         let result = Self::handle_session_impl(session, id).await;
 
-        println!("Session {} closed with result: {:?}", id, result);
+        println!("Session {:X} closed with result: {:?}", id, result);
     }
 
-    async fn handle_session_impl(session: IncomingSession, id: u32) -> Result<()> {
+    async fn handle_session_impl(session: IncomingSession, id: u64) -> Result<()> {
         let mut buffer = vec![0; 65536].into_boxed_slice();
 
         let session_request = session.await?;
 
         println!(
-            "New session request from client {id}: Authority: '{}', Path: '{}'",
+            "New session request from client {id:X}: Authority: '{}', Path: '{}'",
             session_request.authority(),
             session_request.path()
         );
 
         let connection = session_request.accept().await?;
 
-        println!("Accepted connection from client {id}. Awaiting streams...");
+        println!("Accepted connection from client {id:X}. Awaiting streams...");
 
         loop {
             tokio::select! {
@@ -84,13 +91,13 @@ impl WebTransportServer {
 
                     let str_data = std::str::from_utf8(&buffer[..bytes_read])?;
 
-                    println!("Received (bi) '{str_data}' from client");
+                    println!("Received (bi) '{str_data}' from client {id:X}");
 
                     stream.0.write_all(b"ACK").await?;
                 },
                 stream = connection.accept_uni() => {
                     let mut stream = stream?;
-                    println!("Accepted unidirectional stream from client {id}");
+                    println!("Accepted unidirectional stream from client {id:X}");
 
                     let bytes_read = match stream.read(&mut buffer).await? {
                         Some(bytes_read) => bytes_read,
@@ -99,7 +106,7 @@ impl WebTransportServer {
 
                     let str_data = std::str::from_utf8(&buffer[..bytes_read])?;
 
-                    println!("Received (uni) '{str_data}' from client {id}");
+                    println!("Received (uni) '{str_data}' from client {id:X}");
 
                     let mut stream = connection.open_uni().await?.await?;
                     stream.write_all(b"ACK").await?;
@@ -108,7 +115,7 @@ impl WebTransportServer {
                     let dgram = dgram?;
                     let str_data = std::str::from_utf8(&dgram)?;
 
-                    println!("Received dgram '{str_data}' from client {id}");
+                    println!("Received datagram '{str_data}' from client {id:X}");
 
                     connection.send_datagram(b"ACK")?;
                 }
