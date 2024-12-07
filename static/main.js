@@ -1,5 +1,5 @@
-import { renderSettings, clearCanvas, drawCircle, drawGrid, drawRect, setBackground, setDrawOffset, setupCanvas, drawLine } from "./rendering.js";
-import { input } from "./input.js";
+import { renderSettings, clearCanvas, drawCircle, drawGrid, drawRect, setBackground, setDrawOffset, setupCanvas, drawLine, drawCircleOutline } from "./rendering.js";
+import { input, inputSettings } from "./input.js";
 
 const player = {
     x: 50,
@@ -42,7 +42,10 @@ async function handleFrame() {
     }];
 
     renderFrame(player, rects, entities);
-    drawLine(player.x, player.y, player.x + input.x, player.y + input.y, "yellow", 2);
+
+    let range = inputSettings.mouseInputRange;
+    drawLine(player.x, player.y, player.x + (input.x * range), player.y + (input.y * range), "yellow", 2);
+    drawCircleOutline(player.x, player.y, range, "orange", 2);
 
     const speed = 0.2;
 
