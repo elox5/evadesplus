@@ -6,7 +6,8 @@ const player = {
     y: 10,
     r: 0.5,
     color: "red",
-    border: false
+    border: false,
+    zIndex: 10,
 };
 
 async function main() {
@@ -35,11 +36,13 @@ async function handleFrame() {
         r: 0.5,
         border: true,
         color: "#777",
+        zIndex: 5,
     }, {
         x: 55,
         y: 7,
         r: 3,
         color: "#00ff0044",
+        zIndex: 100,
     }];
 
     renderFrame(player, rects, entities);
@@ -67,8 +70,10 @@ function renderFrame(player, rects, entities) {
 
     drawGrid();
 
-    drawCircle(player.x, player.y, player.r, player.color, player.border);
-    for (const entity of entities) {
+    const finalEntities = [...entities, player];
+    finalEntities.sort((a, b) => a.zIndex - b.zIndex);
+
+    for (const entity of finalEntities) {
         drawCircle(entity.x, entity.y, entity.r, entity.color, entity.border);
     }
 }
