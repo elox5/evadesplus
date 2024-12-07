@@ -115,6 +115,17 @@ export function drawRect(x, y, w, h, color = "#000", alpha = 0.3) {
     ctx.globalAlpha = 1;
 }
 
+export function drawRectOutline(x, y, w, h, color = "#000", width = 1) {
+    x = gameToCanvasX(x);
+    y = gameToCanvasY(y);
+    w *= renderSettings.tileSize;
+    h *= renderSettings.tileSize;
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.strokeRect(x, y, w, h);
+}
+
 export function drawLine(x1, y1, x2, y2, color = "#000", width = 1) {
     x1 = gameToCanvasX(x1);
     y1 = gameToCanvasY(y1);

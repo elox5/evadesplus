@@ -1,4 +1,4 @@
-import { renderSettings, clearCanvas, drawCircle, drawGrid, drawRect, setBackground, setDrawOffset, setupCanvas, drawLine, drawCircleOutline, drawCircleFrame } from "./rendering.js";
+import { renderSettings, clearCanvas, drawCircle, drawGrid, drawRect, setBackground, setDrawOffset, setupCanvas, drawLine, drawCircleOutline, drawCircleFrame, drawRectOutline } from "./rendering.js";
 import { input, inputSettings } from "./input.js";
 
 const player = {
