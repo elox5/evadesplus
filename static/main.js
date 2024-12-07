@@ -34,6 +34,7 @@ async function handleFrame() {
         y: 5,
         r: 0.5,
         border: true,
+        color: "#777",
     }, {
         x: 55,
         y: 7,
