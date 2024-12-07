@@ -87,6 +87,20 @@ export function drawRect(x, y, w, h, color = "#000", alpha = 0.3) {
     ctx.globalAlpha = 1;
 }
 
+export function drawLine(x1, y1, x2, y2, color = "#000", width = 1) {
+    x1 = gameToCanvasX(x1);
+    y1 = gameToCanvasY(y1);
+    x2 = gameToCanvasX(x2);
+    y2 = gameToCanvasY(y2);
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+}
+
 function gameToCanvasX(x) {
     return (x + renderSettings.canvasWidth / 2 - drawOffset.x) * renderSettings.tileSize;
 }

@@ -1,4 +1,4 @@
-import { renderSettings, clearCanvas, drawCircle, drawGrid, drawRect, setBackground, setDrawOffset, setupCanvas } from "./rendering.js";
+import { renderSettings, clearCanvas, drawCircle, drawGrid, drawRect, setBackground, setDrawOffset, setupCanvas, drawLine } from "./rendering.js";
 import { input } from "./input.js";
 
 const player = {
@@ -35,13 +35,14 @@ async function handleFrame() {
         r: 0.5,
         border: true,
     }, {
-        x: 50,
+        x: 55,
         y: 7,
         r: 3,
         color: "#00ff0044",
     }];
 
     renderFrame(player, rects, entities);
+    drawLine(player.x, player.y, player.x + input.x, player.y + input.y, "yellow", 2);
 
     const speed = 0.2;
 
