@@ -33,6 +33,12 @@ async function handleFrame() {
         x: 45,
         y: 5,
         r: 0.5,
+        border: true,
+    }, {
+        x: 50,
+        y: 7,
+        r: 3,
+        color: "#00ff0044",
     }];
 
     renderFrame(player, rects, entities);

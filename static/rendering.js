@@ -56,7 +56,7 @@ export function drawGrid() {
     ctx.globalAlpha = 1;
 }
 
-export function drawCircle(x, y, r, color = "#777", hasBorder = true) {
+export function drawCircle(x, y, r, color = "#777", hasBorder = false) {
     x = gameToCanvasX(x);
     y = gameToCanvasY(y);
     r *= renderSettings.tileSize;
