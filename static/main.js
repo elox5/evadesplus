@@ -1,5 +1,6 @@
 import { renderSettings, clearCanvas, drawCircle, drawGrid, drawRect, setBackground, setDrawOffset, setupCanvas, drawLine, drawCircleOutline, drawCircleFrame, drawRectOutline, drawRectFrame, drawText } from "./rendering.js";
 import { input, inputSettings } from "./input.js";
+import { connect } from "./networking.js";
 
 const player = {
     x: 50,
@@ -19,6 +20,8 @@ async function main() {
     setBackground("#aaa");
 
     setInterval(handleFrame, 1000 / 60);
+
+    connect();
 }
 window.main = main;
 

@@ -7,3 +7,4 @@ edition = "2021"
 anyhow = "1.0.94"
 tokio = { version = "1.42.0", features = ["full"] }
 warp = "0.3.7"
+wtransport = "0.5.0"
