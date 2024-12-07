@@ -35,8 +35,7 @@ export function clearCanvas() {
 }
 
 export function drawGrid() {
-    ctx.strokeStyle = "black";
-    ctx.globalAlpha = 0.2;
+    ctx.strokeStyle = "#00000033";
     ctx.lineWidth = 1;
 
     for (let i = 0; i < renderSettings.canvasWidth; i++) {
@@ -52,8 +51,6 @@ export function drawGrid() {
         ctx.lineTo(canvas.width, (j + drawOffset.y % 1) * renderSettings.tileSize);
         ctx.stroke();
     }
-
-    ctx.globalAlpha = 1;
 }
 
 export function drawCircle(x, y, r, color = "#000", hasOutline = false) {
