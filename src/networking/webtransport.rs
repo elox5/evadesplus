@@ -1,4 +1,4 @@
-use crate::game::game::World;
+use crate::{game::area::Area, physics::vec2::Vec2};
 use anyhow::Result;
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
@@ -13,11 +13,11 @@ use wtransport::{
 
 pub struct WebTransportServer {
     endpoint: Endpoint<Server>,
-    world_arc: Arc<Mutex<World>>,
+    area_arc: Arc<Mutex<Area>>,
 }
 
 impl WebTransportServer {
-    pub fn new(identity: Identity, world_arc: Arc<Mutex<World>>) -> Result<Self> {
+    pub fn new(identity: Identity, area_arc: Arc<Mutex<Area>>) -> Result<Self> {
         let config = ServerConfig::builder()
             .with_bind_address(SocketAddr::new(
                 IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
@@ -29,10 +29,7 @@ impl WebTransportServer {
 
         let endpoint = Endpoint::server(config)?;
 
-        Ok(Self {
-            endpoint,
-            world_arc,
-        })
+        Ok(Self { endpoint, area_arc })
     }
 
     pub fn local_addr(&self) -> SocketAddr {
@@ -49,7 +46,7 @@ impl WebTransportServer {
 
             tokio::spawn(Self::handle_session(
                 incomming_session,
-                self.world_arc.clone(),
+                self.area_arc.clone(),
                 id,
             ));
         }
@@ -57,15 +54,15 @@ impl WebTransportServer {
         Ok(())
     }
 
-    async fn handle_session(session: IncomingSession, world_arc: Arc<Mutex<World>>, id: u64) {
-        let result = Self::handle_session_impl(session, world_arc, id).await;
+    async fn handle_session(session: IncomingSession, area_arc: Arc<Mutex<Area>>, id: u64) {
+        let result = Self::handle_session_impl(session, area_arc, id).await;
 
         println!("Session {id} closed with result: {result:?}");
     }
 
     async fn handle_session_impl(
         session: IncomingSession,
-        world_arc: Arc<Mutex<World>>,
+        area_arc: Arc<Mutex<Area>>,
         id: u64,
     ) -> Result<()> {
         let mut _buffer = vec![0; 65536].into_boxed_slice();
@@ -80,10 +77,9 @@ impl WebTransportServer {
 
         let connection = session_request.accept().await?;
 
-        {
-            let mut world = world_arc.lock().await;
-            world.create_player(id, connection.clone());
-        }
+        let mut area = area_arc.lock().await;
+        let entity = area.spawn_hero(connection.clone());
+        drop(area);
 
         println!("Accepted connection from client {id}. Awaiting streams...");
 
@@ -104,8 +100,8 @@ impl WebTransportServer {
 
                     println!("Received input '({x:.2}, {y:.2})' from client {id}");
 
-                    let mut world = world_arc.lock().await;
-                    world.update_player_input(id, x, y);
+                    let mut area = area_arc.lock().await;
+                    area.update_hero_dir(entity, Vec2::new(x, y));
                 }
             }
         }

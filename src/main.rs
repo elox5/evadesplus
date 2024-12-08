@@ -1,5 +1,5 @@
 use anyhow::Result;
-use evadesplus::{game::game::World, networking::webtransport::WebTransportServer};
+use evadesplus::{game::area::Area, networking::webtransport::WebTransportServer};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use warp::Filter;
@@ -7,16 +7,15 @@ use wtransport::{tls::Sha256DigestFmt, Identity};
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let world = World::new();
+    let area = Area::new("test".to_string(), "test".to_string());
+    let area_arc = Arc::new(Mutex::new(area));
 
-    let world_arc = Arc::new(Mutex::new(world));
-
-    World::start_update_loop(world_arc.clone());
+    Area::start_update_loop(area_arc.clone());
 
     let identity = Identity::self_signed(["localhost", "127.0.0.1", "[::1]"])?;
     let cert_digest = identity.certificate_chain().as_slice()[0].hash();
 
-    let webtransport_server = WebTransportServer::new(identity, world_arc.clone())?;
+    let webtransport_server = WebTransportServer::new(identity, area_arc.clone())?;
 
     let root_route = warp::fs::dir("static");
     let cert_route = warp::path("cert").and(warp::get()).then(move || {
