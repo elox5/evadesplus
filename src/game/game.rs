@@ -1,5 +1,8 @@
-use std::sync::Arc;
-use tokio::sync::Mutex;
+use std::{sync::Arc, time::Duration};
+use tokio::{
+    sync::Mutex,
+    time::{interval, Instant},
+};
 
 pub struct Player {
     pub id: u64,
@@ -9,8 +12,10 @@ pub struct Player {
     pub r: f32,
     pub color: String,
 
-    pub vx: f32,
-    pub vy: f32,
+    pub dir_x: f32,
+    pub dir_y: f32,
+
+    pub speed: f32,
 }
 
 impl Player {
@@ -25,8 +30,9 @@ impl Player {
             y: 0.0,
             r: 0.5,
             color,
-            vx: 0.0,
-            vy: 0.0,
+            dir_x: 0.0,
+            dir_y: 0.0,
+            speed: 17.0,
         }
     }
 }
@@ -54,15 +60,15 @@ impl World {
         let player = self.players.iter_mut().find(|player| player.id == id);
 
         if let Some(player) = player {
-            player.vx = vx;
-            player.vy = vy;
+            player.dir_x = vx;
+            player.dir_y = vy;
         }
     }
 
-    pub fn update(&mut self) {
+    pub fn update(&mut self, delta_time: f32) {
         for player in &mut self.players {
-            player.x += player.vx;
-            player.y += player.vy;
+            player.x += player.dir_x * player.speed * delta_time;
+            player.y += player.dir_y * player.speed * delta_time;
 
             println!(
                 "Player (id: {:X}) moved to ({}, {})",
@@ -73,11 +79,16 @@ impl World {
 
     pub fn start_update_loop(world: Arc<Mutex<World>>) {
         tokio::spawn(async move {
-            loop {
-                tokio::time::sleep(std::time::Duration::from_millis(16)).await;
+            let mut last_time = Instant::now();
 
+            let mut interval = interval(Duration::from_millis(16));
+
+            loop {
                 let mut world = world.lock().await;
-                world.update();
+                world.update(last_time.elapsed().as_secs_f32());
+
+                last_time = Instant::now();
+                interval.tick().await;
             }
         });
     }
