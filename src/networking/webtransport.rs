@@ -7,6 +7,7 @@ use std::{
 };
 use tokio::sync::Mutex;
 use wtransport::{
+    datagram::Datagram,
     endpoint::{endpoint_side::Server, IncomingSession},
     Endpoint, Identity, ServerConfig,
 };
@@ -104,18 +105,21 @@ impl WebTransportServer {
                         None => continue,
                     };
 
-                    let str_data = std::str::from_utf8(&buffer[..bytes_read])?;
+                    let data = &buffer[..bytes_read];
 
-                    println!("Received (uni) '{str_data}' from client {id:X}");
+                    let x = f32::from_le_bytes([data[0], data[1], data[2], data[3]]);
+                    let y = f32::from_le_bytes([data[4], data[5], data[6], data[7]]);
 
-                    let mut stream = connection.open_uni().await?.await?;
-                    stream.write_all(b"ACK").await?;
+                    println!("Received (uni) '({x:.2}, {y:.2})' from client {id:X}");
                 },
                 dgram = connection.receive_datagram() => {
                     let dgram = dgram?;
-                    let str_data = std::str::from_utf8(&dgram)?;
+                    let payload = dgram.payload();
 
-                    println!("Received datagram '{str_data}' from client {id:X}");
+                    let x = f32::from_le_bytes([payload[0], payload[1], payload[2], payload[3]]);
+                    let y = f32::from_le_bytes([payload[4], payload[5], payload[6], payload[7]]);
+
+                    println!("Received (dgram) '({x:.2}, {y:.2})' from client {id:X}");
 
                     connection.send_datagram(b"ACK")?;
                 }

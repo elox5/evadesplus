@@ -23,11 +23,15 @@ async function main() {
 
     const transport = await connect();
 
-    const testStream = await transport.createUnidirectionalStream();
+    const inputStream = transport.datagrams.writable;
+    const inputWriter = inputStream.getWriter();
 
-    let encoder = new TextEncoder("utf-8");
-    let data = encoder.encode("Hello!");
-    testStream.getWriter().write(data);
+    setInterval(async () => {
+        const inputArray = new Float32Array([input.x, input.y]);
+        const data = new Uint8Array(inputArray.buffer);
+
+        await inputWriter.write(data);
+    }, 1000 / 60);
 }
 window.main = main;
 
