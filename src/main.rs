@@ -11,10 +11,12 @@ async fn main() -> Result<()> {
 
     let world_arc = Arc::new(Mutex::new(world));
 
+    World::start_update_loop(world_arc.clone());
+
     let identity = Identity::self_signed(["localhost", "127.0.0.1", "[::1]"])?;
     let cert_digest = identity.certificate_chain().as_slice()[0].hash();
 
-    let webtransport_server = WebTransportServer::new(identity, world_arc)?;
+    let webtransport_server = WebTransportServer::new(identity, world_arc.clone())?;
 
     let root_route = warp::fs::dir("static");
     let cert_route = warp::path("cert").and(warp::get()).then(move || {

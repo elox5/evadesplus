@@ -53,17 +53,27 @@ impl WebTransportServer {
 
             let id = player.id;
 
-            tokio::spawn(Self::handle_session(incomming_session, id));
+            drop(world);
+
+            tokio::spawn(Self::handle_session(
+                incomming_session,
+                self.world_arc.clone(),
+                id,
+            ));
         }
     }
 
-    async fn handle_session(session: IncomingSession, id: u64) {
-        let result = Self::handle_session_impl(session, id).await;
+    async fn handle_session(session: IncomingSession, world_arc: Arc<Mutex<World>>, id: u64) {
+        let result = Self::handle_session_impl(session, world_arc, id).await;
 
         println!("Session {:X} closed with result: {:?}", id, result);
     }
 
-    async fn handle_session_impl(session: IncomingSession, id: u64) -> Result<()> {
+    async fn handle_session_impl(
+        session: IncomingSession,
+        world_arc: Arc<Mutex<World>>,
+        id: u64,
+    ) -> Result<()> {
         let mut buffer = vec![0; 65536].into_boxed_slice();
 
         let session_request = session.await?;
@@ -118,9 +128,10 @@ impl WebTransportServer {
                     let x = f32::from_le_bytes([payload[0], payload[1], payload[2], payload[3]]);
                     let y = f32::from_le_bytes([payload[4], payload[5], payload[6], payload[7]]);
 
-                    println!("Received (dgram) '({x:.2}, {y:.2})' from client {id:X}");
+                    println!("Received input '({x:.2}, {y:.2})' from client {id:X}");
 
-                    connection.send_datagram(b"ACK")?;
+                    let mut world = world_arc.lock().await;
+                    world.update_player_input(id, x, y);
                 }
             }
         }

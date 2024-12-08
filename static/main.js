@@ -3,8 +3,8 @@ import { input, inputSettings } from "./input.js";
 import { connect, establishInputConnection } from "./networking.js";
 
 const player = {
-    x: 50,
-    y: 10,
+    x: 0,
+    y: 0,
     r: 0.5,
     color: "red",
     border: false,
