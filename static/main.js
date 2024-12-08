@@ -1,6 +1,6 @@
 import { renderSettings, clearCanvas, drawCircle, drawGrid, drawRect, setBackground, setDrawOffset, setupCanvas, drawLine, drawCircleOutline, drawCircleFrame, drawRectOutline, drawRectFrame, drawText } from "./rendering.js";
 import { input, inputSettings } from "./input.js";
-import { connect } from "./networking.js";
+import { connect, establishInputConnection } from "./networking.js";
 
 const player = {
     x: 50,
@@ -21,17 +21,9 @@ async function main() {
 
     setInterval(handleFrame, 1000 / 60);
 
-    const transport = await connect();
+    await connect();
 
-    const inputStream = transport.datagrams.writable;
-    const inputWriter = inputStream.getWriter();
-
-    setInterval(async () => {
-        const inputArray = new Float32Array([input.x, input.y]);
-        const data = new Uint8Array(inputArray.buffer);
-
-        await inputWriter.write(data);
-    }, 1000 / 60);
+    establishInputConnection();
 }
 window.main = main;
 

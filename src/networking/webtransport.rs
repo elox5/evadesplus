@@ -7,7 +7,6 @@ use std::{
 };
 use tokio::sync::Mutex;
 use wtransport::{
-    datagram::Datagram,
     endpoint::{endpoint_side::Server, IncomingSession},
     Endpoint, Identity, ServerConfig,
 };
