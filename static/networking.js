@@ -63,3 +63,16 @@ export function establishInputConnection() {
         sendInput(writer, input);
     }, networkSettings.inputUpdateRate);
 }
+
+export async function establishRenderConnection(callback) {
+    const reader = transport.datagrams.readable.getReader();
+    while (true) {
+        const { value, done } = await reader.read();
+
+        if (done) {
+            break;
+        }
+
+        callback(value);
+    }
+}

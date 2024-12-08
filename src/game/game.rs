@@ -3,12 +3,13 @@ use tokio::{
     sync::Mutex,
     time::{interval, Instant},
 };
+use wtransport::Connection;
 
 pub struct Player {
     pub id: u64,
 
-    pub x: f32,
-    pub y: f32,
+    x: f32,
+    y: f32,
     pub r: f32,
     pub color: String,
 
@@ -16,12 +17,12 @@ pub struct Player {
     pub dir_y: f32,
 
     pub speed: f32,
+
+    connection: Connection,
 }
 
 impl Player {
-    pub fn new() -> Self {
-        let id = rand::random();
-
+    pub fn new(id: u64, connection: Connection) -> Self {
         let color = format!("#{:06x}", rand::random::<u32>());
 
         Self {
@@ -33,6 +34,7 @@ impl Player {
             dir_x: 0.0,
             dir_y: 0.0,
             speed: 17.0,
+            connection,
         }
     }
 }
@@ -48,8 +50,8 @@ impl World {
         }
     }
 
-    pub fn create_player(&mut self) -> &Player {
-        let player = Player::new();
+    pub fn create_player(&mut self, id: u64, connection: Connection) -> &Player {
+        let player = Player::new(id, connection);
         println!("Player (id: {:X}) created", &player.id);
         self.players.push(player);
 
@@ -70,6 +72,15 @@ impl World {
             player.x += player.dir_x * player.speed * delta_time;
             player.y += player.dir_y * player.speed * delta_time;
 
+            let x_bytes = player.x.to_le_bytes();
+            let y_bytes = player.y.to_le_bytes();
+
+            let data = vec![
+                x_bytes[0], x_bytes[1], x_bytes[2], x_bytes[3], y_bytes[0], y_bytes[1], y_bytes[2],
+                y_bytes[3],
+            ];
+            let _ = player.connection.send_datagram(data);
+
             println!(
                 "Player (id: {:X}) moved to ({}, {})",
                 player.id, player.x, player.y
@@ -84,8 +95,10 @@ impl World {
             let mut interval = interval(Duration::from_millis(16));
 
             loop {
-                let mut world = world.lock().await;
-                world.update(last_time.elapsed().as_secs_f32());
+                {
+                    let mut world = world.lock().await;
+                    world.update(last_time.elapsed().as_secs_f32());
+                }
 
                 last_time = Instant::now();
                 interval.tick().await;

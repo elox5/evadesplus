@@ -1,6 +1,6 @@
 import { renderSettings, clearCanvas, drawCircle, drawGrid, drawRect, setBackground, setDrawOffset, setupCanvas, drawLine, drawCircleOutline, drawCircleFrame, drawRectOutline, drawRectFrame, drawText } from "./rendering.js";
 import { input, inputSettings } from "./input.js";
-import { connect, establishInputConnection } from "./networking.js";
+import { connect, establishInputConnection, establishRenderConnection } from "./networking.js";
 
 const player = {
     x: 0,
@@ -24,6 +24,10 @@ async function main() {
     await connect();
 
     establishInputConnection();
+    establishRenderConnection(d => {
+        const data = new Float32Array(d.buffer);
+        console.log(data[0], data[1]);
+    });
 }
 window.main = main;
 
