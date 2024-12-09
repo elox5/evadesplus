@@ -5,6 +5,7 @@ use crate::physics::vec2::Vec2;
 pub struct Hero;
 
 pub struct Player {
+    pub name: String,
     pub connection: Connection,
 }
 

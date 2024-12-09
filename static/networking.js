@@ -8,7 +8,7 @@ export let networkSettings = {
     inputUpdateRate: 1000 / 60,
 }
 
-export async function connect() {
+export async function connect(name) {
     let certificate = await get_certificate();
 
     transport = new WebTransport(url, {
@@ -29,6 +29,13 @@ export async function connect() {
     window.onbeforeunload = () => {
         transport.close();
     }
+
+    const stream = await transport.createUnidirectionalStream();
+    const writer = stream.getWriter();
+    await writer.write(new TextEncoder().encode(name));
+    await writer.close();
+
+    console.log("Sent player data");
 }
 
 async function get_certificate() {

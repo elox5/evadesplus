@@ -66,8 +66,11 @@ impl Area {
         });
     }
 
-    pub fn spawn_hero(&mut self, connection: Connection) -> Entity {
-        let player = Player { connection };
+    pub fn spawn_hero(&mut self, name: &str, connection: Connection) -> Entity {
+        let player = Player {
+            connection,
+            name: name.to_owned(),
+        };
 
         let pos = Position(Vec2::ZERO);
         let vel = Velocity(Vec2::ZERO);

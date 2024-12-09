@@ -10,7 +10,7 @@ async function main() {
     setupCanvas();
     setBackground("#aaa");
 
-    await connect();
+    await connect("Player");
 
     establishInputConnection();
     establishRenderConnection(handleRenderUpdate);

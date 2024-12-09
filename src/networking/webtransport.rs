@@ -65,7 +65,7 @@ impl WebTransportServer {
         area_arc: Arc<Mutex<Area>>,
         id: u64,
     ) -> Result<()> {
-        let mut _buffer = vec![0; 65536].into_boxed_slice();
+        let mut buffer = vec![0; 65536].into_boxed_slice();
 
         let session_request = session.await?;
 
@@ -77,31 +77,53 @@ impl WebTransportServer {
 
         let connection = session_request.accept().await?;
 
-        let mut area = area_arc.lock().await;
-        let entity = area.spawn_hero(connection.clone());
-        drop(area);
-
         println!("Accepted connection from client {id}. Awaiting streams...");
+
+        let mut entity = None;
 
         loop {
             tokio::select! {
+                stream = connection.accept_uni() => {
+                    let mut stream = stream?;
+
+                    let bytes_read = match stream.read(&mut buffer).await? {
+                        Some(bytes_read) => bytes_read,
+                        None => continue,
+                    };
+
+                    let data = &buffer[..bytes_read];
+                    let name = std::str::from_utf8(data);
+
+
+                    if let Ok(name) = name {
+                        println!("Accepted name '{name}' from client {id}. Spawning hero...");
+
+                        let mut area = area_arc.lock().await;
+                        entity = Some(area.spawn_hero(name, connection.clone()));
+                    }
+                }
                 dgram = connection.receive_datagram() => {
-                    let dgram = dgram?;
-                    let payload = dgram.payload();
+                    if let Some(entity) = entity {
+                        let dgram = dgram?;
+                        let payload = dgram.payload();
 
-                    let x = f32::from_le_bytes([payload[0], payload[1], payload[2], payload[3]]);
-                    let y = f32::from_le_bytes([payload[4], payload[5], payload[6], payload[7]]);
+                        let x = f32::from_le_bytes([payload[0], payload[1], payload[2], payload[3]]);
+                        let y = f32::from_le_bytes([payload[4], payload[5], payload[6], payload[7]]);
 
-                    println!("Received input '({x:.2}, {y:.2})' from client {id}");
+                        println!("Received input '({x:.2}, {y:.2})' from client {id}");
 
-                    let mut area = area_arc.lock().await;
-                    area.update_hero_dir(entity, Vec2::new(x, y));
+                        let mut area = area_arc.lock().await;
+                        area.update_hero_dir(entity, Vec2::new(x, y));
+                    }
                 }
                 _ = connection.closed() => {
                     println!("Connection from client {id} closed");
 
-                    let mut area = area_arc.lock().await;
-                    let _ = area.world.despawn(entity);
+                    if let Some(entity) = entity {
+                        let mut area = area_arc.lock().await;
+                        let _ = area.world.despawn(entity);
+                    }
+
                     return Ok(());
                 }
             }
