@@ -7,7 +7,7 @@ use crate::{
 
 use super::{
     area::Area,
-    components::{BounceOffBounds, Bounded, Color, Player, Size},
+    components::{BounceOffBounds, Bounded, Color, Enemy, Player, Size},
 };
 
 pub fn system_update_position(area: &mut Area) {
@@ -69,12 +69,19 @@ pub fn system_render(area: &mut Area) {
     area.render_packet = Some(RenderPacket::new());
     let nodes = &mut area.render_packet.as_mut().unwrap().nodes;
 
-    for (_, (pos, size, color, player)) in area
-        .world
-        .query_mut::<(&Position, &Size, &Color, Option<&Player>)>()
+    for (_, (pos, size, color, player, enemy)) in
+        area.world
+            .query_mut::<(&Position, &Size, &Color, Option<&Player>, Option<&Enemy>)>()
     {
         let name = player.map(|p| p.name.clone());
-        let node = RenderNode::new(pos.0.x, pos.0.y, size.0 / 2.0, color.clone(), false, name);
+        let node = RenderNode::new(
+            pos.0.x,
+            pos.0.y,
+            size.0 / 2.0,
+            color.clone(),
+            enemy.is_some(),
+            name,
+        );
         nodes.push(node);
     }
 }

@@ -58,8 +58,6 @@ function handleRenderUpdate(data) {
         let colorBytes = data.slice(idx + 12, idx + 16);
         let hasBorder = data[idx + 16] === 1;
 
-
-
         idx += 17;
 
         let node = {};
@@ -101,7 +99,7 @@ function renderFrame(offset, rects, nodes) {
     drawGrid();
 
     for (const node of nodes) {
-        drawCircle(node.x, node.y, node.radius, node.color, node.border);
+        drawCircle(node.x, node.y, node.radius, node.color, node.hasBorder);
 
         if (node.name !== undefined) {
             drawText(node.x, node.y + 1, node.name, "black", 16, "bold");
