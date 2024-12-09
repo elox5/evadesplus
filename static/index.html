@@ -16,7 +16,13 @@
 <body onload="main()">
     <main>
         <h1>Evades+</h1>
-        <div class="canvas-wrapper">
+
+        <div id="connection-panel">
+            <input type="text" id="name-input" placeholder="Enter name...">
+            <button id="connect-button">Connect</button>
+        </div>
+
+        <div id="canvas-wrapper" class="hidden">
             <canvas id="canvas"></canvas>
         </div>
     </main>

@@ -65,73 +65,75 @@ function getKeyboardInput() {
     return normalize(total);
 }
 
-addEventListener("keydown", (e) => {
-    if (e.key === "Shift") {
-        sneaking = true;
+export function setupInput() {
+    addEventListener("keydown", (e) => {
+        if (e.key === "Shift") {
+            sneaking = true;
+            updateInput();
+        }
+
+        if (e.key === "ArrowLeft" || e.code === "KeyA") {
+            keyboardPressed.left = true;
+        }
+        else if (e.key === "ArrowRight" || e.code === "KeyD") {
+            keyboardPressed.right = true;
+        }
+        else if (e.key === "ArrowUp" || e.code === "KeyW") {
+            keyboardPressed.up = true;
+        }
+        else if (e.key === "ArrowDown" || e.code === "KeyS") {
+            keyboardPressed.down = true;
+        } else {
+            return;
+        }
+
         updateInput();
-    }
+    });
 
-    if (e.key === "ArrowLeft" || e.code === "KeyA") {
-        keyboardPressed.left = true;
-    }
-    else if (e.key === "ArrowRight" || e.code === "KeyD") {
-        keyboardPressed.right = true;
-    }
-    else if (e.key === "ArrowUp" || e.code === "KeyW") {
-        keyboardPressed.up = true;
-    }
-    else if (e.key === "ArrowDown" || e.code === "KeyS") {
-        keyboardPressed.down = true;
-    } else {
-        return;
-    }
+    addEventListener("keyup", (e) => {
+        if (e.key === "Shift") {
+            sneaking = false;
+            updateInput();
+        }
 
-    updateInput();
-});
+        if (e.key === "ArrowLeft" || e.code === "KeyA") {
+            keyboardPressed.left = false;
+        }
+        else if (e.key === "ArrowRight" || e.code === "KeyD") {
+            keyboardPressed.right = false;
+        }
+        else if (e.key === "ArrowUp" || e.code === "KeyW") {
+            keyboardPressed.up = false;
+        }
+        else if (e.key === "ArrowDown" || e.code === "KeyS") {
+            keyboardPressed.down = false;
+        } else {
+            return;
+        }
 
-addEventListener("keyup", (e) => {
-    if (e.key === "Shift") {
-        sneaking = false;
         updateInput();
-    }
+    });
 
-    if (e.key === "ArrowLeft" || e.code === "KeyA") {
-        keyboardPressed.left = false;
-    }
-    else if (e.key === "ArrowRight" || e.code === "KeyD") {
-        keyboardPressed.right = false;
-    }
-    else if (e.key === "ArrowUp" || e.code === "KeyW") {
-        keyboardPressed.up = false;
-    }
-    else if (e.key === "ArrowDown" || e.code === "KeyS") {
-        keyboardPressed.down = false;
-    } else {
-        return;
-    }
+    addEventListener("mousemove", (e) => {
+        if (!mouseInputActive) return;
 
-    updateInput();
-});
-
-addEventListener("mousemove", (e) => {
-    if (!mouseInputActive) return;
-
-    mouseInput = calculateMouseInput(e);
-
-    updateInput();
-});
-
-addEventListener("mousedown", (e) => {
-    mouseInputActive = !mouseInputActive;
-    if (!mouseInputActive) {
-        mouseInput.y = 0;
-        mouseInput.x = 0;
-    }
-    else {
         mouseInput = calculateMouseInput(e);
-    }
-    updateInput();
-});
+
+        updateInput();
+    });
+
+    addEventListener("mousedown", (e) => {
+        mouseInputActive = !mouseInputActive;
+        if (!mouseInputActive) {
+            mouseInput.y = 0;
+            mouseInput.x = 0;
+        }
+        else {
+            mouseInput = calculateMouseInput(e);
+        }
+        updateInput();
+    });
+}
 
 function calculateMouseInput(e) {
     const centerX = window.innerWidth / 2;

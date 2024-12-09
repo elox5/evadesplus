@@ -26,7 +26,11 @@ main {
     align-items: center;
 }
 
-.canvas-wrapper {
+.hidden {
+    display: none !important;
+}
+
+#canvas-wrapper {
     position: absolute;
     width: 100%;
     height: 100%;
@@ -34,4 +38,19 @@ main {
     display: flex;
     justify-content: center;
     align-items: center;
+}
+
+#connection-panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 10px;
+}
+
+#name-input {
+    padding: 5px;
+}
+
+#connect-button {
+    padding: 5px;
 }

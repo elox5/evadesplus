@@ -1,6 +1,11 @@
 import { renderSettings, clearCanvas, drawCircle, drawGrid, drawRect, setBackground, setDrawOffset, setupCanvas, drawLine, drawCircleOutline, drawCircleFrame, drawRectOutline, drawRectFrame, drawText } from "./rendering.js";
-import { input, inputSettings } from "./input.js";
+import { input, setupInput, inputSettings } from "./input.js";
 import { connect, establishInputConnection, establishRenderConnection } from "./networking.js";
+
+const canvasWrapper = document.querySelector("#canvas-wrapper");
+const connectionPanel = document.querySelector("#connection-panel");
+const nameInput = document.querySelector("#name-input");
+const connectButton = document.querySelector("#connect-button");
 
 async function main() {
     renderSettings.tileSize = 40;
@@ -10,12 +15,28 @@ async function main() {
     setupCanvas();
     setBackground("#aaa");
 
-    await connect("Player");
-
-    establishInputConnection();
-    establishRenderConnection(handleRenderUpdate);
+    connectButton.onclick = handleConnection;
 }
 window.main = main;
+
+async function handleConnection() {
+    let name = nameInput.value;
+
+    console.log("Connecting");
+
+
+    if (name.trim().length === 0) {
+        return;
+    }
+
+    await connect(name);
+    establishInputConnection();
+    establishRenderConnection(handleRenderUpdate);
+    setupInput();
+
+    canvasWrapper.classList.remove("hidden");
+    connectionPanel.classList.add("hidden");
+}
 
 function handleRenderUpdate(data) {
     const offsetXBytes = data.slice(0, 4);
