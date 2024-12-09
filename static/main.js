@@ -2,15 +2,6 @@ import { renderSettings, clearCanvas, drawCircle, drawGrid, drawRect, setBackgro
 import { input, inputSettings } from "./input.js";
 import { connect, establishInputConnection, establishRenderConnection } from "./networking.js";
 
-const player = {
-    x: 0,
-    y: 0,
-    r: 0.5,
-    color: "red",
-    border: false,
-    zIndex: 10,
-};
-
 async function main() {
     renderSettings.tileSize = 40;
     renderSettings.canvasWidth = 24;
@@ -19,59 +10,60 @@ async function main() {
     setupCanvas();
     setBackground("#aaa");
 
-    setInterval(handleFrame, 1000 / 60);
-
     await connect();
 
     establishInputConnection();
-    establishRenderConnection(d => {
-        const data = new Float32Array(d.buffer);
-        console.log(data[0], data[1]);
-    });
+    establishRenderConnection(handleRenderUpdate);
 }
 window.main = main;
 
-async function handleFrame() {
-    const rects = [{
-        x: 45,
-        y: 5,
-        w: 4,
-        h: 5,
-        color: "#ff000077",
-    }];
-    const entities = [{
-        x: 45,
-        y: 5,
-        r: 0.5,
-        border: true,
-        color: "#777",
-        zIndex: 5,
-    }, {
-        x: 55,
-        y: 7,
-        r: 3,
-        color: "#00ff0044",
-        zIndex: 100,
-    }];
+function handleRenderUpdate(data) {
+    const offsetXBytes = data.slice(0, 4);
+    const offsetYBytes = data.slice(4, 8);
 
-    renderFrame(player, rects, entities);
+    const offsetX = new Float32Array(offsetXBytes.buffer)[0];
+    const offsetY = new Float32Array(offsetYBytes.buffer)[0];
 
-    let range = inputSettings.mouseInputRange;
-    drawLine(player.x, player.y, player.x + (input.x * range), player.y + (input.y * range), "yellow", 2);
-    drawCircleOutline(player.x, player.y, range, "orange", 2);
-    drawRectFrame(45, 5, 4, 5, "#00000077", 2);
+    const length = data[8];
 
-    drawText(player.x, player.y + 1, "Player", "black", 16, "bold");
+    const nodes = [];
 
-    const speed = 0.2;
+    for (let i = 0; i < length; i++) {
+        let idx = 9 + i * 17;
 
-    player.x += input.x * speed;
-    player.y += input.y * speed;
+        let xBytes = data.slice(idx, idx + 4);
+        let yBytes = data.slice(idx + 4, idx + 8);
+        let rBytes = data.slice(idx + 8, idx + 12);
+        let colorBytes = data.slice(idx + 12, idx + 16);
+        let hasBorder = data[idx + 16] === 1;
+
+        let x = new Float32Array(xBytes.buffer)[0];
+        let y = new Float32Array(yBytes.buffer)[0];
+        let radius = new Float32Array(rBytes.buffer)[0];
+        let r = colorBytes[0];
+        let g = colorBytes[1];
+        let b = colorBytes[2];
+        let a = colorBytes[3];
+        let color = `rgba(${r}, ${g}, ${b}, ${a})`;
+
+        nodes.push({
+            x,
+            y,
+            radius,
+            color,
+            hasBorder
+        })
+    }
+
+    console.log(nodes);
+
+
+    renderFrame({ x: offsetX, y: offsetY }, [], nodes);
 }
 
-function renderFrame(player, rects, entities) {
+function renderFrame(offset, rects, entities) {
     clearCanvas();
-    setDrawOffset(player.x, player.y);
+    setDrawOffset(offset.x, offset.y);
 
     for (const rect of rects) {
         drawRect(rect.x, rect.y, rect.w, rect.h, rect.color, rect.alpha);
@@ -79,10 +71,12 @@ function renderFrame(player, rects, entities) {
 
     drawGrid();
 
-    const finalEntities = [...entities, player];
-    finalEntities.sort((a, b) => a.zIndex - b.zIndex);
-
-    for (const entity of finalEntities) {
-        drawCircle(entity.x, entity.y, entity.r, entity.color, entity.border);
+    for (const entity of entities) {
+        drawCircle(entity.x, entity.y, entity.radius, entity.color, entity.border);
     }
+
+    let range = inputSettings.mouseInputRange;
+    drawLine(offset.x, offset.y, offset.x + (input.x * range), offset.y + (input.y * range), "yellow", 2);
+    drawCircleOutline(offset.x, offset.y, range, "orange", 2);
+    drawText(offset.x, offset.y + 1, "Player", "black", 16, "bold");
 }

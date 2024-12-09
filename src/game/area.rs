@@ -7,7 +7,7 @@ use tokio::{
 };
 use wtransport::Connection;
 
-use crate::physics::vec2::Vec2;
+use crate::{networking::rendering::RenderPacket, physics::vec2::Vec2};
 
 use super::{
     components::{Color, Direction, Hero, Player, Position, Size, Speed, Velocity},
@@ -22,6 +22,8 @@ pub struct Area {
 
     pub time: f32,
     pub delta_time: f32,
+
+    pub render_packet: Option<RenderPacket>,
 }
 
 impl Area {
@@ -32,6 +34,7 @@ impl Area {
             world: World::new(),
             time: 0.0,
             delta_time: 0.0,
+            render_packet: None,
         }
     }
 
@@ -42,6 +45,7 @@ impl Area {
         system_update_velocity(self);
         system_update_position(self);
         system_render(self);
+        system_send_render_packet(self);
     }
 
     pub fn start_update_loop(area: Arc<Mutex<Area>>) {

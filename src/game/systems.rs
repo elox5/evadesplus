@@ -1,4 +1,7 @@
-use crate::game::components::{Direction, Position, Speed, Velocity};
+use crate::{
+    game::components::{Direction, Position, Speed, Velocity},
+    networking::rendering::{RenderNode, RenderPacket},
+};
 
 use super::{
     area::Area,
@@ -21,22 +24,19 @@ pub fn system_update_velocity(area: &mut Area) {
 }
 
 pub fn system_render(area: &mut Area) {
-    for (_, (pos, size, color, player)) in area
-        .world
-        .query_mut::<(&Position, &Size, &Color, &Player)>()
-    {
-        let x_bytes = pos.0.x.to_le_bytes();
-        let y_bytes = pos.0.y.to_le_bytes();
-        let size_bytes = size.0.to_le_bytes();
-        let color_bytes = color.to_le_bytes();
+    area.render_packet = Some(RenderPacket::new());
+    let nodes = &mut area.render_packet.as_mut().unwrap().nodes;
 
-        let mut data = Vec::new();
+    for (_, (pos, size, color)) in area.world.query_mut::<(&Position, &Size, &Color)>() {
+        let node = RenderNode::new(pos.0.x, pos.0.y, size.0 / 2.0, color.clone(), false);
+        nodes.push(node);
+    }
+}
 
-        data.extend_from_slice(&x_bytes);
-        data.extend_from_slice(&y_bytes);
-        data.extend_from_slice(&size_bytes);
-        data.extend_from_slice(&color_bytes);
-
-        let _ = player.connection.send_datagram(data);
+pub fn system_send_render_packet(area: &mut Area) {
+    if let Some(packet) = &area.render_packet {
+        for (_, (player, pos)) in area.world.query_mut::<(&Player, &Position)>() {
+            let _ = player.connection.send_datagram(packet.to_bytes(pos.0));
+        }
     }
 }
