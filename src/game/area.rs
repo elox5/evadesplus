@@ -1,24 +1,26 @@
-use std::{sync::Arc, time::Duration};
-
+use super::{
+    components::{Bounded, Color, Direction, Hero, Player, Position, Size, Speed, Velocity},
+    systems::*,
+};
+use crate::{
+    networking::rendering::RenderPacket,
+    physics::{rect::Rect, vec2::Vec2},
+};
 use hecs::{Entity, World};
+use std::{sync::Arc, time::Duration};
 use tokio::{
     sync::Mutex,
     time::{interval, Instant},
 };
 use wtransport::Connection;
 
-use crate::{networking::rendering::RenderPacket, physics::vec2::Vec2};
-
-use super::{
-    components::{Color, Direction, Hero, Player, Position, Size, Speed, Velocity},
-    systems::*,
-};
-
 pub struct Area {
     pub name: String,
     pub id: String,
 
     pub world: World,
+
+    pub bounds: Rect,
 
     pub time: f32,
     pub delta_time: f32,
@@ -32,6 +34,7 @@ impl Area {
             name,
             id,
             world: World::new(),
+            bounds: Rect::new(0.0, 0.0, 100.0, 15.0),
             time: 0.0,
             delta_time: 0.0,
             render_packet: None,
@@ -44,6 +47,7 @@ impl Area {
 
         system_update_velocity(self);
         system_update_position(self);
+        system_bounds_check(self);
         system_render(self);
         system_send_render_packet(self);
     }
@@ -72,7 +76,7 @@ impl Area {
             name: name.to_owned(),
         };
 
-        let pos = Position(Vec2::ZERO);
+        let pos = Position(Vec2::new(50.0, 5.0));
         let vel = Velocity(Vec2::ZERO);
         let speed = Speed(17.0);
         let dir = Direction(Vec2::ZERO);
@@ -81,7 +85,7 @@ impl Area {
         let color = Color::rgb(rand::random(), rand::random(), rand::random());
 
         self.world
-            .spawn((player, Hero, pos, vel, speed, dir, size, color))
+            .spawn((player, Hero, pos, vel, speed, dir, size, color, Bounded))
     }
 
     pub fn update_hero_dir(&mut self, entity: Entity, new_dir: Vec2) {

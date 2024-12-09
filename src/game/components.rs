@@ -42,3 +42,6 @@ impl Color {
         [self.r, self.g, self.b, self.a]
     }
 }
+
+pub struct Bounded;
+pub struct BounceOffBounds;
