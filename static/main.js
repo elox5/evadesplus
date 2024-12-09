@@ -55,9 +55,6 @@ function handleRenderUpdate(data) {
         })
     }
 
-    console.log(nodes);
-
-
     renderFrame({ x: offsetX, y: offsetY }, [], nodes);
 }
 

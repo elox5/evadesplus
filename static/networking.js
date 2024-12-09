@@ -25,6 +25,10 @@ export async function connect() {
     await transport.ready;
 
     console.log("Connected");
+
+    window.onbeforeunload = () => {
+        transport.close();
+    }
 }
 
 async function get_certificate() {

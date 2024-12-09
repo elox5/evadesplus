@@ -85,12 +85,6 @@ impl WebTransportServer {
 
         loop {
             tokio::select! {
-                _stream = connection.accept_bi() => {
-                    println!("Accepted bidirectional stream from client {id}");
-                },
-                _stream = connection.accept_uni() => {
-                    println!("Accepted unidirectional stream from client {id}");
-                },
                 dgram = connection.receive_datagram() => {
                     let dgram = dgram?;
                     let payload = dgram.payload();
@@ -102,6 +96,13 @@ impl WebTransportServer {
 
                     let mut area = area_arc.lock().await;
                     area.update_hero_dir(entity, Vec2::new(x, y));
+                }
+                _ = connection.closed() => {
+                    println!("Connection from client {id} closed");
+
+                    let mut area = area_arc.lock().await;
+                    let _ = area.world.despawn(entity);
+                    return Ok(());
                 }
             }
         }
