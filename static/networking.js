@@ -87,3 +87,37 @@ export async function establishRenderConnection(callback) {
         callback(value);
     }
 }
+
+export async function establishUniConnection(callbacks) {
+    const reader = transport.incomingUnidirectionalStreams.getReader();
+    while (true) {
+        const { value, done } = await reader.read();
+
+        if (done) {
+            break;
+        }
+
+        readStream(value, callbacks);
+    }
+}
+
+async function readStream(stream, callbacks) {
+    const reader = stream.getReader();
+    while (true) {
+        const { value, done } = await reader.read();
+        const data = value;
+
+        if (done) {
+            break;
+        }
+
+        const header = new TextDecoder().decode(data.slice(0, 4));
+
+        for (const callback of callbacks) {
+
+            if (callback.header === header) {
+                callback.callback(data.slice(4));
+            }
+        }
+    }
+}

@@ -100,6 +100,17 @@ impl WebTransportServer {
 
                         let mut area = area_arc.lock().await;
                         entity = Some(area.spawn_hero(name, connection.clone()));
+
+                        let mut response = Vec::<u8>::new();
+                        response.extend_from_slice(b"ADEF"); // area definition
+                        response.extend_from_slice(&area.bounds.w.to_le_bytes());
+                        response.extend_from_slice(&area.bounds.h.to_le_bytes());
+                        response.extend_from_slice(&area.name.len().to_le_bytes()[..4]);
+                        response.extend_from_slice(area.name.as_bytes());
+
+                        let mut response_stream = connection.open_uni().await?.await?;
+                        response_stream.write_all(&response).await?;
+                        response_stream.finish().await?;
                     }
                 }
                 dgram = connection.receive_datagram() => {

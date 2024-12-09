@@ -1,11 +1,12 @@
 import { renderSettings, clearCanvas, drawCircle, drawGrid, drawRect, setBackground, setDrawOffset, setupCanvas, drawLine, drawCircleOutline, drawCircleFrame, drawRectOutline, drawRectFrame, drawText } from "./rendering.js";
 import { input, setupInput, inputSettings } from "./input.js";
-import { connect, establishInputConnection, establishRenderConnection } from "./networking.js";
+import { connect, establishUniConnection, establishInputConnection, establishRenderConnection } from "./networking.js";
 
 const canvasWrapper = document.querySelector("#canvas-wrapper");
 const connectionPanel = document.querySelector("#connection-panel");
 const nameInput = document.querySelector("#name-input");
 const connectButton = document.querySelector("#connect-button");
+const areaName = document.querySelector("#area-name");
 
 async function main() {
     renderSettings.tileSize = 40;
@@ -32,10 +33,46 @@ async function handleConnection() {
     await connect(name);
     establishInputConnection();
     establishRenderConnection(handleRenderUpdate);
+    establishUniConnection([
+        {
+            header: "ADEF",
+            callback: handleAreaUpdate,
+        }
+    ]);
     setupInput();
 
     canvasWrapper.classList.remove("hidden");
     connectionPanel.classList.add("hidden");
+}
+
+let area = {
+    x: 0,
+    y: 0,
+    w: 0,
+    h: 0,
+    color: "#00000022",
+    hasBorder: false,
+}
+
+function handleAreaUpdate(data) {
+    const widthBytes = data.slice(0, 4);
+    const heightBytes = data.slice(4, 8);
+
+    const width = new Float32Array(widthBytes.buffer)[0];
+    const height = new Float32Array(heightBytes.buffer)[0];
+
+    const nameLengthBytes = data.slice(8, 12);
+    const nameLength = new Uint32Array(nameLengthBytes.buffer)[0];
+
+    const nameBytes = data.slice(12, 12 + nameLength);
+    const name = new TextDecoder().decode(nameBytes);
+
+    area.w = width;
+    area.h = height;
+
+    areaName.innerHTML = name;
+
+    console.log("Area update:", name, width, height);
 }
 
 function handleRenderUpdate(data) {
@@ -85,7 +122,7 @@ function handleRenderUpdate(data) {
         nodes.push(node);
     }
 
-    renderFrame({ x: offsetX, y: offsetY }, [], nodes);
+    renderFrame({ x: offsetX, y: offsetY }, [area], nodes);
 }
 
 function renderFrame(offset, rects, nodes) {
@@ -93,7 +130,7 @@ function renderFrame(offset, rects, nodes) {
     setDrawOffset(offset.x, offset.y);
 
     for (const rect of rects) {
-        drawRect(rect.x, rect.y, rect.w, rect.h, rect.color, rect.alpha);
+        drawRect(rect.x, rect.y, rect.w, rect.h, rect.color, rect.hasBorder);
     }
 
     drawGrid();

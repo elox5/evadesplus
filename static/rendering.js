@@ -106,7 +106,7 @@ export function drawRect(x, y, w, h, color = "#000", hasOutline = false) {
     h *= renderSettings.tileSize;
 
     ctx.fillStyle = color;
-    ctx.fillRect(x, y, w, h);
+    ctx.fillRect(x, y, w, -h);
 
     if (hasOutline) {
         ctx.strokeStyle = "black";

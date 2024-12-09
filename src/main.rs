@@ -16,7 +16,12 @@ use wtransport::{tls::Sha256DigestFmt, Identity};
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let mut area = Area::new("test".to_string(), "test".to_string(), 20.0, 20.0);
+    let mut area = Area::new(
+        "test".to_string(),
+        "Testing Territory".to_string(),
+        20.0,
+        20.0,
+    );
 
     area.world.spawn_batch((0..30).map(|_| {
         let pos = Position(area.bounds.random_inside());

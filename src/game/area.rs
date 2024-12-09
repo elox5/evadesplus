@@ -29,7 +29,7 @@ pub struct Area {
 }
 
 impl Area {
-    pub fn new(name: String, id: String, width: f32, height: f32) -> Self {
+    pub fn new(id: String, name: String, width: f32, height: f32) -> Self {
         Self {
             name,
             id,
