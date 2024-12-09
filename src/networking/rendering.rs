@@ -28,16 +28,25 @@ pub struct RenderNode {
     pub radius: f32,
     pub color: Color,
     pub has_border: bool,
+    pub name: Option<String>,
 }
 
 impl RenderNode {
-    pub fn new(x: f32, y: f32, radius: f32, color: Color, has_border: bool) -> RenderNode {
+    pub fn new(
+        x: f32,
+        y: f32,
+        radius: f32,
+        color: Color,
+        has_border: bool,
+        name: Option<String>,
+    ) -> RenderNode {
         RenderNode {
             x,
             y,
             radius,
             color,
             has_border,
+            name,
         }
     }
 
@@ -48,6 +57,12 @@ impl RenderNode {
         bytes.extend_from_slice(&self.radius.to_le_bytes());
         bytes.extend_from_slice(&self.color.to_le_bytes());
         bytes.push(self.has_border as u8);
+        if let Some(name) = &self.name {
+            bytes.extend_from_slice(&name.len().to_le_bytes()[..4]);
+            bytes.extend_from_slice(name.as_bytes());
+        } else {
+            bytes.extend_from_slice(&0u32.to_le_bytes());
+        }
         bytes
     }
 }
