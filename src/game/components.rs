@@ -1,8 +1,8 @@
+use crate::physics::vec2::Vec2;
 use wtransport::Connection;
 
-use crate::physics::vec2::Vec2;
-
 pub struct Hero;
+pub struct Enemy;
 
 pub struct Player {
     pub name: String,

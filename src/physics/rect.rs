@@ -54,4 +54,10 @@ impl Rect {
             && self.y < other.y + other.h
             && self.y + self.h > other.y
     }
+
+    pub fn random_inside(&self) -> Vec2 {
+        let x = self.x + self.w * (rand::random::<f32>());
+        let y = self.y + self.h * (rand::random::<f32>());
+        Vec2::new(x, y)
+    }
 }

@@ -21,6 +21,11 @@ impl Vec2 {
         }
     }
 
+    pub fn random_unit() -> Self {
+        let angle = rand::random::<f32>() * 2.0 * std::f32::consts::PI;
+        Self::from_polar(1.0, angle)
+    }
+
     pub fn rotated(&self, angle: f32) -> Self {
         Self::from_polar(self.magnitude(), self.angle() + angle)
     }

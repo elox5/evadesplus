@@ -1,5 +1,14 @@
 use anyhow::Result;
-use evadesplus::{game::area::Area, networking::webtransport::WebTransportServer};
+use evadesplus::{
+    game::{
+        area::Area,
+        components::{
+            BounceOffBounds, Bounded, Color, Direction, Enemy, Position, Size, Speed, Velocity,
+        },
+    },
+    networking::webtransport::WebTransportServer,
+    physics::vec2::Vec2,
+};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use warp::Filter;
@@ -7,7 +16,29 @@ use wtransport::{tls::Sha256DigestFmt, Identity};
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let area = Area::new("test".to_string(), "test".to_string());
+    let mut area = Area::new("test".to_string(), "test".to_string(), 20.0, 20.0);
+
+    area.world.spawn_batch((0..30).map(|_| {
+        let pos = Position(area.bounds.random_inside());
+        let vel = Velocity(Vec2::ZERO);
+        let dir = Direction(Vec2::random_unit());
+        let speed = Speed(10.0);
+        let size = Size(1.0);
+        let color = Color::rgb(100, 100, 100);
+
+        (
+            Enemy,
+            pos,
+            vel,
+            dir,
+            speed,
+            size,
+            color,
+            Bounded,
+            BounceOffBounds,
+        )
+    }));
+
     let area_arc = Arc::new(Mutex::new(area));
 
     Area::start_update_loop(area_arc.clone());
