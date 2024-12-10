@@ -89,7 +89,13 @@ pub fn system_render(area: &mut Area) {
 pub fn system_send_render_packet(area: &mut Area) {
     if let Some(packet) = &area.render_packet {
         for (_, (player, pos)) in area.world.query_mut::<(&Player, &Position)>() {
-            let _ = player.connection.send_datagram(packet.to_bytes(pos.0));
+            if let Some(max_datagram_size) = player.connection.max_datagram_size() {
+                let datagrams = packet.to_datagrams(max_datagram_size as u32, pos.0);
+
+                for datagram in datagrams {
+                    let _ = player.connection.send_datagram(datagram);
+                }
+            }
         }
     }
 }

@@ -75,6 +75,8 @@ function handleAreaUpdate(data) {
     console.log("Area update:", name, width, height);
 }
 
+const nodes = [];
+
 function handleRenderUpdate(data) {
     const offsetXBytes = data.slice(0, 4);
     const offsetYBytes = data.slice(4, 8);
@@ -82,11 +84,12 @@ function handleRenderUpdate(data) {
     const offsetX = new Float32Array(offsetXBytes.buffer)[0];
     const offsetY = new Float32Array(offsetYBytes.buffer)[0];
 
-    const length = data[8];
+    const render = data[8] === 1;
 
-    const nodes = [];
+    const lengthBytes = data.slice(9, 13);
+    const length = new Uint32Array(lengthBytes.buffer)[0];
 
-    let idx = 9;
+    let idx = 13;
 
     for (let i = 0; i < length; i++) {
         let xBytes = data.slice(idx, idx + 4);
@@ -122,7 +125,10 @@ function handleRenderUpdate(data) {
         nodes.push(node);
     }
 
-    renderFrame({ x: offsetX, y: offsetY }, [area], nodes);
+    if (render) {
+        renderFrame({ x: offsetX, y: offsetY }, [area], nodes);
+        nodes.length = 0;
+    }
 }
 
 function renderFrame(offset, rects, nodes) {
