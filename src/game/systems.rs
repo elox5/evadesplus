@@ -90,6 +90,26 @@ pub fn system_enemy_collision(area: &mut Area) {
     }
 }
 
+pub fn system_hero_collision(area: &mut Area) {
+    for (entity_1, (pos_1, size_1)) in area.world.query::<With<(&Position, &Size), &Hero>>().iter()
+    {
+        for (entity_2, (pos_2, size_2)) in
+            area.world.query::<With<(&Position, &Size), &Hero>>().iter()
+        {
+            if entity_1 == entity_2 {
+                continue;
+            }
+
+            let distance_sq = (pos_1.0 - pos_2.0).magnitude_sq();
+            let radius_sum = (size_1.0 + size_2.0) * 0.5;
+
+            if distance_sq < radius_sum * radius_sum {
+                println!("Collision: {:?} and {:?}", entity_1, entity_2);
+            }
+        }
+    }
+}
+
 pub fn system_render(area: &mut Area) {
     area.render_packet = Some(RenderPacket::new());
     let nodes = &mut area.render_packet.as_mut().unwrap().nodes;

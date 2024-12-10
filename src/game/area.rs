@@ -49,6 +49,7 @@ impl Area {
         system_update_position(self);
         system_bounds_check(self);
 
+        system_hero_collision(self);
         system_enemy_collision(self);
 
         system_render(self);

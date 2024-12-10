@@ -23,7 +23,7 @@ async fn main() -> Result<()> {
         100.0,
     );
 
-    area.world.spawn_batch((0..1000).map(|_| {
+    area.world.spawn_batch((0..100).map(|_| {
         let pos = Position(area.bounds.random_inside());
         let vel = Velocity(Vec2::ZERO);
         let dir = Direction(Vec2::random_unit());
