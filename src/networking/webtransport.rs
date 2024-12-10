@@ -121,7 +121,7 @@ impl WebTransportServer {
                         let x = f32::from_le_bytes([payload[0], payload[1], payload[2], payload[3]]);
                         let y = f32::from_le_bytes([payload[4], payload[5], payload[6], payload[7]]);
 
-                        println!("Received input '({x:.2}, {y:.2})' from client {id}");
+                        // println!("Received input '({x:.2}, {y:.2})' from client {id}");
 
                         let mut area = area_arc.lock().await;
                         area.update_hero_dir(entity, Vec2::new(x, y));
