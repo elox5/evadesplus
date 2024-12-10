@@ -1,14 +1,12 @@
-use hecs::With;
-
+use super::{
+    area::Area,
+    components::{BounceOffBounds, Bounded, Color, Enemy, Hero, Player, Size},
+};
 use crate::{
     game::components::{Direction, Position, Speed, Velocity},
     networking::rendering::{RenderNode, RenderPacket},
 };
-
-use super::{
-    area::Area,
-    components::{BounceOffBounds, Bounded, Color, Enemy, Player, Size},
-};
+use hecs::With;
 
 pub fn system_update_position(area: &mut Area) {
     for (_, (pos, vel)) in area.world.query_mut::<(&mut Position, &Velocity)>() {
@@ -61,6 +59,33 @@ pub fn system_bounds_check(area: &mut Area) {
             pos.0.y = bounds.bottom() - size.0 / 2.0;
         } else if (pos.0.y - size.0 / 2.0) < bounds.top() {
             pos.0.y = bounds.top() + size.0 / 2.0;
+        }
+    }
+}
+
+pub fn system_enemy_collision(area: &mut Area) {
+    for (_, (hero_pos, hero_size, hero_color)) in area
+        .world
+        .query::<With<(&Position, &Size, &mut Color), &Hero>>()
+        .iter()
+    {
+        let hero_pos = hero_pos.0;
+        let hero_size = hero_size.0;
+
+        for (_, (enemy_pos, enemy_size)) in area
+            .world
+            .query::<With<(&Position, &Size), &Enemy>>()
+            .iter()
+        {
+            let enemy_pos = enemy_pos.0;
+            let enemy_size = enemy_size.0;
+
+            let distance_sq = (hero_pos - enemy_pos).magnitude_sq();
+            let radius_sum = (hero_size + enemy_size) * 0.5;
+
+            if distance_sq < radius_sum * radius_sum {
+                *hero_color = Color::rgb(rand::random(), rand::random(), rand::random());
+            }
         }
     }
 }

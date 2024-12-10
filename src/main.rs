@@ -19,11 +19,11 @@ async fn main() -> Result<()> {
     let mut area = Area::new(
         "test".to_string(),
         "Testing Territory".to_string(),
-        20.0,
-        20.0,
+        100.0,
+        100.0,
     );
 
-    area.world.spawn_batch((0..30).map(|_| {
+    area.world.spawn_batch((0..1000).map(|_| {
         let pos = Position(area.bounds.random_inside());
         let vel = Velocity(Vec2::ZERO);
         let dir = Direction(Vec2::random_unit());
