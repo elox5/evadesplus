@@ -105,10 +105,13 @@ impl RenderNode {
         bytes.extend_from_slice(&self.color.to_le_bytes());
         bytes.push(self.has_border as u8);
         if let Some(name) = &self.name {
-            bytes.extend_from_slice(&name.len().to_le_bytes()[..4]);
-            bytes.extend_from_slice(name.as_bytes());
+            let length = name.len();
+            let capped_length = std::cmp::min(length, 255);
+
+            bytes.push(capped_length as u8);
+            bytes.extend_from_slice(&name.as_bytes()[..capped_length]);
         } else {
-            bytes.extend_from_slice(&0u32.to_le_bytes());
+            bytes.push(0u8);
         }
         bytes
     }
