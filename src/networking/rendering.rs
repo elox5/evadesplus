@@ -31,7 +31,7 @@ impl RenderPacket {
                 let node = nodes.pop().unwrap();
                 let node_size = node.to_bytes().len() as u32;
 
-                // println!("Node size: {node_size} bytes. Remaining: {}", nodes.len());
+                println!("Node size: {node_size} bytes. Remaining: {}", nodes.len());
 
                 if Self::HEADER_SIZE + node_total_size + node_size > max_size {
                     nodes.push(node);
