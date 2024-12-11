@@ -10,15 +10,12 @@ const areaName = document.querySelector("#area-name");
 
 async function main() {
     renderSettings.tileSize = 40;
-    renderSettings.canvasWidth = 24;
-    renderSettings.canvasHeight = 14;
 
-    setupCanvas();
     setBackground("#aaa");
 
     connectButton.onclick = handleConnection;
 }
-window.main = main;
+window.onload = main;
 
 async function handleConnection() {
     let name = nameInput.value;
@@ -43,6 +40,8 @@ async function handleConnection() {
 
     canvasWrapper.classList.remove("hidden");
     connectionPanel.classList.add("hidden");
+
+    setupCanvas();
 }
 
 let area = {

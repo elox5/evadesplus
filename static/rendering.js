@@ -3,8 +3,6 @@ const ctx = canvas.getContext("2d");
 
 export let renderSettings = {
     tileSize: 32,
-    canvasWidth: 16,
-    canvasHeight: 12,
 }
 
 let background = "#222";
@@ -12,11 +10,13 @@ let background = "#222";
 let drawOffset = { x: 0, y: 0 };
 
 export function setupCanvas() {
-    canvas.width = renderSettings.tileSize * renderSettings.canvasWidth;
-    canvas.height = renderSettings.tileSize * renderSettings.canvasHeight;
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
 
-    canvas.style.width = `${canvas.width}px`;
-    canvas.style.height = `${canvas.height}px`;
+    window.onresize = () => {
+        canvas.width = canvas.clientWidth;
+        canvas.height = canvas.clientHeight;
+    }
 
     clearCanvas();
 }
@@ -38,14 +38,14 @@ export function drawGrid() {
     ctx.strokeStyle = "#00000033";
     ctx.lineWidth = 1;
 
-    for (let i = 0; i < renderSettings.canvasWidth; i++) {
+    for (let i = 0; i < canvas.width / renderSettings.tileSize; i++) {
         ctx.beginPath();
         ctx.moveTo((i - drawOffset.x % 1) * renderSettings.tileSize, 0);
         ctx.lineTo((i - drawOffset.x % 1) * renderSettings.tileSize, canvas.height);
         ctx.stroke();
     }
 
-    for (let j = 0; j < renderSettings.canvasHeight; j++) {
+    for (let j = 0; j < canvas.height / renderSettings.tileSize; j++) {
         ctx.beginPath();
         ctx.moveTo(0, (j + drawOffset.y % 1) * renderSettings.tileSize);
         ctx.lineTo(canvas.width, (j + drawOffset.y % 1) * renderSettings.tileSize);
@@ -169,8 +169,8 @@ export function drawText(x, y, text, color = "#000", size = 16, modifiers = "") 
 }
 
 function gameToCanvasX(x) {
-    return (x + renderSettings.canvasWidth / 2 - drawOffset.x) * renderSettings.tileSize;
+    return (x - drawOffset.x) * renderSettings.tileSize + canvas.width / 2;
 }
 function gameToCanvasY(y) {
-    return (renderSettings.canvasHeight / 2 - (y - drawOffset.y)) * renderSettings.tileSize;
+    return (drawOffset.y - y) * renderSettings.tileSize + canvas.height / 2;
 }
