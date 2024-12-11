@@ -102,7 +102,7 @@ impl RenderNode {
         bytes.extend_from_slice(&self.x.to_le_bytes());
         bytes.extend_from_slice(&self.y.to_le_bytes());
         bytes.extend_from_slice(&self.radius.to_le_bytes());
-        bytes.extend_from_slice(&self.color.to_le_bytes());
+        bytes.extend_from_slice(&self.color.to_bytes());
         bytes.push(self.has_border as u8);
         if let Some(name) = &self.name {
             let length = name.len();

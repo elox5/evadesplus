@@ -1,8 +1,8 @@
-import { renderSettings, clearCanvas, drawCircle, drawGrid, drawRect, setBackground, setDrawOffset, setupCanvas, drawLine, drawCircleOutline, drawCircleFrame, drawRectOutline, drawRectFrame, drawText } from "./rendering.js";
+import { renderSettings, clearCanvas, drawCircle, drawRect, setDrawOffset, setupCanvas, drawLine, drawCircleOutline, drawText, renderArea } from "./rendering.js";
 import { input, setupInput, inputSettings } from "./input.js";
 import { connect, establishUniConnection, establishInputConnection, establishRenderConnection } from "./networking.js";
 
-const canvasWrapper = document.querySelector("#canvas-wrapper");
+const gameContainer = document.querySelector("#game-container");
 const connectionPanel = document.querySelector("#connection-panel");
 const nameInput = document.querySelector("#name-input");
 const connectButton = document.querySelector("#connect-button");
@@ -10,8 +10,6 @@ const areaName = document.querySelector("#area-name");
 
 async function main() {
     renderSettings.tileSize = 40;
-
-    setBackground("#aaa");
 
     connectButton.onclick = handleConnection;
 }
@@ -38,19 +36,10 @@ async function handleConnection() {
     ]);
     setupInput();
 
-    canvasWrapper.classList.remove("hidden");
+    gameContainer.classList.remove("hidden");
     connectionPanel.classList.add("hidden");
 
     setupCanvas();
-}
-
-let area = {
-    x: 0,
-    y: 0,
-    w: 0,
-    h: 0,
-    color: "#00000022",
-    hasBorder: false,
 }
 
 function handleAreaUpdate(data) {
@@ -60,16 +49,22 @@ function handleAreaUpdate(data) {
     const width = new Float32Array(widthBytes.buffer)[0];
     const height = new Float32Array(heightBytes.buffer)[0];
 
-    const nameLengthBytes = data.slice(8, 12);
+    const colorBytes = data.slice(8, 12);
+    const r = colorBytes[0];
+    const g = colorBytes[1];
+    const b = colorBytes[2];
+    const a = colorBytes[3];
+    const color = `rgba(${r}, ${g}, ${b}, ${a})`;
+
+    const nameLengthBytes = data.slice(12, 16);
     const nameLength = new Uint32Array(nameLengthBytes.buffer)[0];
 
-    const nameBytes = data.slice(12, 12 + nameLength);
+    const nameBytes = data.slice(16, 16 + nameLength);
     const name = new TextDecoder().decode(nameBytes);
 
-    area.w = width;
-    area.h = height;
-
     areaName.innerHTML = name;
+
+    renderArea(width, height, color);
 
     console.log("Area update:", name, width, height);
 }
@@ -121,7 +116,7 @@ function handleRenderUpdate(data) {
     }
 
     if (render) {
-        renderFrame({ x: offsetX, y: offsetY }, [area], nodes);
+        renderFrame({ x: offsetX, y: offsetY }, [], nodes);
         nodes.length = 0;
     }
 }
@@ -133,8 +128,6 @@ function renderFrame(offset, rects, nodes) {
     for (const rect of rects) {
         drawRect(rect.x, rect.y, rect.w, rect.h, rect.color, rect.hasBorder);
     }
-
-    drawGrid();
 
     for (const node of nodes) {
         drawCircle(node.x, node.y, node.radius, node.color, node.hasBorder);

@@ -20,7 +20,8 @@ async fn main() -> Result<()> {
         "test".to_string(),
         "Testing Territory".to_string(),
         100.0,
-        100.0,
+        15.0,
+        Color::rgb(200, 200, 200),
     );
 
     area.world.spawn_batch((0..100).map(|_| {

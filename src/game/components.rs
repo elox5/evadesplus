@@ -38,7 +38,7 @@ impl Color {
         ((self.a as u32) << 24) + ((self.r as u32) << 16) + ((self.g as u32) << 8) + (self.b as u32)
     }
 
-    pub fn to_le_bytes(&self) -> [u8; 4] {
+    pub fn to_bytes(&self) -> [u8; 4] {
         [self.r, self.g, self.b, self.a]
     }
 }

@@ -17,6 +17,7 @@ use wtransport::Connection;
 pub struct Area {
     pub name: String,
     pub id: String,
+    pub background_color: Color,
 
     pub world: World,
 
@@ -29,10 +30,11 @@ pub struct Area {
 }
 
 impl Area {
-    pub fn new(id: String, name: String, width: f32, height: f32) -> Self {
+    pub fn new(id: String, name: String, width: f32, height: f32, background_color: Color) -> Self {
         Self {
             name,
             id,
+            background_color,
             world: World::new(),
             bounds: Rect::new(0.0, 0.0, width, height),
             time: 0.0,
