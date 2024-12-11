@@ -97,8 +97,9 @@ function handleRenderUpdate(data) {
         let rBytes = data.slice(idx + 8, idx + 12);
         let colorBytes = data.slice(idx + 12, idx + 16);
         let hasBorder = data[idx + 16] === 1;
+        let nameLength = data[idx + 17];
 
-        idx += 17;
+        idx += 18;
 
         let node = {};
 
@@ -111,11 +112,6 @@ function handleRenderUpdate(data) {
         let a = colorBytes[3];
         node.color = `rgba(${r}, ${g}, ${b}, ${a})`;
         node.hasBorder = hasBorder;
-
-        let nameLengthBytes = data.slice(idx, idx + 4);
-        let nameLength = new Uint32Array(nameLengthBytes.buffer)[0];
-
-        idx += 4;
 
         if (nameLength > 0) {
             node.name = String.fromCharCode(...data.slice(idx, idx + nameLength));
