@@ -30,119 +30,135 @@ export function clearCanvas() {
     mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
 }
 
-export function drawCircle(x, y, r, color = "#000", hasOutline = false) {
-    x = gameToCanvasX(x);
-    y = gameToCanvasY(y);
+export function drawCircle(canvas, x, y, r, color = "#000", hasOutline = false) {
+    const ctx = canvas == "main" ? mainCtx : areaCtx;
+
+    x = gameToCanvasX(canvas, x);
+    y = gameToCanvasY(canvas, y);
     r *= renderSettings.tileSize;
 
-    mainCtx.fillStyle = color;
+    ctx.fillStyle = color;
 
-    mainCtx.beginPath();
-    mainCtx.arc(x, y, r, 0, 2 * Math.PI);
-    mainCtx.fill();
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, 2 * Math.PI);
+    ctx.fill();
 
     if (hasOutline) {
-        mainCtx.strokeStyle = "black";
-        mainCtx.lineWidth = 2;
-        mainCtx.stroke();
+        ctx.strokeStyle = "black";
+        ctx.lineWidth = 2;
+        ctx.stroke();
     }
 }
 
-export function drawCircleOutline(x, y, r, color = "#000", width = 1) {
-    x = gameToCanvasX(x);
-    y = gameToCanvasY(y);
+export function drawCircleOutline(canvas, x, y, r, color = "#000", width = 1) {
+    const ctx = canvas == "main" ? mainCtx : areaCtx;
+
+    x = gameToCanvasX(canvas, x);
+    y = gameToCanvasY(canvas, y);
     r *= renderSettings.tileSize;
 
-    mainCtx.strokeStyle = color;
-    mainCtx.lineWidth = width;
-    mainCtx.beginPath();
-    mainCtx.arc(x, y, r, 0, 2 * Math.PI);
-    mainCtx.stroke();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, 2 * Math.PI);
+    ctx.stroke();
 }
 
-export function drawCircleFrame(x, y, r, color = "#000", width = 1) {
-    x = gameToCanvasX(x);
-    y = gameToCanvasY(y);
+export function drawCircleFrame(canvas, x, y, r, color = "#000", width = 1) {
+    const ctx = canvas == "main" ? mainCtx : areaCtx;
+
+    x = gameToCanvasX(canvas, x);
+    y = gameToCanvasY(canvas, y);
     r *= renderSettings.tileSize;
 
-    mainCtx.strokeStyle = color;
-    mainCtx.lineWidth = width;
-    mainCtx.beginPath();
-    mainCtx.arc(x, y, r, 0, 2 * Math.PI);
-    mainCtx.moveTo(x + r, y);
-    mainCtx.lineTo(x - r, y);
-    mainCtx.moveTo(x, y + r);
-    mainCtx.lineTo(x, y - r);
-    mainCtx.stroke();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, 2 * Math.PI);
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x - r, y);
+    ctx.moveTo(x, y + r);
+    ctx.lineTo(x, y - r);
+    ctx.stroke();
 }
 
-export function drawRect(x, y, w, h, color = "#000", hasOutline = false) {
-    x = gameToCanvasX(x);
-    y = gameToCanvasY(y);
+export function drawRect(canvas, x, y, w, h, color = "#000", hasOutline = false) {
+    const ctx = canvas == "main" ? mainCtx : areaCtx;
+
+    x = gameToCanvasX(canvas, x);
+    y = gameToCanvasY(canvas, y);
     w *= renderSettings.tileSize;
     h *= renderSettings.tileSize;
 
-    mainCtx.fillStyle = color;
-    mainCtx.fillRect(x, y, w, -h);
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y, w, -h);
 
     if (hasOutline) {
-        mainCtx.strokeStyle = "black";
-        mainCtx.lineWidth = 2;
-        mainCtx.strokeRect(x, y, w, h);
+        ctx.strokeStyle = "black";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, w, h);
     }
 }
 
-export function drawRectOutline(x, y, w, h, color = "#000", width = 1) {
-    x = gameToCanvasX(x);
-    y = gameToCanvasY(y);
+export function drawRectOutline(canvas, x, y, w, h, color = "#000", width = 1) {
+    const ctx = canvas == "main" ? mainCtx : areaCtx;
+
+    x = gameToCanvasX(canvas, x);
+    y = gameToCanvasY(canvas, y);
     w *= renderSettings.tileSize;
     h *= renderSettings.tileSize;
 
-    mainCtx.strokeStyle = color;
-    mainCtx.lineWidth = width;
-    mainCtx.beginPath();
-    mainCtx.strokeRect(x, y, w, h);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    ctx.strokeRect(x, y, w, h);
 }
 
-export function drawRectFrame(x, y, w, h, color = "#000", width = 1) {
-    x = gameToCanvasX(x);
-    y = gameToCanvasY(y);
+export function drawRectFrame(canvas, x, y, w, h, color = "#000", width = 1) {
+    const ctx = canvas == "main" ? mainCtx : areaCtx;
+
+    x = gameToCanvasX(canvas, x);
+    y = gameToCanvasY(canvas, y);
     w *= renderSettings.tileSize;
     h *= renderSettings.tileSize;
 
-    mainCtx.strokeStyle = color;
-    mainCtx.lineWidth = width;
-    mainCtx.beginPath();
-    mainCtx.strokeRect(x, y, w, h);
-    mainCtx.moveTo(x + w / 2, y);
-    mainCtx.lineTo(x + w / 2, y + h);
-    mainCtx.moveTo(x, y + h / 2);
-    mainCtx.lineTo(x + w, y + h / 2);
-    mainCtx.stroke();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    ctx.strokeRect(x, y, w, h);
+    ctx.moveTo(x + w / 2, y);
+    ctx.lineTo(x + w / 2, y + h);
+    ctx.moveTo(x, y + h / 2);
+    ctx.lineTo(x + w, y + h / 2);
+    ctx.stroke();
 }
 
-export function drawLine(x1, y1, x2, y2, color = "#000", width = 1) {
-    x1 = gameToCanvasX(x1);
-    y1 = gameToCanvasY(y1);
-    x2 = gameToCanvasX(x2);
-    y2 = gameToCanvasY(y2);
+export function drawLine(canvas, x1, y1, x2, y2, color = "#000", width = 1) {
+    const ctx = canvas == "main" ? mainCtx : areaCtx;
 
-    mainCtx.strokeStyle = color;
-    mainCtx.lineWidth = width;
-    mainCtx.beginPath();
-    mainCtx.moveTo(x1, y1);
-    mainCtx.lineTo(x2, y2);
-    mainCtx.stroke();
+    x1 = gameToCanvasX(canvas, x1);
+    y1 = gameToCanvasY(canvas, y1);
+    x2 = gameToCanvasX(canvas, x2);
+    y2 = gameToCanvasY(canvas, y2);
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
 }
 
-export function drawText(x, y, text, color = "#000", size = 16, modifiers = "") {
-    x = gameToCanvasX(x);
-    y = gameToCanvasY(y);
+export function drawText(canvas, x, y, text, color = "#000", size = 16, modifiers = "") {
+    const ctx = canvas == "main" ? mainCtx : areaCtx;
 
-    mainCtx.fillStyle = color;
-    mainCtx.font = `${modifiers} ${size}px Nunito`;
-    mainCtx.textAlign = "center";
-    mainCtx.fillText(text, x, y);
+    x = gameToCanvasX(canvas, x);
+    y = gameToCanvasY(canvas, y);
+
+    ctx.fillStyle = color;
+    ctx.font = `${modifiers} ${size}px Nunito`;
+    ctx.textAlign = "center";
+    ctx.fillText(text, x, y);
 }
 
 function drawGrid(width, height) {
@@ -164,7 +180,7 @@ function drawGrid(width, height) {
     }
 }
 
-export function renderArea(width, height, color) {
+export function renderArea(width, height, color, walls) {
     areaCanvas.width = width * renderSettings.tileSize;
     areaCanvas.height = height * renderSettings.tileSize;
 
@@ -176,12 +192,16 @@ export function renderArea(width, height, color) {
 
     drawGrid(width, height);
 
-
+    for (const wall of walls) {
+        drawRect("area", wall.x, wall.y, wall.w, wall.h, "#222");
+    }
 }
 
-function gameToCanvasX(x) {
-    return (x - drawOffset.x) * renderSettings.tileSize + mainCanvas.width / 2;
+function gameToCanvasX(canvas, x) {
+    const width = canvas == "main" ? mainCanvas.width : 0;
+    return (x - drawOffset.x) * renderSettings.tileSize + width / 2;
 }
-function gameToCanvasY(y) {
-    return (drawOffset.y - y) * renderSettings.tileSize + mainCanvas.height / 2;
+function gameToCanvasY(canvas, y) {
+    const height = canvas == "main" ? mainCanvas.height : areaCanvas.height * 2;
+    return (drawOffset.y - y) * renderSettings.tileSize + height / 2;
 }

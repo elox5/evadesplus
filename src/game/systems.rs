@@ -63,6 +63,60 @@ pub fn system_bounds_check(area: &mut Area) {
     }
 }
 
+pub fn system_inner_wall_collision(area: &mut Area) {
+    if area.inner_walls.is_empty() {
+        return;
+    }
+
+    for (_, (dir, pos, size)) in area
+        .world
+        .query_mut::<With<(&mut Direction, &Position, &Size), &BounceOffBounds>>()
+    {
+        for wall in &area.inner_walls {
+            if wall.contains_circle(pos.0, size.0 / 2.0) {
+                let distance = wall.center() - pos.0;
+
+                let x_distance = distance.x / wall.w;
+                let y_distance = distance.y / wall.h;
+
+                if x_distance.abs() > y_distance.abs() {
+                    dir.0.x *= -1.0;
+                } else {
+                    dir.0.y *= -1.0;
+                }
+            }
+        }
+    }
+
+    for (_, (pos, size)) in area
+        .world
+        .query_mut::<With<(&mut Position, &Size), &Bounded>>()
+    {
+        for wall in &area.inner_walls {
+            if wall.contains_circle(pos.0, size.0 / 2.0) {
+                let distance = wall.center() - pos.0;
+
+                let x_distance = distance.x / wall.w;
+                let y_distance = distance.y / wall.h;
+
+                if x_distance.abs() > y_distance.abs() {
+                    if x_distance < 0.0 {
+                        pos.0.x = wall.center().x + wall.w / 2.0 + size.0 / 2.0;
+                    } else {
+                        pos.0.x = wall.center().x - wall.w / 2.0 - size.0 / 2.0;
+                    }
+                } else {
+                    if y_distance < 0.0 {
+                        pos.0.y = wall.center().y + wall.h / 2.0 + size.0 / 2.0;
+                    } else {
+                        pos.0.y = wall.center().y - wall.h / 2.0 - size.0 / 2.0;
+                    }
+                };
+            }
+        }
+    }
+}
+
 pub fn system_enemy_collision(area: &mut Area) {
     for (_, (hero_pos, hero_size, hero_color)) in area
         .world

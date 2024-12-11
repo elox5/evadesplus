@@ -7,7 +7,7 @@ use evadesplus::{
         },
     },
     networking::webtransport::WebTransportServer,
-    physics::vec2::Vec2,
+    physics::{rect::Rect, vec2::Vec2},
 };
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -22,6 +22,10 @@ async fn main() -> Result<()> {
         100.0,
         15.0,
         Color::rgb(200, 200, 200),
+        Some(vec![
+            Rect::new(40.0, 5.0, 7.0, 5.0),
+            Rect::new(30.0, 3.0, 10.0, 2.0),
+        ]),
     );
 
     area.world.spawn_batch((0..100).map(|_| {

@@ -48,6 +48,23 @@ impl Rect {
             && point.y < self.y + self.h
     }
 
+    pub fn contains_circle(&self, center: Vec2, radius: f32) -> bool {
+        let distance_abs = (center - self.center()).abs();
+
+        if distance_abs.x > self.w / 2.0 + radius || distance_abs.y > self.h / 2.0 + radius {
+            return false;
+        }
+
+        if distance_abs.x <= self.w / 2.0 || distance_abs.y <= self.h / 2.0 {
+            return true;
+        }
+
+        let corner_distance_sq =
+            (distance_abs - Vec2::new(self.w / 2.0, self.h / 2.0)).magnitude_sq();
+
+        return corner_distance_sq <= radius * radius;
+    }
+
     pub fn intersects(&self, other: &Rect) -> bool {
         self.x < other.x + other.w
             && self.x + self.w > other.x
@@ -59,5 +76,17 @@ impl Rect {
         let x = self.x + self.w * (rand::random::<f32>());
         let y = self.y + self.h * (rand::random::<f32>());
         Vec2::new(x, y)
+    }
+
+    pub fn to_bytes(&self) -> [u8; 16] {
+        [
+            self.x.to_le_bytes(),
+            self.y.to_le_bytes(),
+            self.w.to_le_bytes(),
+            self.h.to_le_bytes(),
+        ]
+        .concat()
+        .try_into()
+        .unwrap()
     }
 }

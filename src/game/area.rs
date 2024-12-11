@@ -22,6 +22,7 @@ pub struct Area {
     pub world: World,
 
     pub bounds: Rect,
+    pub inner_walls: Vec<Rect>,
 
     pub time: f32,
     pub delta_time: f32,
@@ -30,13 +31,21 @@ pub struct Area {
 }
 
 impl Area {
-    pub fn new(id: String, name: String, width: f32, height: f32, background_color: Color) -> Self {
+    pub fn new(
+        id: String,
+        name: String,
+        width: f32,
+        height: f32,
+        background_color: Color,
+        inner_walls: Option<Vec<Rect>>,
+    ) -> Self {
         Self {
             name,
             id,
             background_color,
             world: World::new(),
             bounds: Rect::new(0.0, 0.0, width, height),
+            inner_walls: inner_walls.unwrap_or_default(),
             time: 0.0,
             delta_time: 0.0,
             render_packet: None,
@@ -50,6 +59,7 @@ impl Area {
         system_update_velocity(self);
         system_update_position(self);
         system_bounds_check(self);
+        system_inner_wall_collision(self);
 
         system_hero_collision(self);
         system_enemy_collision(self);

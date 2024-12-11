@@ -56,15 +56,38 @@ function handleAreaUpdate(data) {
     const a = colorBytes[3];
     const color = `rgba(${r}, ${g}, ${b}, ${a})`;
 
-    const nameLengthBytes = data.slice(12, 16);
+    const wallsLengthBytes = data.slice(12, 14);
+    const wallsLength = new Uint16Array(wallsLengthBytes.buffer)[0];
+
+    let idx = 14;
+
+    const walls = [];
+
+    for (let i = 0; i < wallsLength; i++) {
+        let xBytes = data.slice(idx, idx + 4);
+        let yBytes = data.slice(idx + 4, idx + 8);
+        let wBytes = data.slice(idx + 8, idx + 12);
+        let hBytes = data.slice(idx + 12, idx + 16);
+
+        let x = new Float32Array(xBytes.buffer)[0];
+        let y = new Float32Array(yBytes.buffer)[0];
+        let w = new Float32Array(wBytes.buffer)[0];
+        let h = new Float32Array(hBytes.buffer)[0];
+
+        walls.push({ x, y, w, h });
+
+        idx += 16;
+    }
+
+    const nameLengthBytes = data.slice(idx, idx + 4);
     const nameLength = new Uint32Array(nameLengthBytes.buffer)[0];
 
-    const nameBytes = data.slice(16, 16 + nameLength);
+    const nameBytes = data.slice(idx + 4, idx + 4 + nameLength);
     const name = new TextDecoder().decode(nameBytes);
 
     areaName.innerHTML = name;
 
-    renderArea(width, height, color);
+    renderArea(width, height, color, walls);
 
     console.log("Area update:", name, width, height);
 }
@@ -126,18 +149,18 @@ function renderFrame(offset, rects, nodes) {
     setDrawOffset(offset.x, offset.y);
 
     for (const rect of rects) {
-        drawRect(rect.x, rect.y, rect.w, rect.h, rect.color, rect.hasBorder);
+        drawRect("main", rect.x, rect.y, rect.w, rect.h, rect.color, rect.hasBorder);
     }
 
     for (const node of nodes) {
-        drawCircle(node.x, node.y, node.radius, node.color, node.hasBorder);
+        drawCircle("main", node.x, node.y, node.radius, node.color, node.hasBorder);
 
         if (node.name !== undefined) {
-            drawText(node.x, node.y + 1, node.name, "black", 16, "bold");
+            drawText("main", node.x, node.y + 1, node.name, "black", 16, "bold");
         }
     }
 
     let range = inputSettings.mouseInputRange;
-    drawLine(offset.x, offset.y, offset.x + (input.x * range), offset.y + (input.y * range), "yellow", 2);
-    drawCircleOutline(offset.x, offset.y, range, "orange", 2);
+    drawLine("main", offset.x, offset.y, offset.x + (input.x * range), offset.y + (input.y * range), "yellow", 2);
+    drawCircleOutline("main", offset.x, offset.y, range, "orange", 2);
 }

@@ -106,6 +106,13 @@ impl WebTransportServer {
                         response.extend_from_slice(&area.bounds.w.to_le_bytes());
                         response.extend_from_slice(&area.bounds.h.to_le_bytes());
                         response.extend_from_slice(&area.background_color.to_bytes());
+
+                        response.extend_from_slice(&(area.inner_walls.len() as u16).to_le_bytes());
+
+                        for wall in &area.inner_walls {
+                            response.extend_from_slice(&wall.to_bytes());
+                        }
+
                         response.extend_from_slice(&area.name.len().to_le_bytes()[..4]);
                         response.extend_from_slice(area.name.as_bytes());
 
