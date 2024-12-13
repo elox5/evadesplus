@@ -1,0 +1,7 @@
+[profile.release]
+codegen-units = 1
+lto = true
+
+[profile.dev.package."*"]
+codegen-units = 1
+opt-level = 3
