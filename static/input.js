@@ -1,5 +1,7 @@
 import { renderSettings } from "./rendering.js";
 
+const gameContainer = document.querySelector("#game-container");
+
 export let input = {
     x: 0,
     y: 0,
@@ -66,7 +68,7 @@ function getKeyboardInput() {
 }
 
 export function setupInput() {
-    addEventListener("keydown", (e) => {
+    window.onkeydown = (e) => {
         if (e.key === "Shift") {
             sneaking = true;
             updateInput();
@@ -88,9 +90,9 @@ export function setupInput() {
         }
 
         updateInput();
-    });
+    };
 
-    addEventListener("keyup", (e) => {
+    window.onkeyup = (e) => {
         if (e.key === "Shift") {
             sneaking = false;
             updateInput();
@@ -112,17 +114,17 @@ export function setupInput() {
         }
 
         updateInput();
-    });
+    };
 
-    addEventListener("mousemove", (e) => {
+    window.onmousemove = (e) => {
         if (!mouseInputActive) return;
 
         mouseInput = calculateMouseInput(e);
 
         updateInput();
-    });
+    };
 
-    addEventListener("mousedown", (e) => {
+    gameContainer.onmousedown = (e) => {
         mouseInputActive = !mouseInputActive;
         if (!mouseInputActive) {
             mouseInput.y = 0;
@@ -132,7 +134,7 @@ export function setupInput() {
             mouseInput = calculateMouseInput(e);
         }
         updateInput();
-    });
+    };
 }
 
 function calculateMouseInput(e) {
