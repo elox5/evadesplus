@@ -1,8 +1,5 @@
-use super::{
-    area::Area,
-    systems::*,
-    templates::{AreaTemplate, MapTemplate},
-};
+use super::{area::Area, data::MapData, systems::*, templates::MapTemplate};
+use anyhow::Result;
 use std::{sync::Arc, time::Duration};
 use tokio::{
     sync::Mutex,
@@ -10,25 +7,50 @@ use tokio::{
 };
 
 pub struct Game {
+    pub maps: Vec<MapTemplate>,
     pub areas: Vec<Arc<Mutex<Area>>>,
 }
 
 impl Game {
-    pub fn new() -> Self {
-        Self { areas: Vec::new() }
+    pub fn new(maps: Vec<MapData>) -> Self {
+        Self {
+            maps: maps.into_iter().map(|m| m.to_template()).collect(),
+            areas: Vec::new(),
+        }
     }
 
-    pub fn open_area(&mut self, template: &AreaTemplate) {
+    pub fn try_create_area(&mut self, id: &str) -> Result<Arc<Mutex<Area>>> {
+        let (map_id, area_id) = Self::split_id(id).ok_or(anyhow::anyhow!("Invalid id"))?;
+
+        let map = self
+            .try_get_map(map_id)
+            .ok_or(anyhow::anyhow!("Map not found"))?;
+
+        let template = map
+            .get_area(area_id)
+            .ok_or(anyhow::anyhow!("Area not found"))?;
+
         let area = Area::from_template(template);
         let area = Arc::new(Mutex::new(area));
         let _ = Self::start_update_loop(area.clone());
-        self.areas.push(area);
+        self.areas.push(area.clone());
+
+        Ok(area)
     }
 
-    pub fn try_create_area(&mut self, map: &MapTemplate, id: usize) {
-        if let Some(template) = map.get_area(id) {
-            self.open_area(template);
+    fn try_get_area(&self, id: &str) -> Option<Arc<Mutex<Area>>> {
+        self.areas
+            .iter()
+            .find(|a| a.try_lock().map(|a| a.area_id == id).unwrap_or(false))
+            .cloned()
+    }
+
+    pub fn get_or_create_area(&mut self, id: &str) -> Result<Arc<Mutex<Area>>> {
+        if let Some(area) = self.try_get_area(id) {
+            return Ok(area);
         }
+
+        self.try_create_area(id)
     }
 
     fn update_area(area: &mut Area, delta_time: f32) {
@@ -67,5 +89,16 @@ impl Game {
         });
 
         area.try_lock().unwrap().loop_handle = Some(handle.abort_handle());
+    }
+
+    fn split_id(id: &str) -> Option<(&str, &str)> {
+        let mut split = id.split(':');
+        let map_id = split.next()?;
+        let area_id = split.next()?;
+        Some((map_id, area_id))
+    }
+
+    fn try_get_map(&self, map_id: &str) -> Option<&MapTemplate> {
+        self.maps.iter().find(|m| m.id == map_id)
     }
 }

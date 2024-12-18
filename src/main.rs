@@ -2,8 +2,8 @@ use anyhow::Result;
 use evadesplus::{
     game::{
         components::Color,
+        data::{AreaData, EnemyGroup, MapData},
         game::Game,
-        templates::{AreaTemplate, EnemyGroup, MapTemplate},
     },
     networking::webtransport::WebTransportServer,
     physics::rect::Rect,
@@ -15,42 +15,44 @@ use wtransport::{tls::Sha256DigestFmt, Identity};
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let mut game = Game::new();
-
-    let map = MapTemplate::new(
-        "tt".to_owned(),
-        "Testing Territory".to_owned(),
-        Color::rgb(200, 200, 200),
-        vec![
-            AreaTemplate::new(
-                None,
-                None,
-                100.0,
-                15.0,
-                vec![
+    let map = MapData {
+        id: "tt".to_owned(),
+        name: "Testing Territory".to_owned(),
+        background_color: Color::rgb(200, 200, 200),
+        areas: vec![
+            AreaData {
+                id: None,
+                name: None,
+                background_color: None,
+                width: 100.0,
+                height: 15.0,
+                inner_walls: vec![
                     Rect::new(40.0, 5.0, 7.0, 5.0),
                     Rect::new(30.0, 3.0, 10.0, 2.0),
                 ],
-                vec![
+                enemy_groups: vec![
                     EnemyGroup::new(Color::rgb(100, 100, 100), 50, 5.0, 1.0),
                     EnemyGroup::new(Color::rgb(0, 0, 0), 50, 10.0, 0.3),
                 ],
-            ),
-            AreaTemplate::new(
-                Some("Named Area".to_owned()),
-                Some(Color::rgb(100, 200, 100)),
-                500.0,
-                15.0,
-                Vec::new(),
-                vec![
+            },
+            AreaData {
+                id: None,
+                name: Some("Named Area".to_owned()),
+                background_color: Some(Color::rgb(100, 200, 100)),
+                width: 500.0,
+                height: 15.0,
+                inner_walls: Vec::new(),
+                enemy_groups: vec![
                     EnemyGroup::new(Color::rgb(200, 200, 200), 10, 5.0, 3.0),
                     EnemyGroup::new(Color::rgb(255, 0, 0), 100, 1.0, 0.3),
                 ],
-            ),
+            },
         ],
-    );
+    };
 
-    game.try_create_area(&map, 1);
+    let mut game = Game::new(vec![map]);
+
+    let _ = game.try_create_area("tt:0");
 
     let game_arc = Arc::new(Mutex::new(game));
 

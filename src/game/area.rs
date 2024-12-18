@@ -3,7 +3,8 @@ use super::{
         BounceOffBounds, Bounded, Color, Direction, Enemy, Hero, Player, Position, Size, Speed,
         Velocity,
     },
-    templates::{AreaTemplate, EnemyGroup},
+    data::EnemyGroup,
+    templates::AreaTemplate,
 };
 use crate::{
     networking::rendering::RenderPacket,
@@ -14,6 +15,8 @@ use tokio::task::AbortHandle;
 use wtransport::Connection;
 
 pub struct Area {
+    pub area_id: String,
+    pub full_id: String,
     pub name: String,
     pub background_color: Color,
 
@@ -33,11 +36,10 @@ pub struct Area {
 impl Area {
     pub fn from_template(template: &AreaTemplate) -> Self {
         let mut area = Self {
-            name: template
-                .name
-                .clone()
-                .unwrap_or("Area Name Error".to_owned()),
-            background_color: template.background_color.clone().unwrap_or_default(),
+            area_id: template.area_id.clone(),
+            full_id: template.full_id.clone(),
+            name: template.name.clone(),
+            background_color: template.background_color.clone(),
             bounds: Rect::new(0.0, 0.0, template.width, template.height),
             inner_walls: template.inner_walls.clone(),
             world: World::new(),
