@@ -1,4 +1,4 @@
-use super::{area::Area, systems::*};
+use super::{area::Area, systems::*, templates::AreaTemplate};
 use std::{sync::Arc, time::Duration};
 use tokio::{
     sync::Mutex,
@@ -14,7 +14,8 @@ impl Game {
         Self { areas: Vec::new() }
     }
 
-    pub fn create_area(&mut self, area: Area) {
+    pub fn create_area(&mut self, template: AreaTemplate) {
+        let area = Area::from_template(template);
         let area = Arc::new(Mutex::new(area));
         let _ = Self::start_update_loop(area.clone());
         self.areas.push(area);

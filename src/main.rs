@@ -3,14 +3,12 @@ use std::sync::Arc;
 use anyhow::Result;
 use evadesplus::{
     game::{
-        area::Area,
-        components::{
-            BounceOffBounds, Bounded, Color, Direction, Enemy, Position, Size, Speed, Velocity,
-        },
+        components::Color,
         game::Game,
+        templates::{AreaTemplate, EnemyGroup},
     },
     networking::webtransport::WebTransportServer,
-    physics::{rect::Rect, vec2::Vec2},
+    physics::rect::Rect,
 };
 use tokio::sync::Mutex;
 use warp::Filter;
@@ -20,39 +18,23 @@ use wtransport::{tls::Sha256DigestFmt, Identity};
 async fn main() -> Result<()> {
     let mut game = Game::new();
 
-    let mut area = Area::new(
+    let area_template = AreaTemplate::new(
         "test".to_string(),
         "Testing Territory".to_string(),
+        Color::rgb(200, 200, 200),
         100.0,
         15.0,
-        Color::rgb(200, 200, 200),
-        Some(vec![
+        vec![
             Rect::new(40.0, 5.0, 7.0, 5.0),
             Rect::new(30.0, 3.0, 10.0, 2.0),
-        ]),
+        ],
+        vec![
+            EnemyGroup::new(Color::rgb(100, 100, 100), 50, 5.0, 1.0),
+            EnemyGroup::new(Color::rgb(0, 0, 0), 50, 10.0, 0.3),
+        ],
     );
-    area.world.spawn_batch((0..100).map(|_| {
-        let pos = Position(area.bounds.random_inside());
-        let vel = Velocity(Vec2::ZERO);
-        let dir = Direction(Vec2::random_unit());
-        let speed = Speed(10.0);
-        let size = Size(1.0);
-        let color = Color::rgb(100, 100, 100);
 
-        (
-            Enemy,
-            pos,
-            vel,
-            dir,
-            speed,
-            size,
-            color,
-            Bounded,
-            BounceOffBounds,
-        )
-    }));
-
-    game.create_area(area);
+    game.create_area(area_template);
 
     let game_arc = Arc::new(Mutex::new(game));
 

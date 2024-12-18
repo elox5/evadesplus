@@ -1,4 +1,10 @@
-use super::components::{Bounded, Color, Direction, Hero, Player, Position, Size, Speed, Velocity};
+use super::{
+    components::{
+        BounceOffBounds, Bounded, Color, Direction, Enemy, Hero, Player, Position, Size, Speed,
+        Velocity,
+    },
+    templates::{AreaTemplate, EnemyGroup},
+};
 use crate::{
     networking::rendering::RenderPacket,
     physics::{rect::Rect, vec2::Vec2},
@@ -8,8 +14,8 @@ use tokio::task::AbortHandle;
 use wtransport::Connection;
 
 pub struct Area {
-    pub name: String,
     pub id: String,
+    pub name: String,
     pub background_color: Color,
 
     pub world: World,
@@ -29,10 +35,10 @@ impl Area {
     pub fn new(
         id: String,
         name: String,
+        background_color: Color,
         width: f32,
         height: f32,
-        background_color: Color,
-        inner_walls: Option<Vec<Rect>>,
+        inner_walls: Vec<Rect>,
     ) -> Self {
         Self {
             name,
@@ -40,7 +46,7 @@ impl Area {
             background_color,
             world: World::new(),
             bounds: Rect::new(0.0, 0.0, width, height),
-            inner_walls: inner_walls.unwrap_or_default(),
+            inner_walls,
             time: 0.0,
             delta_time: 0.0,
             render_packet: None,
@@ -48,10 +54,52 @@ impl Area {
         }
     }
 
+    pub fn from_template(template: AreaTemplate) -> Self {
+        let mut area = Self::new(
+            template.id,
+            template.name,
+            template.background_color,
+            template.width,
+            template.height,
+            template.inner_walls,
+        );
+
+        for group in template.enemy_groups {
+            area.spawn_enemy_group(&group);
+        }
+
+        area
+    }
+
     pub fn close(&mut self) {
         if let Some(handle) = self.loop_handle.take() {
             handle.abort();
         }
+    }
+
+    pub fn spawn_enemy_group(&mut self, group: &EnemyGroup) {
+        let enemies = (0..group.count).map(|_| {
+            let pos = Position(self.bounds.random_inside());
+            let vel = Velocity(Vec2::ZERO);
+            let dir = Direction(Vec2::random_unit());
+            let speed = Speed(group.speed);
+            let size = Size(group.size);
+            let color = group.color.clone();
+
+            (
+                Enemy,
+                pos,
+                vel,
+                dir,
+                speed,
+                size,
+                color,
+                Bounded,
+                BounceOffBounds,
+            )
+        });
+
+        self.world.spawn_batch(enemies);
     }
 
     pub fn spawn_hero(&mut self, name: &str, connection: Connection) -> Entity {
