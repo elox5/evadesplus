@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use anyhow::Result;
 use evadesplus::{
     game::{
@@ -5,17 +7,19 @@ use evadesplus::{
         components::{
             BounceOffBounds, Bounded, Color, Direction, Enemy, Position, Size, Speed, Velocity,
         },
+        game::Game,
     },
     networking::webtransport::WebTransportServer,
     physics::{rect::Rect, vec2::Vec2},
 };
-use std::sync::Arc;
 use tokio::sync::Mutex;
 use warp::Filter;
 use wtransport::{tls::Sha256DigestFmt, Identity};
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    let mut game = Game::new();
+
     let mut area = Area::new(
         "test".to_string(),
         "Testing Territory".to_string(),
@@ -27,7 +31,6 @@ async fn main() -> Result<()> {
             Rect::new(30.0, 3.0, 10.0, 2.0),
         ]),
     );
-
     area.world.spawn_batch((0..100).map(|_| {
         let pos = Position(area.bounds.random_inside());
         let vel = Velocity(Vec2::ZERO);
@@ -49,14 +52,14 @@ async fn main() -> Result<()> {
         )
     }));
 
-    let area_arc = Arc::new(Mutex::new(area));
+    game.create_area(area);
 
-    Area::start_update_loop(area_arc.clone());
+    let game_arc = Arc::new(Mutex::new(game));
 
     let identity = Identity::self_signed(["localhost", "127.0.0.1", "[::1]"])?;
     let cert_digest = identity.certificate_chain().as_slice()[0].hash();
 
-    let webtransport_server = WebTransportServer::new(identity, area_arc.clone())?;
+    let webtransport_server = WebTransportServer::new(identity, game_arc)?;
 
     let root_route = warp::fs::dir("static");
     let cert_route = warp::path("cert").and(warp::get()).then(move || {

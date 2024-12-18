@@ -1,17 +1,10 @@
-use super::{
-    components::{Bounded, Color, Direction, Hero, Player, Position, Size, Speed, Velocity},
-    systems::*,
-};
+use super::components::{Bounded, Color, Direction, Hero, Player, Position, Size, Speed, Velocity};
 use crate::{
     networking::rendering::RenderPacket,
     physics::{rect::Rect, vec2::Vec2},
 };
 use hecs::{Entity, World};
-use std::{sync::Arc, time::Duration};
-use tokio::{
-    sync::Mutex,
-    time::{interval, Instant},
-};
+use tokio::task::AbortHandle;
 use wtransport::Connection;
 
 pub struct Area {
@@ -28,6 +21,8 @@ pub struct Area {
     pub delta_time: f32,
 
     pub render_packet: Option<RenderPacket>,
+
+    pub loop_handle: Option<AbortHandle>,
 }
 
 impl Area {
@@ -49,41 +44,14 @@ impl Area {
             time: 0.0,
             delta_time: 0.0,
             render_packet: None,
+            loop_handle: None,
         }
     }
 
-    pub fn update(&mut self, delta_time: f32) {
-        self.time += delta_time;
-        self.delta_time = delta_time;
-
-        system_update_velocity(self);
-        system_update_position(self);
-        system_bounds_check(self);
-        system_inner_wall_collision(self);
-
-        system_hero_collision(self);
-        system_enemy_collision(self);
-
-        system_render(self);
-        system_send_render_packet(self);
-    }
-
-    pub fn start_update_loop(area: Arc<Mutex<Area>>) {
-        tokio::spawn(async move {
-            let mut last_time = Instant::now();
-
-            let mut interval = interval(Duration::from_millis(16));
-
-            loop {
-                {
-                    let mut area = area.lock().await;
-                    area.update(last_time.elapsed().as_secs_f32());
-                }
-
-                last_time = Instant::now();
-                interval.tick().await;
-            }
-        });
+    pub fn close(&mut self) {
+        if let Some(handle) = self.loop_handle.take() {
+            handle.abort();
+        }
     }
 
     pub fn spawn_hero(&mut self, name: &str, connection: Connection) -> Entity {

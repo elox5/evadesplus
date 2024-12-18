@@ -1,4 +1,4 @@
-use crate::{game::area::Area, physics::vec2::Vec2};
+use crate::{game::game::Game, physics::vec2::Vec2};
 use anyhow::Result;
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
@@ -13,11 +13,11 @@ use wtransport::{
 
 pub struct WebTransportServer {
     endpoint: Endpoint<Server>,
-    area_arc: Arc<Mutex<Area>>,
+    game: Arc<Mutex<Game>>,
 }
 
 impl WebTransportServer {
-    pub fn new(identity: Identity, area_arc: Arc<Mutex<Area>>) -> Result<Self> {
+    pub fn new(identity: Identity, game: Arc<Mutex<Game>>) -> Result<Self> {
         let config = ServerConfig::builder()
             .with_bind_address(SocketAddr::new(
                 IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
@@ -29,7 +29,7 @@ impl WebTransportServer {
 
         let endpoint = Endpoint::server(config)?;
 
-        Ok(Self { endpoint, area_arc })
+        Ok(Self { endpoint, game })
     }
 
     pub fn local_addr(&self) -> SocketAddr {
@@ -46,7 +46,7 @@ impl WebTransportServer {
 
             tokio::spawn(Self::handle_session(
                 incomming_session,
-                self.area_arc.clone(),
+                self.game.clone(),
                 id,
             ));
         }
@@ -54,15 +54,15 @@ impl WebTransportServer {
         Ok(())
     }
 
-    async fn handle_session(session: IncomingSession, area_arc: Arc<Mutex<Area>>, id: u64) {
-        let result = Self::handle_session_impl(session, area_arc, id).await;
+    async fn handle_session(session: IncomingSession, game: Arc<Mutex<Game>>, id: u64) {
+        let result = Self::handle_session_impl(session, game, id).await;
 
         println!("Session {id} closed with result: {result:?}");
     }
 
     async fn handle_session_impl(
         session: IncomingSession,
-        area_arc: Arc<Mutex<Area>>,
+        game: Arc<Mutex<Game>>,
         id: u64,
     ) -> Result<()> {
         let mut buffer = vec![0; 65536].into_boxed_slice();
@@ -98,7 +98,9 @@ impl WebTransportServer {
                     if let Ok(name) = name {
                         println!("Accepted name '{name}' from client {id}. Spawning hero...");
 
-                        let mut area = area_arc.lock().await;
+                        let game = game.lock().await;
+                        let mut area = game.areas[0].lock().await;
+
                         entity = Some(area.spawn_hero(name, connection.clone()));
 
                         let mut response = Vec::<u8>::new();
@@ -131,7 +133,8 @@ impl WebTransportServer {
 
                         // println!("Received input '({x:.2}, {y:.2})' from client {id}");
 
-                        let mut area = area_arc.lock().await;
+                        let  game = game.lock().await;
+                        let mut area = game.areas[0].lock().await;
                         area.update_hero_dir(entity, Vec2::new(x, y));
                     }
                 }
@@ -139,7 +142,9 @@ impl WebTransportServer {
                     println!("Connection from client {id} closed");
 
                     if let Some(entity) = entity {
-                        let mut area = area_arc.lock().await;
+                        let game = game.lock().await;
+                        let mut area = game.areas[0].lock().await;
+
                         let _ = area.world.despawn(entity);
                     }
 
