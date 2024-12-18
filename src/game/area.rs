@@ -108,4 +108,23 @@ impl Area {
         let dir = self.world.query_one_mut::<&mut Direction>(entity).unwrap();
         dir.0 = new_dir;
     }
+
+    pub fn definition_packet(&self) -> Vec<u8> {
+        let mut packet = Vec::new();
+
+        packet.extend_from_slice(b"ADEF"); // area definition
+        packet.extend_from_slice(&self.bounds.w.to_le_bytes());
+        packet.extend_from_slice(&self.bounds.h.to_le_bytes());
+        packet.extend_from_slice(&self.background_color.to_bytes());
+
+        packet.extend_from_slice(&(self.inner_walls.len() as u16).to_le_bytes());
+        for wall in &self.inner_walls {
+            packet.extend_from_slice(&wall.to_bytes());
+        }
+
+        packet.extend_from_slice(&self.name.len().to_le_bytes()[..4]);
+        packet.extend_from_slice(self.name.as_bytes());
+
+        packet
+    }
 }
