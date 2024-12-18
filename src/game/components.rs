@@ -1,4 +1,5 @@
 use crate::physics::vec2::Vec2;
+use serde::Deserialize;
 use wtransport::Connection;
 
 pub struct Hero;
@@ -17,7 +18,7 @@ pub struct Direction(pub Vec2);
 
 pub struct Size(pub f32);
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Deserialize)]
 pub struct Color {
     pub r: u8,
     pub g: u8,

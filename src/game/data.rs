@@ -3,7 +3,9 @@ use super::{
     templates::{AreaTemplate, MapTemplate},
 };
 use crate::physics::rect::Rect;
+use serde::Deserialize;
 
+#[derive(Deserialize)]
 pub struct MapData {
     pub id: String,
     pub name: String,
@@ -35,7 +37,7 @@ impl MapData {
                     background_color,
                     width: data.width,
                     height: data.height,
-                    inner_walls: data.inner_walls,
+                    inner_walls: data.inner_walls.unwrap_or_default(),
                     enemy_groups: data.enemy_groups,
                 }
             })
@@ -50,6 +52,7 @@ impl MapData {
     }
 }
 
+#[derive(Deserialize)]
 pub struct AreaData {
     pub id: Option<String>,
     pub name: Option<String>,
@@ -58,11 +61,11 @@ pub struct AreaData {
     pub width: f32,
     pub height: f32,
 
-    pub inner_walls: Vec<Rect>,
+    pub inner_walls: Option<Vec<Rect>>,
     pub enemy_groups: Vec<EnemyGroup>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Deserialize)]
 pub struct EnemyGroup {
     pub color: Color,
     pub count: u32,

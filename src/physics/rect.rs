@@ -1,6 +1,7 @@
 use super::vec2::Vec2;
+use serde::Deserialize;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct Rect {
     pub x: f32,
     pub y: f32,
