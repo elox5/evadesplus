@@ -1,7 +1,4 @@
-use super::{
-    components::Color,
-    templates::{AreaTemplate, MapTemplate},
-};
+use super::templates::{AreaTemplate, EnemyGroup, MapTemplate};
 use crate::physics::rect::Rect;
 use serde::Deserialize;
 
@@ -9,7 +6,7 @@ use serde::Deserialize;
 pub struct MapData {
     pub id: String,
     pub name: String,
-    pub background_color: Color,
+    pub background_color: String,
 
     pub areas: Vec<AreaData>,
 }
@@ -25,10 +22,22 @@ impl MapData {
                 let full_id = format!("{}:{}", self.id.clone(), area_id.clone());
                 let background_color = data
                     .background_color
-                    .unwrap_or(self.background_color.clone());
+                    .unwrap_or(self.background_color.clone())
+                    .into();
 
                 let name = data.name.unwrap_or(format!("Area {}", index + 1));
                 let name = format!("{} - {}", self.name, name);
+
+                let enemy_groups = data
+                    .enemy_groups
+                    .into_iter()
+                    .map(|data| EnemyGroup {
+                        color: data.color.into(),
+                        count: data.count,
+                        speed: data.speed,
+                        size: data.size,
+                    })
+                    .collect::<Vec<_>>();
 
                 AreaTemplate {
                     area_id,
@@ -38,7 +47,7 @@ impl MapData {
                     width: data.width,
                     height: data.height,
                     inner_walls: data.inner_walls.unwrap_or_default(),
-                    enemy_groups: data.enemy_groups,
+                    enemy_groups,
                 }
             })
             .collect::<Vec<_>>();
@@ -46,7 +55,7 @@ impl MapData {
         MapTemplate {
             id: self.id,
             name: self.name,
-            background_color: self.background_color,
+            background_color: self.background_color.into(),
             areas,
         }
     }
@@ -56,30 +65,19 @@ impl MapData {
 pub struct AreaData {
     pub id: Option<String>,
     pub name: Option<String>,
-    pub background_color: Option<Color>,
+    pub background_color: Option<String>,
 
     pub width: f32,
     pub height: f32,
 
     pub inner_walls: Option<Vec<Rect>>,
-    pub enemy_groups: Vec<EnemyGroup>,
+    pub enemy_groups: Vec<EnemyGroupData>,
 }
 
-#[derive(Clone, Deserialize)]
-pub struct EnemyGroup {
-    pub color: Color,
+#[derive(Deserialize)]
+pub struct EnemyGroupData {
+    pub color: String,
     pub count: u32,
     pub speed: f32,
     pub size: f32,
-}
-
-impl EnemyGroup {
-    pub fn new(color: Color, count: u32, speed: f32, size: f32) -> Self {
-        Self {
-            color,
-            count,
-            speed,
-            size,
-        }
-    }
 }

@@ -3,8 +3,7 @@ use super::{
         BounceOffBounds, Bounded, Color, Direction, Enemy, Hero, Player, Position, Size, Speed,
         Velocity,
     },
-    data::EnemyGroup,
-    templates::AreaTemplate,
+    templates::{AreaTemplate, EnemyGroup},
 };
 use crate::{
     networking::rendering::RenderPacket,

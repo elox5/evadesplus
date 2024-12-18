@@ -5,6 +5,9 @@ use wtransport::Connection;
 pub struct Hero;
 pub struct Enemy;
 
+pub struct Bounded;
+pub struct BounceOffBounds;
+
 pub struct Player {
     pub name: String,
     pub connection: Connection,
@@ -35,6 +38,22 @@ impl Color {
         Self { r, g, b, a }
     }
 
+    pub fn from_hex(hex: &str) -> Self {
+        let hex = hex.trim_start_matches('#');
+
+        let r = u8::from_str_radix(&hex[0..2], 16).unwrap_or(0);
+        let g = u8::from_str_radix(&hex[2..4], 16).unwrap_or(0);
+        let b = u8::from_str_radix(&hex[4..6], 16).unwrap_or(0);
+
+        if hex.chars().count() < 8 {
+            return Self { r, g, b, a: 255 };
+        }
+
+        let a = u8::from_str_radix(&hex[6..8], 16).unwrap_or(255);
+
+        Self { r, g, b, a }
+    }
+
     pub fn to_u32(&self) -> u32 {
         ((self.a as u32) << 24) + ((self.r as u32) << 16) + ((self.g as u32) << 8) + (self.b as u32)
     }
@@ -44,5 +63,14 @@ impl Color {
     }
 }
 
-pub struct Bounded;
-pub struct BounceOffBounds;
+impl From<&str> for Color {
+    fn from(hex: &str) -> Self {
+        Self::from_hex(hex)
+    }
+}
+
+impl From<String> for Color {
+    fn from(hex: String) -> Self {
+        Self::from_hex(&hex)
+    }
+}

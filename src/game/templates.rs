@@ -1,4 +1,4 @@
-use super::{components::Color, data::EnemyGroup};
+use super::components::Color;
 use crate::physics::rect::Rect;
 
 pub struct MapTemplate {
@@ -26,4 +26,23 @@ pub struct AreaTemplate {
     pub inner_walls: Vec<Rect>,
 
     pub enemy_groups: Vec<EnemyGroup>,
+}
+
+#[derive(Clone)]
+pub struct EnemyGroup {
+    pub color: Color,
+    pub count: u32,
+    pub speed: f32,
+    pub size: f32,
+}
+
+impl EnemyGroup {
+    pub fn new(color: Color, count: u32, speed: f32, size: f32) -> Self {
+        Self {
+            color,
+            count,
+            speed,
+            size,
+        }
+    }
 }
