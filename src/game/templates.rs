@@ -20,9 +20,8 @@ impl EnemyGroup {
 }
 
 pub struct AreaTemplate {
-    pub id: String,
-    pub name: String,
-    pub background_color: Color,
+    pub name: Option<String>,
+    pub background_color: Option<Color>,
 
     pub width: f32,
     pub height: f32,
@@ -33,16 +32,14 @@ pub struct AreaTemplate {
 
 impl AreaTemplate {
     pub fn new(
-        id: String,
-        name: String,
-        background_color: Color,
+        name: Option<String>,
+        background_color: Option<Color>,
         width: f32,
         height: f32,
         inner_walls: Vec<Rect>,
         enemy_groups: Vec<EnemyGroup>,
     ) -> Self {
         Self {
-            id,
             name,
             background_color,
             width,
@@ -50,5 +47,43 @@ impl AreaTemplate {
             inner_walls,
             enemy_groups,
         }
+    }
+}
+
+pub struct MapTemplate {
+    pub id: String,
+    pub name: String,
+    pub background_color: Color,
+
+    pub areas: Vec<AreaTemplate>,
+}
+
+impl MapTemplate {
+    pub fn new(
+        id: String,
+        name: String,
+        background_color: Color,
+        mut areas: Vec<AreaTemplate>,
+    ) -> Self {
+        for (index, area) in areas.iter_mut().enumerate() {
+            let area_name = area.name.clone().unwrap_or(format!("Area {}", index + 1));
+
+            area.name = Some(format!("{} - {}", name, area_name));
+
+            if area.background_color.is_none() {
+                area.background_color = Some(background_color.clone());
+            }
+        }
+
+        Self {
+            id,
+            name,
+            background_color,
+            areas,
+        }
+    }
+
+    pub fn get_area(&self, id: usize) -> Option<&AreaTemplate> {
+        self.areas.get(id)
     }
 }

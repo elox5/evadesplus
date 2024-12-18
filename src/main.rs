@@ -1,15 +1,14 @@
-use std::sync::Arc;
-
 use anyhow::Result;
 use evadesplus::{
     game::{
         components::Color,
         game::Game,
-        templates::{AreaTemplate, EnemyGroup},
+        templates::{AreaTemplate, EnemyGroup, MapTemplate},
     },
     networking::webtransport::WebTransportServer,
     physics::rect::Rect,
 };
+use std::sync::Arc;
 use tokio::sync::Mutex;
 use warp::Filter;
 use wtransport::{tls::Sha256DigestFmt, Identity};
@@ -18,23 +17,40 @@ use wtransport::{tls::Sha256DigestFmt, Identity};
 async fn main() -> Result<()> {
     let mut game = Game::new();
 
-    let area_template = AreaTemplate::new(
-        "test".to_string(),
-        "Testing Territory".to_string(),
+    let map = MapTemplate::new(
+        "tt".to_owned(),
+        "Testing Territory".to_owned(),
         Color::rgb(200, 200, 200),
-        100.0,
-        15.0,
         vec![
-            Rect::new(40.0, 5.0, 7.0, 5.0),
-            Rect::new(30.0, 3.0, 10.0, 2.0),
-        ],
-        vec![
-            EnemyGroup::new(Color::rgb(100, 100, 100), 50, 5.0, 1.0),
-            EnemyGroup::new(Color::rgb(0, 0, 0), 50, 10.0, 0.3),
+            AreaTemplate::new(
+                None,
+                None,
+                100.0,
+                15.0,
+                vec![
+                    Rect::new(40.0, 5.0, 7.0, 5.0),
+                    Rect::new(30.0, 3.0, 10.0, 2.0),
+                ],
+                vec![
+                    EnemyGroup::new(Color::rgb(100, 100, 100), 50, 5.0, 1.0),
+                    EnemyGroup::new(Color::rgb(0, 0, 0), 50, 10.0, 0.3),
+                ],
+            ),
+            AreaTemplate::new(
+                Some("Named Area".to_owned()),
+                Some(Color::rgb(100, 200, 100)),
+                500.0,
+                15.0,
+                Vec::new(),
+                vec![
+                    EnemyGroup::new(Color::rgb(200, 200, 200), 10, 5.0, 3.0),
+                    EnemyGroup::new(Color::rgb(255, 0, 0), 100, 1.0, 0.3),
+                ],
+            ),
         ],
     );
 
-    game.create_area(area_template);
+    game.try_create_area(&map, 1);
 
     let game_arc = Arc::new(Mutex::new(game));
 

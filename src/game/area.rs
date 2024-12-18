@@ -14,7 +14,6 @@ use tokio::task::AbortHandle;
 use wtransport::Connection;
 
 pub struct Area {
-    pub id: String,
     pub name: String,
     pub background_color: Color,
 
@@ -32,39 +31,23 @@ pub struct Area {
 }
 
 impl Area {
-    pub fn new(
-        id: String,
-        name: String,
-        background_color: Color,
-        width: f32,
-        height: f32,
-        inner_walls: Vec<Rect>,
-    ) -> Self {
-        Self {
-            name,
-            id,
-            background_color,
+    pub fn from_template(template: &AreaTemplate) -> Self {
+        let mut area = Self {
+            name: template
+                .name
+                .clone()
+                .unwrap_or("Area Name Error".to_owned()),
+            background_color: template.background_color.clone().unwrap_or_default(),
+            bounds: Rect::new(0.0, 0.0, template.width, template.height),
+            inner_walls: template.inner_walls.clone(),
             world: World::new(),
-            bounds: Rect::new(0.0, 0.0, width, height),
-            inner_walls,
             time: 0.0,
             delta_time: 0.0,
             render_packet: None,
             loop_handle: None,
-        }
-    }
+        };
 
-    pub fn from_template(template: AreaTemplate) -> Self {
-        let mut area = Self::new(
-            template.id,
-            template.name,
-            template.background_color,
-            template.width,
-            template.height,
-            template.inner_walls,
-        );
-
-        for group in template.enemy_groups {
+        for group in &template.enemy_groups {
             area.spawn_enemy_group(&group);
         }
 
