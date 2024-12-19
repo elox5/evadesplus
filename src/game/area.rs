@@ -86,7 +86,7 @@ impl Area {
         self.world.spawn_batch(enemies);
     }
 
-    pub fn spawn_hero(&mut self, name: &str, connection: Connection) -> Entity {
+    pub fn spawn_player(&mut self, name: &str, connection: Connection) -> Entity {
         let player = Player {
             connection,
             name: name.to_owned(),
@@ -104,9 +104,22 @@ impl Area {
             .spawn((player, Hero, pos, vel, speed, dir, size, color, Bounded))
     }
 
-    pub fn update_hero_dir(&mut self, entity: Entity, new_dir: Vec2) {
-        let dir = self.world.query_one_mut::<&mut Direction>(entity).unwrap();
-        dir.0 = new_dir;
+    pub fn despawn_player(&mut self, entity: Entity) {
+        let _ = self.world.despawn(entity);
+
+        println!("Despawning player");
+
+        if self.world.query_mut::<&Hero>().into_iter().count() == 0 {
+            self.close();
+        }
+    }
+
+    pub fn update_player_input(&mut self, entity: Entity, input: Vec2) {
+        let dir = self.world.query_one_mut::<&mut Direction>(entity);
+
+        if let Ok(dir) = dir {
+            dir.0 = input;
+        }
     }
 
     pub fn definition_packet(&self) -> Vec<u8> {

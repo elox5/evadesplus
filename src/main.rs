@@ -11,10 +11,7 @@ use wtransport::{tls::Sha256DigestFmt, Identity};
 async fn main() -> Result<()> {
     let map = parse_map("maps/tt.yaml").unwrap();
 
-    let mut game = Game::new(vec![map]);
-
-    let _ = game.try_create_area("tt:0");
-
+    let game = Game::new(vec![map], "tt:0");
     let game_arc = Arc::new(Mutex::new(game));
 
     let identity = Identity::self_signed(["localhost", "127.0.0.1", "[::1]"])?;

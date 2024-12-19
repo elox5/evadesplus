@@ -94,16 +94,15 @@ impl WebTransportServer {
                     let data = &buffer[..bytes_read];
                     let name = std::str::from_utf8(data);
 
-
                     if let Ok(name) = name {
                         println!("Accepted name '{name}' from client {id}. Spawning hero...");
 
-                        let game = game.lock().await;
-                        let mut area = game.areas[0].lock().await;
+                        let mut game = game.lock().await;
+                        let player = game.spawn_player(name, connection.clone()).await;
+                        entity = Some(player.entity);
+                        let area = player.area.clone();
 
-                        entity = Some(area.spawn_hero(name, connection.clone()));
-
-                        let definition = area.definition_packet();
+                        let definition = area.lock().await.definition_packet();
 
                         let mut response_stream = connection.open_uni().await?.await?;
                         response_stream.write_all(&definition).await?;
@@ -120,19 +119,16 @@ impl WebTransportServer {
 
                         // println!("Received input '({x:.2}, {y:.2})' from client {id}");
 
-                        let  game = game.lock().await;
-                        let mut area = game.areas[0].lock().await;
-                        area.update_hero_dir(entity, Vec2::new(x, y));
+                        let mut game = game.lock().await;
+                        game.update_player_input(entity, Vec2::new(x, y)).await;
                     }
                 }
                 _ = connection.closed() => {
                     println!("Connection from client {id} closed");
 
                     if let Some(entity) = entity {
-                        let game = game.lock().await;
-                        let mut area = game.areas[0].lock().await;
-
-                        let _ = area.world.despawn(entity);
+                        let mut game = game.lock().await;
+                        game.despawn_player(entity).await;
                     }
 
                     return Ok(());

@@ -1,21 +1,29 @@
 use super::{area::Area, data::MapData, systems::*, templates::MapTemplate};
+use crate::physics::vec2::Vec2;
 use anyhow::Result;
+use hecs::Entity;
 use std::{sync::Arc, time::Duration};
 use tokio::{
     sync::Mutex,
     time::{interval, Instant},
 };
+use wtransport::Connection;
 
 pub struct Game {
     pub maps: Vec<MapTemplate>,
     pub areas: Vec<Arc<Mutex<Area>>>,
+    pub players: Vec<Player>,
+
+    start_area_id: String,
 }
 
 impl Game {
-    pub fn new(maps: Vec<MapData>) -> Self {
+    pub fn new(maps: Vec<MapData>, start_area_id: &str) -> Self {
         Self {
             maps: maps.into_iter().map(|m| m.to_template()).collect(),
             areas: Vec::new(),
+            players: Vec::new(),
+            start_area_id: start_area_id.to_owned(),
         }
     }
 
@@ -41,7 +49,7 @@ impl Game {
     fn try_get_area(&self, id: &str) -> Option<Arc<Mutex<Area>>> {
         self.areas
             .iter()
-            .find(|a| a.try_lock().map(|a| a.area_id == id).unwrap_or(false))
+            .find(|a| a.try_lock().map(|a| a.full_id == id).unwrap_or(false))
             .cloned()
     }
 
@@ -51,6 +59,11 @@ impl Game {
         }
 
         self.try_create_area(id)
+    }
+
+    pub fn get_start_area(&mut self) -> Result<Arc<Mutex<Area>>> {
+        let start_area_id = self.start_area_id.clone();
+        self.get_or_create_area(&start_area_id)
     }
 
     fn update_area(area: &mut Area, delta_time: f32) {
@@ -91,6 +104,67 @@ impl Game {
         area.try_lock().unwrap().loop_handle = Some(handle.abort_handle());
     }
 
+    pub async fn spawn_player(&mut self, name: &str, connection: Connection) -> &Player {
+        let start_area_id = self.start_area_id.clone();
+
+        let area_arc = self
+            .get_or_create_area(&start_area_id)
+            .expect(&format!("Start area '{start_area_id}' not found"));
+        let mut area = area_arc.lock().await;
+
+        let entity = area.spawn_player(name, connection);
+        println!("Spawning entity: {}", entity.id());
+
+        let player = Player::new(entity, area_arc.clone());
+        self.players.push(player);
+
+        self.players.last().unwrap()
+    }
+
+    pub async fn despawn_player(&mut self, entity: Entity) {
+        if let Some(player) = self.get_player(entity) {
+            let mut area = player.area.lock().await;
+            let _ = area.despawn_player(entity);
+        }
+    }
+
+    pub async fn transfer_player(&mut self, entity: Entity, target_area: &str) -> Result<()> {
+        let target_area_arc = self.get_or_create_area(target_area)?;
+        let mut target_area = target_area_arc.lock().await;
+
+        let player = self
+            .players
+            .iter_mut()
+            .find(|p| p.entity == entity)
+            .ok_or(anyhow::anyhow!("Player not found"))?;
+
+        let mut area = player.area.lock().await;
+        let entity = area.world.take(player.entity)?;
+
+        target_area.world.spawn(entity);
+
+        drop(area);
+
+        player.area = target_area_arc.clone();
+
+        Ok(())
+    }
+
+    pub async fn update_player_input(&mut self, entity: Entity, input: Vec2) {
+        println!("Updating player input: {}", entity.id());
+
+        if let Some(player) = self.get_player(entity) {
+            println!("Player exists");
+
+            let mut area = player.area.lock().await;
+            area.update_player_input(entity, input);
+        }
+    }
+
+    pub fn get_player(&self, entity: Entity) -> Option<&Player> {
+        self.players.iter().find(|p| p.entity == entity)
+    }
+
     fn split_id(id: &str) -> Option<(&str, &str)> {
         let mut split = id.split(':');
         let map_id = split.next()?;
@@ -100,5 +174,16 @@ impl Game {
 
     fn try_get_map(&self, map_id: &str) -> Option<&MapTemplate> {
         self.maps.iter().find(|m| m.id == map_id)
+    }
+}
+
+pub struct Player {
+    pub entity: Entity,
+    pub area: Arc<Mutex<Area>>,
+}
+
+impl Player {
+    pub fn new(entity: Entity, area: Arc<Mutex<Area>>) -> Self {
+        Self { entity, area }
     }
 }
