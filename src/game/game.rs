@@ -1,4 +1,4 @@
-use super::{area::Area, data::MapData, systems::*, templates::MapTemplate};
+use super::{area::Area, components::Hero, data::MapData, systems::*, templates::MapTemplate};
 use crate::physics::vec2::Vec2;
 use anyhow::Result;
 use hecs::Entity;
@@ -43,6 +43,7 @@ impl Game {
         let _ = Self::start_update_loop(area.clone());
         self.areas.push(area.clone());
 
+        println!("Created area {}", id);
         Ok(area)
     }
 
@@ -122,9 +123,25 @@ impl Game {
     }
 
     pub async fn despawn_player(&mut self, entity: Entity) {
-        if let Some(player) = self.get_player(entity) {
+        let mut area_to_remove = None;
+
+        if let Some(player_index) = self.players.iter().position(|p| p.entity == entity) {
+            let player = self.players.swap_remove(player_index);
             let mut area = player.area.lock().await;
             let _ = area.despawn_player(entity);
+
+            let player_count = area.world.query_mut::<&Hero>().into_iter().count();
+            if player_count == 0 {
+                area_to_remove = Some(player.area.clone());
+            }
+        }
+
+        if let Some(area) = area_to_remove {
+            self.areas.retain(|a| !Arc::ptr_eq(a, &area));
+            let mut area = area.lock().await;
+            area.close();
+
+            println!("Removed area {}", area.full_id);
         }
     }
 
@@ -151,11 +168,7 @@ impl Game {
     }
 
     pub async fn update_player_input(&mut self, entity: Entity, input: Vec2) {
-        println!("Updating player input: {}", entity.id());
-
         if let Some(player) = self.get_player(entity) {
-            println!("Player exists");
-
             let mut area = player.area.lock().await;
             area.update_player_input(entity, input);
         }

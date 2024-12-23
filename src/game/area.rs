@@ -106,12 +106,7 @@ impl Area {
 
     pub fn despawn_player(&mut self, entity: Entity) {
         let _ = self.world.despawn(entity);
-
         println!("Despawning player");
-
-        if self.world.query_mut::<&Hero>().into_iter().count() == 0 {
-            self.close();
-        }
     }
 
     pub fn update_player_input(&mut self, entity: Entity, input: Vec2) {
