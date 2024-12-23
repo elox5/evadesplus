@@ -47,6 +47,7 @@ impl MapData {
                     width: data.width,
                     height: data.height,
                     inner_walls: data.inner_walls.unwrap_or_default(),
+                    safe_zones: data.safe_zones.unwrap_or_default(),
                     enemy_groups,
                 }
             })
@@ -71,6 +72,7 @@ pub struct AreaData {
     pub height: f32,
 
     pub inner_walls: Option<Vec<Rect>>,
+    pub safe_zones: Option<Vec<Rect>>,
     pub enemy_groups: Vec<EnemyGroupData>,
 }
 

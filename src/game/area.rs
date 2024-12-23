@@ -23,6 +23,7 @@ pub struct Area {
 
     pub bounds: Rect,
     pub inner_walls: Vec<Rect>,
+    pub safe_zones: Vec<Rect>,
 
     pub time: f32,
     pub delta_time: f32,
@@ -41,6 +42,7 @@ impl Area {
             background_color: template.background_color.clone(),
             bounds: Rect::new(0.0, 0.0, template.width, template.height),
             inner_walls: template.inner_walls.clone(),
+            safe_zones: template.safe_zones.clone(),
             world: World::new(),
             time: 0.0,
             delta_time: 0.0,
@@ -126,8 +128,14 @@ impl Area {
         packet.extend_from_slice(&self.background_color.to_bytes());
 
         packet.extend_from_slice(&(self.inner_walls.len() as u16).to_le_bytes());
+        packet.extend_from_slice(&(self.safe_zones.len() as u16).to_le_bytes());
+
         for wall in &self.inner_walls {
             packet.extend_from_slice(&wall.to_bytes());
+        }
+
+        for zone in &self.safe_zones {
+            packet.extend_from_slice(&zone.to_bytes());
         }
 
         packet.extend_from_slice(&self.name.len().to_le_bytes()[..4]);

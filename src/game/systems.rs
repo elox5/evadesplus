@@ -6,7 +6,7 @@ use crate::{
     game::components::{Direction, Position, Speed, Velocity},
     networking::rendering::{RenderNode, RenderPacket},
 };
-use hecs::With;
+use hecs::{With, Without};
 
 pub fn system_update_position(area: &mut Area) {
     for (_, (pos, vel)) in area.world.query_mut::<(&mut Position, &Velocity)>() {
@@ -93,6 +93,60 @@ pub fn system_inner_wall_collision(area: &mut Area) {
         .query_mut::<With<(&mut Position, &Size), &Bounded>>()
     {
         for wall in &area.inner_walls {
+            if wall.contains_circle(pos.0, size.0 / 2.0) {
+                let distance = wall.center() - pos.0;
+
+                let x_distance = distance.x / wall.w;
+                let y_distance = distance.y / wall.h;
+
+                if x_distance.abs() > y_distance.abs() {
+                    if x_distance < 0.0 {
+                        pos.0.x = wall.center().x + wall.w / 2.0 + size.0 / 2.0;
+                    } else {
+                        pos.0.x = wall.center().x - wall.w / 2.0 - size.0 / 2.0;
+                    }
+                } else {
+                    if y_distance < 0.0 {
+                        pos.0.y = wall.center().y + wall.h / 2.0 + size.0 / 2.0;
+                    } else {
+                        pos.0.y = wall.center().y - wall.h / 2.0 - size.0 / 2.0;
+                    }
+                };
+            }
+        }
+    }
+}
+
+pub fn system_safe_zone_collision(area: &mut Area) {
+    if area.safe_zones.is_empty() {
+        return;
+    }
+
+    for (_, (dir, pos, size)) in area
+        .world
+        .query_mut::<Without<With<(&mut Direction, &Position, &Size), &BounceOffBounds>, &Player>>()
+    {
+        for wall in &area.safe_zones {
+            if wall.contains_circle(pos.0, size.0 / 2.0) {
+                let distance = wall.center() - pos.0;
+
+                let x_distance = distance.x / wall.w;
+                let y_distance = distance.y / wall.h;
+
+                if x_distance.abs() > y_distance.abs() {
+                    dir.0.x *= -1.0;
+                } else {
+                    dir.0.y *= -1.0;
+                }
+            }
+        }
+    }
+
+    for (_, (pos, size)) in area
+        .world
+        .query_mut::<Without<With<(&mut Position, &Size), &Bounded>, &Player>>()
+    {
+        for wall in &area.safe_zones {
             if wall.contains_circle(pos.0, size.0 / 2.0) {
                 let distance = wall.center() - pos.0;
 

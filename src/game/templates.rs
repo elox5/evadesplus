@@ -24,6 +24,7 @@ pub struct AreaTemplate {
     pub width: f32,
     pub height: f32,
     pub inner_walls: Vec<Rect>,
+    pub safe_zones: Vec<Rect>,
 
     pub enemy_groups: Vec<EnemyGroup>,
 }

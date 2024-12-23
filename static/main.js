@@ -59,9 +59,15 @@ function handleAreaUpdate(data) {
     const wallsLengthBytes = data.slice(12, 14);
     const wallsLength = new Uint16Array(wallsLengthBytes.buffer)[0];
 
-    let idx = 14;
+    const safeZonesLengthBytes = data.slice(14, 16);
+    const safeZonesLength = new Uint16Array(safeZonesLengthBytes.buffer)[0];
+
+    console.log(width, height, color, wallsLength, safeZonesLength);
+
+    let idx = 16;
 
     const walls = [];
+    const safeZones = [];
 
     for (let i = 0; i < wallsLength; i++) {
         let xBytes = data.slice(idx, idx + 4);
@@ -76,6 +82,24 @@ function handleAreaUpdate(data) {
 
         walls.push({ x, y, w, h });
 
+        console.log(x, y, w, h);
+
+        idx += 16;
+    }
+
+    for (let i = 0; i < safeZonesLength; i++) {
+        let xBytes = data.slice(idx, idx + 4);
+        let yBytes = data.slice(idx + 4, idx + 8);
+        let wBytes = data.slice(idx + 8, idx + 12);
+        let hBytes = data.slice(idx + 12, idx + 16);
+
+        let x = new Float32Array(xBytes.buffer)[0];
+        let y = new Float32Array(yBytes.buffer)[0];
+        let w = new Float32Array(wBytes.buffer)[0];
+        let h = new Float32Array(hBytes.buffer)[0];
+
+        safeZones.push({ x, y, w, h });
+
         idx += 16;
     }
 
@@ -87,7 +111,7 @@ function handleAreaUpdate(data) {
 
     areaName.innerHTML = name;
 
-    renderArea(width, height, color, walls);
+    renderArea(width, height, color, walls, safeZones);
 
     console.log("Area update:", name, width, height);
 }

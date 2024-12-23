@@ -75,6 +75,7 @@ impl Game {
         system_update_position(area);
         system_bounds_check(area);
         system_inner_wall_collision(area);
+        system_safe_zone_collision(area);
 
         system_hero_collision(area);
         system_enemy_collision(area);

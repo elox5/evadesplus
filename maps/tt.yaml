@@ -17,6 +17,11 @@ areas:
         y: 7
         w: 7
         h: 2
+    safe_zones:
+      - x: 50
+        y: 3
+        w: 10
+        h: 4
     enemy_groups:
       - color: "#64646455"
         count: 50

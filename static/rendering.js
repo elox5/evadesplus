@@ -180,7 +180,7 @@ function drawGrid(width, height) {
     }
 }
 
-export function renderArea(width, height, color, walls) {
+export function renderArea(width, height, color, walls, safeZones) {
     areaCanvas.width = width * renderSettings.tileSize;
     areaCanvas.height = height * renderSettings.tileSize;
 
@@ -194,6 +194,11 @@ export function renderArea(width, height, color, walls) {
 
     for (const wall of walls) {
         drawRect("area", wall.x, wall.y, wall.w, wall.h, "#222");
+        console.log("Drawing wall at", wall.x, wall.y, wall.w, wall.h);
+    }
+
+    for (const safeZone of safeZones) {
+        drawRect("area", safeZone.x, safeZone.y, safeZone.w, safeZone.h, "#00000033");
     }
 }
 
