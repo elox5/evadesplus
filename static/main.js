@@ -62,8 +62,6 @@ function handleAreaUpdate(data) {
     const safeZonesLengthBytes = data.slice(14, 16);
     const safeZonesLength = new Uint16Array(safeZonesLengthBytes.buffer)[0];
 
-    console.log(width, height, color, wallsLength, safeZonesLength);
-
     let idx = 16;
 
     const walls = [];
@@ -81,8 +79,6 @@ function handleAreaUpdate(data) {
         let h = new Float32Array(hBytes.buffer)[0];
 
         walls.push({ x, y, w, h });
-
-        console.log(x, y, w, h);
 
         idx += 16;
     }
@@ -112,8 +108,6 @@ function handleAreaUpdate(data) {
     areaName.innerHTML = name;
 
     renderArea(width, height, color, walls, safeZones);
-
-    console.log("Area update:", name, width, height);
 }
 
 const nodes = [];

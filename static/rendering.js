@@ -194,7 +194,6 @@ export function renderArea(width, height, color, walls, safeZones) {
 
     for (const wall of walls) {
         drawRect("area", wall.x, wall.y, wall.w, wall.h, "#222");
-        console.log("Drawing wall at", wall.x, wall.y, wall.w, wall.h);
     }
 
     for (const safeZone of safeZones) {
@@ -204,9 +203,13 @@ export function renderArea(width, height, color, walls, safeZones) {
 
 function gameToCanvasX(canvas, x) {
     const width = canvas == "main" ? mainCanvas.width : 0;
-    return (x - drawOffset.x) * renderSettings.tileSize + width / 2;
+    const offset = canvas == "main" ? drawOffset.x : 0;
+
+    return (x - offset) * renderSettings.tileSize + width / 2;
 }
 function gameToCanvasY(canvas, y) {
     const height = canvas == "main" ? mainCanvas.height : areaCanvas.height * 2;
-    return (drawOffset.y - y) * renderSettings.tileSize + height / 2;
+    const offset = canvas == "main" ? drawOffset.y : 0;
+
+    return (offset - y) * renderSettings.tileSize + height / 2;
 }
