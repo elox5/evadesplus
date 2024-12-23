@@ -1,5 +1,5 @@
-import { renderSettings, clearCanvas, drawCircle, drawRect, setDrawOffset, setupCanvas, drawLine, drawCircleOutline, drawText, renderArea } from "./rendering.js";
-import { input, setupInput, inputSettings } from "./input.js";
+import { renderSettings, setupCanvas, renderArea, renderFrame } from "./rendering.js";
+import { setupInput } from "./input.js";
 import { connect, establishUniConnection, establishInputConnection, establishRenderConnection } from "./networking.js";
 
 const gameContainer = document.querySelector("#game-container");
@@ -18,10 +18,10 @@ window.onload = main;
 async function handleConnection() {
     let name = nameInput.value;
 
-    console.log("Connecting");
-
+    console.log("Connecting...");
 
     if (name.trim().length === 0) {
+        console.log("Name empty");
         return;
     }
 
@@ -160,25 +160,4 @@ function handleRenderUpdate(data) {
         renderFrame({ x: offsetX, y: offsetY }, [], nodes);
         nodes.length = 0;
     }
-}
-
-function renderFrame(offset, rects, nodes) {
-    clearCanvas();
-    setDrawOffset(offset.x, offset.y);
-
-    for (const rect of rects) {
-        drawRect("main", rect.x, rect.y, rect.w, rect.h, rect.color, rect.hasBorder);
-    }
-
-    for (const node of nodes) {
-        drawCircle("main", node.x, node.y, node.radius, node.color, node.hasBorder);
-
-        if (node.name !== undefined) {
-            drawText("main", node.x, node.y + 1, node.name, "black", 16, "bold");
-        }
-    }
-
-    let range = inputSettings.mouseInputRange;
-    drawLine("main", offset.x, offset.y, offset.x + (input.x * range), offset.y + (input.y * range), "yellow", 2);
-    drawCircleOutline("main", offset.x, offset.y, range, "orange", 2);
 }

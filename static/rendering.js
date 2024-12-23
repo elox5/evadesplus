@@ -1,145 +1,99 @@
-const mainCanvas = document.querySelector("#main-canvas");
-const areaCanvas = document.querySelector("#area-canvas");
-const mainCtx = mainCanvas.getContext("2d");
-const areaCtx = areaCanvas.getContext("2d");
+import { input, inputSettings } from "./input.js";
+import Canvas from "./canvas.js";
 
 export let renderSettings = {
     tileSize: 32,
 }
 
-let drawOffset = { x: 0, y: 0 };
+const mainCanvas = new Canvas("main-canvas");
+const areaCanvas = new Canvas("area-canvas");
 
 export function setupCanvas() {
-    mainCanvas.width = mainCanvas.clientWidth;
-    mainCanvas.height = mainCanvas.clientHeight;
+    mainCanvas.updateDimensions();
+    mainCanvas.clear();
 
     window.onresize = () => {
-        mainCanvas.width = mainCanvas.clientWidth;
-        mainCanvas.height = mainCanvas.clientHeight;
+        mainCanvas.updateDimensions();
     }
-
-    clearCanvas();
 }
 
-export function setDrawOffset(x, y) {
-    drawOffset = { x, y };
-    areaCanvas.style.translate = `${-x * renderSettings.tileSize + areaCanvas.width / 2}px ${y * renderSettings.tileSize - areaCanvas.height / 2}px`;
+function setDrawOffset(x, y) {
+    mainCanvas.setRenderOffset(x - mainCanvas.canvas.width / 2 / renderSettings.tileSize, -y + mainCanvas.canvas.height / 2 / renderSettings.tileSize);
+    areaCanvas.setPhysicalOffset(x, y);
 }
 
-export function clearCanvas() {
-    mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
-}
-
-export function drawCircle(canvas, x, y, r, color = "#000", hasOutline = false) {
-    const ctx = canvas == "main" ? mainCtx : areaCtx;
-
-    x = gameToCanvasX(canvas, x);
-    y = gameToCanvasY(canvas, y);
-    r *= renderSettings.tileSize;
-
-    ctx.fillStyle = color;
+function drawCircle(canvas, _x, _y, _r, settings = {
+    hasFill: true,
+    hasFrame: false,
+    hasOutline: false,
+    fillColor: "#000",
+    strokeColor: "#000",
+    strokeWidth: 1,
+}) {
+    const ctx = canvas.ctx;
+    const { x, y } = canvas.gameToCanvasPos(_x, _y);
+    const r = _r * renderSettings.tileSize;
 
     ctx.beginPath();
     ctx.arc(x, y, r, 0, 2 * Math.PI);
-    ctx.fill();
 
-    if (hasOutline) {
-        ctx.strokeStyle = "black";
-        ctx.lineWidth = 2;
+    if (settings.hasFill === true) {
+        ctx.fillStyle = settings.fillColor;
+        ctx.fill();
+    }
+
+    if (settings.hasOutline === true) {
+        ctx.strokeStyle = settings.strokeColor;
+        ctx.lineWidth = settings.strokeWidth;
+
+        ctx.stroke();
+    }
+
+    if (settings.hasFrame === true) {
+        ctx.strokeStyle = settings.strokeColor;
+        ctx.lineWidth = settings.strokeWidth;
+
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x - r, y);
+        ctx.moveTo(x, y + r);
+        ctx.lineTo(x, y - r);
         ctx.stroke();
     }
 }
 
-export function drawCircleOutline(canvas, x, y, r, color = "#000", width = 1) {
-    const ctx = canvas == "main" ? mainCtx : areaCtx;
+function drawRect(canvas, _x, _y, _w, _h, settings) {
+    const ctx = canvas.ctx;
+    const { x, y } = canvas.gameToCanvasPos(_x, _y);
 
-    x = gameToCanvasX(canvas, x);
-    y = gameToCanvasY(canvas, y);
-    r *= renderSettings.tileSize;
+    const w = canvas.gameToCanvas(_w);
+    const h = -canvas.gameToCanvas(_h);
 
-    ctx.strokeStyle = color;
-    ctx.lineWidth = width;
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, 2 * Math.PI);
-    ctx.stroke();
-}
+    if (settings.hasFill) {
+        ctx.fillStyle = settings.fillColor;
+        ctx.fillRect(x, y, w, h);
+    }
 
-export function drawCircleFrame(canvas, x, y, r, color = "#000", width = 1) {
-    const ctx = canvas == "main" ? mainCtx : areaCtx;
-
-    x = gameToCanvasX(canvas, x);
-    y = gameToCanvasY(canvas, y);
-    r *= renderSettings.tileSize;
-
-    ctx.strokeStyle = color;
-    ctx.lineWidth = width;
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, 2 * Math.PI);
-    ctx.moveTo(x + r, y);
-    ctx.lineTo(x - r, y);
-    ctx.moveTo(x, y + r);
-    ctx.lineTo(x, y - r);
-    ctx.stroke();
-}
-
-export function drawRect(canvas, x, y, w, h, color = "#000", hasOutline = false) {
-    const ctx = canvas == "main" ? mainCtx : areaCtx;
-
-    x = gameToCanvasX(canvas, x);
-    y = gameToCanvasY(canvas, y);
-    w *= renderSettings.tileSize;
-    h *= renderSettings.tileSize;
-
-    ctx.fillStyle = color;
-    ctx.fillRect(x, y, w, -h);
-
-    if (hasOutline) {
-        ctx.strokeStyle = "black";
-        ctx.lineWidth = 2;
+    if (settings.hasOutline) {
+        ctx.strokeStyle = settings.strokeColor;
+        ctx.lineWidth = settings.strokeWidth;
         ctx.strokeRect(x, y, w, h);
+    }
+
+    if (settings.hasFrame) {
+        ctx.beginPath();
+        ctx.moveTo(x + w / 2, y);
+        ctx.lineTo(x + w / 2, y + h);
+        ctx.moveTo(x, y + h / 2);
+        ctx.lineTo(x + w, y + h / 2);
+        ctx.stroke();
     }
 }
 
-export function drawRectOutline(canvas, x, y, w, h, color = "#000", width = 1) {
-    const ctx = canvas == "main" ? mainCtx : areaCtx;
-
-    x = gameToCanvasX(canvas, x);
-    y = gameToCanvasY(canvas, y);
-    w *= renderSettings.tileSize;
-    h *= renderSettings.tileSize;
-
-    ctx.strokeStyle = color;
-    ctx.lineWidth = width;
-    ctx.beginPath();
-    ctx.strokeRect(x, y, w, h);
-}
-
-export function drawRectFrame(canvas, x, y, w, h, color = "#000", width = 1) {
-    const ctx = canvas == "main" ? mainCtx : areaCtx;
-
-    x = gameToCanvasX(canvas, x);
-    y = gameToCanvasY(canvas, y);
-    w *= renderSettings.tileSize;
-    h *= renderSettings.tileSize;
-
-    ctx.strokeStyle = color;
-    ctx.lineWidth = width;
-    ctx.beginPath();
-    ctx.strokeRect(x, y, w, h);
-    ctx.moveTo(x + w / 2, y);
-    ctx.lineTo(x + w / 2, y + h);
-    ctx.moveTo(x, y + h / 2);
-    ctx.lineTo(x + w, y + h / 2);
-    ctx.stroke();
-}
-
-export function drawLine(canvas, x1, y1, x2, y2, color = "#000", width = 1) {
-    const ctx = canvas == "main" ? mainCtx : areaCtx;
-
-    x1 = gameToCanvasX(canvas, x1);
-    y1 = gameToCanvasY(canvas, y1);
-    x2 = gameToCanvasX(canvas, x2);
-    y2 = gameToCanvasY(canvas, y2);
+function drawLine(canvas, _x1, _y1, _x2, _y2, color = "#000", width = 1) {
+    const ctx = canvas.ctx;
+    const { x: x1, y: y1 } = canvas.gameToCanvasPos(_x1, _y1);
+    const { x: x2, y: y2 } = canvas.gameToCanvasPos(_x2, _y2);
 
     ctx.strokeStyle = color;
     ctx.lineWidth = width;
@@ -149,11 +103,9 @@ export function drawLine(canvas, x1, y1, x2, y2, color = "#000", width = 1) {
     ctx.stroke();
 }
 
-export function drawText(canvas, x, y, text, color = "#000", size = 16, modifiers = "") {
-    const ctx = canvas == "main" ? mainCtx : areaCtx;
-
-    x = gameToCanvasX(canvas, x);
-    y = gameToCanvasY(canvas, y);
+function drawText(canvas, _x, _y, text, color = "#000", size = 16, modifiers = "") {
+    const ctx = canvas.ctx;
+    const { x, y } = canvas.gameToCanvasPos(_x, _y);
 
     ctx.fillStyle = color;
     ctx.font = `${modifiers} ${size}px Nunito`;
@@ -162,54 +114,86 @@ export function drawText(canvas, x, y, text, color = "#000", size = 16, modifier
 }
 
 function drawGrid(width, height) {
-    areaCtx.strokeStyle = "#00000033";
-    areaCtx.lineWidth = 1;
+    const ctx = areaCanvas.ctx;
+
+    ctx.strokeStyle = "#00000033";
+    ctx.lineWidth = 1;
 
     for (let i = 0; i < width; i++) {
-        areaCtx.beginPath();
-        areaCtx.moveTo((i - drawOffset.x % 1) * renderSettings.tileSize, 0);
-        areaCtx.lineTo((i - drawOffset.x % 1) * renderSettings.tileSize, areaCanvas.height);
-        areaCtx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(i * renderSettings.tileSize, 0);
+        ctx.lineTo(i * renderSettings.tileSize, areaCanvas.canvas.height);
+        ctx.stroke();
     }
 
     for (let j = 0; j < height; j++) {
-        areaCtx.beginPath();
-        areaCtx.moveTo(0, (j + drawOffset.y % 1) * renderSettings.tileSize);
-        areaCtx.lineTo(areaCanvas.width, (j + drawOffset.y % 1) * renderSettings.tileSize);
-        areaCtx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, j * renderSettings.tileSize);
+        ctx.lineTo(areaCanvas.canvas.width, j * renderSettings.tileSize);
+        ctx.stroke();
     }
 }
 
 export function renderArea(width, height, color, walls, safeZones) {
-    areaCanvas.width = width * renderSettings.tileSize;
-    areaCanvas.height = height * renderSettings.tileSize;
+    areaCanvas.setDimensions(width * renderSettings.tileSize, height * renderSettings.tileSize);
 
-    areaCanvas.style.width = `${areaCanvas.width}px`;
-    areaCanvas.style.height = `${areaCanvas.height}px`;
+    const ctx = areaCanvas.ctx;
 
-    areaCtx.fillStyle = color;
-    areaCtx.fillRect(0, 0, areaCanvas.width, areaCanvas.height);
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, areaCanvas.canvas.width, areaCanvas.canvas.height);
 
     drawGrid(width, height);
 
     for (const wall of walls) {
-        drawRect("area", wall.x, wall.y, wall.w, wall.h, "#222");
+        drawRect(areaCanvas, wall.x, wall.y, wall.w, wall.h, {
+            hasFill: true,
+            fillColor: "#222",
+        });
     }
 
     for (const safeZone of safeZones) {
-        drawRect("area", safeZone.x, safeZone.y, safeZone.w, safeZone.h, "#00000033");
+        drawRect(areaCanvas, safeZone.x, safeZone.y, safeZone.w, safeZone.h, {
+            hasFill: true,
+            fillColor: "#00000022",
+        });
     }
 }
 
-function gameToCanvasX(canvas, x) {
-    const width = canvas == "main" ? mainCanvas.width : 0;
-    const offset = canvas == "main" ? drawOffset.x : 0;
 
-    return (x - offset) * renderSettings.tileSize + width / 2;
-}
-function gameToCanvasY(canvas, y) {
-    const height = canvas == "main" ? mainCanvas.height : areaCanvas.height * 2;
-    const offset = canvas == "main" ? drawOffset.y : 0;
+export function renderFrame(offset, rects, nodes) {
+    mainCanvas.clear();
 
-    return (offset - y) * renderSettings.tileSize + height / 2;
+    setDrawOffset(offset.x, offset.y);
+
+    for (const rect of rects) {
+        drawRect(mainCanvas, rect.x, rect.y, rect.w, rect.h, {
+            hasFill: true,
+            fillColor: rect.color,
+            hasOutline: rect.hasBorder,
+            strokeColor: "black",
+            strokeWidth: 2
+        });
+    }
+
+    for (const node of nodes) {
+        drawCircle(mainCanvas, node.x, node.y, node.radius, {
+            hasFill: true,
+            fillColor: node.color,
+            hasOutline: node.hasBorder,
+            strokeColor: "black",
+            strokeWidth: 2
+        });
+
+        if (node.name !== undefined) {
+            drawText(mainCanvas, node.x, node.y + 1, node.name, "black", 16, "bold");
+        }
+    }
+
+    let range = inputSettings.mouseInputRange;
+    drawLine(mainCanvas, offset.x, offset.y, offset.x + (input.x * range), offset.y + (input.y * range), "yellow", 2);
+    drawCircle(mainCanvas, offset.x, offset.y, range, {
+        hasOutline: true,
+        strokeColor: "orange",
+        strokeWidth: 2
+    });
 }
