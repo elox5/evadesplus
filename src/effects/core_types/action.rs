@@ -7,6 +7,7 @@ where
     TAdd: Copy + Send + Sync,
     TMul: Copy + Send + Sync,
 {
+    None,
     Overwrite(T),
     Add(TAdd),
     Multiply(TMul),
@@ -20,6 +21,7 @@ where
 {
     pub fn apply_to(&self, value: &mut T) {
         match *self {
+            EffectAction::None => {}
             EffectAction::Overwrite(applied) => *value = applied,
             EffectAction::Add(applied) => *value = *value + applied,
             EffectAction::Multiply(applied) => *value = *value * applied,

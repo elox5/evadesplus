@@ -83,6 +83,37 @@ where
         ))
     }
 
+    pub fn update(&self, action: EffectAction<T::EffectValue, T::EffectAdd, T::EffectMul>) {
+        match self {
+            Effect::Togglable(effect) => {
+                if let Some(effect) = effect {
+                    effect.update(action);
+                }
+            }
+            Effect::Timed(effect) => {
+                if let Some(effect) = effect.upgrade() {
+                    effect.update(action);
+                }
+            }
+        }
+    }
+
+    pub fn get(&self) -> Option<EffectAction<T::EffectValue, T::EffectAdd, T::EffectMul>> {
+        match self {
+            Effect::Togglable(effect) => {
+                if let Some(effect) = effect {
+                    return Some(effect.get());
+                }
+            }
+            Effect::Timed(effect) => {
+                if let Some(effect) = effect.upgrade() {
+                    return Some(effect.get());
+                }
+            }
+        }
+        None
+    }
+
     pub fn clear(&mut self) {
         match self {
             Effect::Togglable(effect) => *effect = None,

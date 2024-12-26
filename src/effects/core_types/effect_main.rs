@@ -1,3 +1,5 @@
+use arc_swap::ArcSwap;
+
 use super::{EffectAction, EffectId, EffectPriority};
 use std::{
     ops::{Add, Mul},
@@ -13,7 +15,7 @@ where
 {
     pub id: EffectId,
     pub priority: EffectPriority,
-    pub action: Weak<EffectAction<T, TAdd, TMul>>,
+    pub action: Weak<ArcSwap<EffectAction<T, TAdd, TMul>>>,
 }
 
 impl<T, TAdd, TMul> EffectMain<T, TAdd, TMul>
@@ -25,7 +27,7 @@ where
     pub fn new(
         id: EffectId,
         priority: EffectPriority,
-        action: &Arc<EffectAction<T, TAdd, TMul>>,
+        action: &Arc<ArcSwap<EffectAction<T, TAdd, TMul>>>,
     ) -> Self {
         Self {
             id,

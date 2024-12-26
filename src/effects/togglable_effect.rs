@@ -1,5 +1,7 @@
+use arc_swap::ArcSwap;
+
 use super::{
-    core_types::{EffectAction, EffectId, EffectMain, EffectPriority, UpdateEffects},
+    core_types::{EffectAction, EffectId, EffectMain, EffectPriority, EffectStore, UpdateEffects},
     target::EffectTarget,
 };
 use std::sync::{mpsc, Arc, Weak};
@@ -8,7 +10,7 @@ pub struct TogglableEffect<T>
 where
     T: EffectTarget,
 {
-    _effect: Arc<EffectAction<T::EffectValue, T::EffectAdd, T::EffectMul>>,
+    effect: EffectStore<T>,
     targets: Vec<Weak<mpsc::Sender<UpdateEffects>>>,
 }
 
@@ -22,15 +24,23 @@ where
         effect: EffectAction<T::EffectValue, T::EffectAdd, T::EffectMul>,
         target_list: &mut Vec<&mut T>,
     ) -> Self {
-        let effect = Arc::new(effect);
+        let effect = Arc::new(ArcSwap::new(Arc::new(effect)));
         let new = Self {
             targets: target_list
                 .iter_mut()
                 .map(|target| target.apply(EffectMain::new(id, priority, &effect)))
                 .collect(),
-            _effect: effect,
+            effect,
         };
         new
+    }
+
+    pub(super) fn get(&self) -> EffectAction<T::EffectValue, T::EffectAdd, T::EffectMul> {
+        **self.effect.load()
+    }
+
+    pub(super) fn update(&self, action: EffectAction<T::EffectValue, T::EffectAdd, T::EffectMul>) {
+        self.effect.store(Arc::new(action));
     }
 }
 

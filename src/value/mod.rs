@@ -1,4 +1,6 @@
-use crate::effects::core_types::{EffectId, EffectMain, EffectPriority, UpdateEffects};
+use crate::effects::core_types::{
+    EffectAction, EffectId, EffectMain, EffectPriority, UpdateEffects,
+};
 use std::{
     ops::{Add, Mul},
     sync::{mpsc, Arc},
@@ -14,6 +16,7 @@ where
 {
     value: T,
     base: T,
+    base_effect: EffectAction<T, TAdd, TMul>,
     rx: mpsc::Receiver<UpdateEffects>,
     tx: Arc<mpsc::Sender<UpdateEffects>>,
     effects: Vec<EffectMain<T, TAdd, TMul>>,
@@ -30,10 +33,19 @@ where
         Self {
             base,
             value: base,
+            base_effect: EffectAction::None,
             rx,
             tx: Arc::new(tx),
             effects: Vec::new(),
         }
+    }
+
+    pub fn update_base(&mut self, action: EffectAction<T, TAdd, TMul>) {
+        self.base_effect = action;
+    }
+
+    pub fn get_base(&self) -> T {
+        self.base
     }
 
     pub fn get(&mut self) -> T {
@@ -48,6 +60,7 @@ where
 
     fn recalculate(&mut self) {
         self.value = self.base;
+        self.base_effect.apply_to(&mut self.value);
         let mut groups: Vec<EffectPriority> = Vec::new();
         let mut ids: Vec<EffectId> = Vec::new();
         for effect in self.effects.iter() {
@@ -59,11 +72,11 @@ where
                     continue;
                 }
                 if let Some(effect_ref) = effect.action.upgrade() {
-                    effect_ref.apply_to(&mut self.value);
+                    effect_ref.load().apply_to(&mut self.value);
                     ids.push(effect.id);
                 }
             } else if let Some(effect_ref) = effect.action.upgrade() {
-                effect_ref.apply_to(&mut self.value);
+                effect_ref.load().apply_to(&mut self.value);
                 groups.push(effect.priority);
                 ids.push(effect.id);
             }
