@@ -1,4 +1,4 @@
-pub mod effect_system;
+pub mod effects;
 pub mod game;
 pub mod networking;
 pub mod parsing;

@@ -1,10 +1,8 @@
-use std::sync::{mpsc, Arc, Weak};
-
-use crate::effect_system::{
-    effect::{Effect, EffectAction, EffectMain, UpdateEffects},
-    priority::EffectPriority,
-    target::{EffectId, EffectTarget},
+use super::{
+    core_types::{EffectAction, EffectId, EffectMain, EffectPriority, UpdateEffects},
+    target::EffectTarget,
 };
+use std::sync::{mpsc, Arc, Weak};
 
 pub struct TogglableEffect<T>
 where
@@ -18,7 +16,7 @@ impl<T> TogglableEffect<T>
 where
     T: EffectTarget + 'static,
 {
-    pub fn apply(
+    pub(super) fn apply(
         id: EffectId,
         priority: EffectPriority,
         effect: EffectAction<T::EffectValue>,
@@ -47,11 +45,4 @@ where
             }
         });
     }
-}
-
-impl<T> Effect for TogglableEffect<T>
-where
-    T: EffectTarget + 'static,
-{
-    fn clear(self) {}
 }

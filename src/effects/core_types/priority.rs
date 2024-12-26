@@ -1,10 +1,10 @@
+use super::PriorityGroup;
+use crate::effects::group_table;
 use std::cmp::Ordering;
-
-use crate::effect_system::group_table;
 
 #[derive(Clone, Copy)]
 pub struct EffectPriority {
-    pub group: u16,
+    pub group: PriorityGroup,
     pub value: u8,
 }
 

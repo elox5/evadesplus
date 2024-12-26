@@ -1,11 +1,8 @@
+use super::core_types::{EffectMain, UpdateEffects};
 use std::{
     ops::{AddAssign, MulAssign},
     sync::{mpsc, Weak},
 };
-
-use crate::effect_system::effect::{EffectMain, UpdateEffects};
-
-pub type EffectId = u32;
 
 pub trait EffectTarget
 where

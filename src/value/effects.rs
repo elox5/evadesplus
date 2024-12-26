@@ -3,8 +3,8 @@ use std::{
     sync::{mpsc, Arc, Weak},
 };
 
-use crate::effect_system::{
-    effect::{EffectMain, UpdateEffects},
+use crate::effects::{
+    core_types::{EffectMain, UpdateEffects},
     target::EffectTarget,
 };
 

@@ -3,10 +3,7 @@ use std::{
     sync::{mpsc, Arc},
 };
 
-use crate::effect_system::{
-    effect::{EffectMain, UpdateEffects},
-    priority::EffectPriority,
-};
+use crate::effects::core_types::{EffectMain, EffectPriority, UpdateEffects};
 
 pub mod effects;
 
@@ -36,6 +33,17 @@ where
         }
     }
 
+    pub fn get(&mut self) -> T {
+        let mut rx_iter = self.rx.try_iter().peekable();
+        if rx_iter.peek().is_some() {
+            self.effects
+                .retain(|effect| effect.action.upgrade().is_some());
+            self.value = self.base;
+            self.recalculate();
+        }
+        self.value
+    }
+
     fn find_copy(&self, effect: &EffectMain<T>) -> Option<usize> {
         self.effects.iter().position(|other_effect| {
             if effect.id == other_effect.id {
@@ -56,24 +64,13 @@ where
                 if effect.priority.value != group.value {
                     return;
                 }
-                if let Some(effect_ref) = effect.effect.upgrade() {
+                if let Some(effect_ref) = effect.action.upgrade() {
                     effect_ref.apply(&mut self.value);
                 }
-            } else if let Some(effect_ref) = effect.effect.upgrade() {
+            } else if let Some(effect_ref) = effect.action.upgrade() {
                 groups.push(effect.priority);
                 effect_ref.apply(&mut self.value);
             }
         }
-    }
-
-    pub fn get(&mut self) -> T {
-        let mut rx_iter = self.rx.try_iter().peekable();
-        if rx_iter.peek().is_some() {
-            self.effects
-                .retain(|effect| effect.effect.upgrade().is_some());
-            self.value = self.base;
-            self.recalculate();
-        }
-        self.value
     }
 }
