@@ -12,7 +12,7 @@ pub struct TimedEffect<T>
 where
     T: EffectTarget,
 {
-    _effect: Arc<EffectAction<T::EffectValue>>,
+    _effect: Arc<EffectAction<T::EffectValue, T::EffectAdd, T::EffectMul>>,
     targets: Vec<Weak<mpsc::Sender<UpdateEffects>>>,
     handle: OnceLock<JoinHandle<()>>,
 }
@@ -24,7 +24,7 @@ where
     pub(super) fn apply(
         id: EffectId,
         priority: EffectPriority,
-        action: EffectAction<T::EffectValue>,
+        action: EffectAction<T::EffectValue, T::EffectAdd, T::EffectMul>,
         target_list: &mut Vec<&mut T>,
         duration: Duration,
     ) -> Weak<Self> {

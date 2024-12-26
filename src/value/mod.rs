@@ -1,25 +1,29 @@
 use crate::effects::core_types::{EffectId, EffectMain, EffectPriority, UpdateEffects};
 use std::{
-    ops::{AddAssign, MulAssign},
+    ops::{Add, Mul},
     sync::{mpsc, Arc},
 };
 
 pub mod effects;
 
-pub struct Value<T>
+pub struct Value<T, TAdd = T, TMul = T>
 where
-    T: Copy + Send + Sync + AddAssign + MulAssign,
+    T: Copy + Send + Sync + Add<TAdd, Output = T> + Mul<TMul, Output = T>,
+    TAdd: Copy + Send + Sync,
+    TMul: Copy + Send + Sync,
 {
     value: T,
     base: T,
     rx: mpsc::Receiver<UpdateEffects>,
     tx: Arc<mpsc::Sender<UpdateEffects>>,
-    effects: Vec<EffectMain<T>>,
+    effects: Vec<EffectMain<T, TAdd, TMul>>,
 }
 
-impl<T> Value<T>
+impl<T, TAdd, TMul> Value<T, TAdd, TMul>
 where
-    T: Copy + Send + Sync + AddAssign + MulAssign,
+    T: Copy + Send + Sync + Add<TAdd, Output = T> + Mul<TMul, Output = T>,
+    TAdd: Copy + Send + Sync,
+    TMul: Copy + Send + Sync,
 {
     pub fn new(base: T) -> Self {
         let (tx, rx) = mpsc::channel();

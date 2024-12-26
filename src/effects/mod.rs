@@ -26,7 +26,7 @@ where
     pub fn apply_toggle(
         id: &'static str,
         priority: EffectPriority,
-        action: EffectAction<T::EffectValue>,
+        action: EffectAction<T::EffectValue, T::EffectAdd, T::EffectMul>,
         target_list: &mut Vec<&mut T>,
     ) -> Self {
         Self::Togglable(Some(TogglableEffect::apply(
@@ -40,7 +40,7 @@ where
     pub fn apply_toggle_from_string(
         id: String,
         priority: EffectPriority,
-        action: EffectAction<T::EffectValue>,
+        action: EffectAction<T::EffectValue, T::EffectAdd, T::EffectMul>,
         target_list: &mut Vec<&mut T>,
     ) -> Self {
         Self::Togglable(Some(TogglableEffect::apply(
@@ -54,7 +54,7 @@ where
     pub fn apply_timed(
         id: &'static str,
         priority: EffectPriority,
-        action: EffectAction<T::EffectValue>,
+        action: EffectAction<T::EffectValue, T::EffectAdd, T::EffectMul>,
         target_list: &mut Vec<&mut T>,
         duration: Duration,
     ) -> Self {
@@ -70,7 +70,7 @@ where
     pub fn apply_timed_from_string(
         id: String,
         priority: EffectPriority,
-        action: EffectAction<T::EffectValue>,
+        action: EffectAction<T::EffectValue, T::EffectAdd, T::EffectMul>,
         target_list: &mut Vec<&mut T>,
         duration: Duration,
     ) -> Self {

@@ -4,17 +4,21 @@ use crate::effects::{
     target::EffectTarget,
 };
 use std::{
-    ops::{AddAssign, MulAssign},
+    ops::{Add, Mul},
     sync::{mpsc, Arc, Weak},
 };
 
-impl<T> EffectTarget for Value<T>
+impl<T, TAdd, TMul> EffectTarget for Value<T, TAdd, TMul>
 where
-    T: Copy + Send + Sync + AddAssign + MulAssign,
+    T: Copy + Send + Sync + Add<TAdd, Output = T> + Mul<TMul, Output = T>,
+    TAdd: Copy + Send + Sync,
+    TMul: Copy + Send + Sync,
 {
     type EffectValue = T;
+    type EffectAdd = TAdd;
+    type EffectMul = TMul;
 
-    fn apply(&mut self, effect: EffectMain<T>) -> Weak<mpsc::Sender<UpdateEffects>> {
+    fn apply(&mut self, effect: EffectMain<T, TAdd, TMul>) -> Weak<mpsc::Sender<UpdateEffects>> {
         let mut move_back = Vec::new();
         let mut insert_at = 0;
         for (i, other_effect) in self.effects.iter().enumerate().rev() {

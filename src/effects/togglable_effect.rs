@@ -8,7 +8,7 @@ pub struct TogglableEffect<T>
 where
     T: EffectTarget,
 {
-    _effect: Arc<EffectAction<T::EffectValue>>,
+    _effect: Arc<EffectAction<T::EffectValue, T::EffectAdd, T::EffectMul>>,
     targets: Vec<Weak<mpsc::Sender<UpdateEffects>>>,
 }
 
@@ -19,7 +19,7 @@ where
     pub(super) fn apply(
         id: EffectId,
         priority: EffectPriority,
-        effect: EffectAction<T::EffectValue>,
+        effect: EffectAction<T::EffectValue, T::EffectAdd, T::EffectMul>,
         target_list: &mut Vec<&mut T>,
     ) -> Self {
         let effect = Arc::new(effect);
