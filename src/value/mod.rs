@@ -3,7 +3,7 @@ use crate::effects::core_types::{
 };
 use std::{
     ops::{Add, Mul},
-    sync::{mpsc, Arc},
+    sync::mpsc,
 };
 
 pub mod effects;
@@ -18,7 +18,7 @@ where
     base: T,
     base_effect: EffectAction<T, TAdd, TMul>,
     rx: mpsc::Receiver<UpdateEffects>,
-    tx: Arc<mpsc::Sender<UpdateEffects>>,
+    tx: mpsc::Sender<UpdateEffects>,
     effects: Vec<EffectMain<T, TAdd, TMul>>,
 }
 
@@ -35,7 +35,7 @@ where
             value: base,
             base_effect: EffectAction::None,
             rx,
-            tx: Arc::new(tx),
+            tx,
             effects: Vec::new(),
         }
     }

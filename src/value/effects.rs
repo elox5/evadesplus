@@ -5,7 +5,7 @@ use crate::effects::{
 };
 use std::{
     ops::{Add, Mul},
-    sync::{mpsc, Arc, Weak},
+    sync::mpsc,
 };
 
 impl<T, TAdd, TMul> EffectTarget for Value<T, TAdd, TMul>
@@ -18,7 +18,7 @@ where
     type EffectAdd = TAdd;
     type EffectMul = TMul;
 
-    fn apply(&mut self, effect: EffectMain<T, TAdd, TMul>) -> Weak<mpsc::Sender<UpdateEffects>> {
+    fn apply(&mut self, effect: EffectMain<T, TAdd, TMul>) -> mpsc::Sender<UpdateEffects> {
         let mut move_back = Vec::new();
         let mut insert_at = 0;
         for (i, other_effect) in self.effects.iter().enumerate().rev() {
@@ -38,6 +38,6 @@ where
         });
         self.effects.insert(insert_at, effect);
         self.recalculate();
-        Arc::downgrade(&self.tx)
+        self.tx.clone()
     }
 }

@@ -14,7 +14,7 @@ where
     T: EffectTarget,
 {
     effect: EffectStore<T>,
-    targets: Vec<Weak<mpsc::Sender<UpdateEffects>>>,
+    targets: Vec<mpsc::Sender<UpdateEffects>>,
     handle: OnceLock<JoinHandle<()>>,
 }
 
@@ -67,9 +67,7 @@ where
 {
     fn drop(&mut self) {
         self.targets.iter().for_each(|target| {
-            if let Some(target) = target.upgrade() {
-                let _ = target.send(UpdateEffects);
-            }
+            let _ = target.send(UpdateEffects);
         });
     }
 }

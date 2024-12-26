@@ -4,14 +4,14 @@ use super::{
     core_types::{EffectAction, EffectId, EffectMain, EffectPriority, EffectStore, UpdateEffects},
     target::EffectTarget,
 };
-use std::sync::{mpsc, Arc, Weak};
+use std::sync::{mpsc, Arc};
 
 pub struct TogglableEffect<T>
 where
     T: EffectTarget,
 {
     effect: EffectStore<T>,
-    targets: Vec<Weak<mpsc::Sender<UpdateEffects>>>,
+    targets: Vec<mpsc::Sender<UpdateEffects>>,
 }
 
 impl<T> TogglableEffect<T>
@@ -50,9 +50,7 @@ where
 {
     fn drop(&mut self) {
         self.targets.iter().for_each(|target| {
-            if let Some(target) = target.upgrade() {
-                let _ = target.send(UpdateEffects);
-            }
+            let _ = target.send(UpdateEffects);
         });
     }
 }

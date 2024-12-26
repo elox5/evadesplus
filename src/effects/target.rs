@@ -1,7 +1,7 @@
 use super::core_types::{EffectMain, UpdateEffects};
 use std::{
     ops::{Add, Mul},
-    sync::{mpsc, Weak},
+    sync::mpsc,
 };
 
 pub trait EffectTarget
@@ -22,5 +22,5 @@ where
     fn apply(
         &mut self,
         effect: EffectMain<Self::EffectValue, Self::EffectAdd, Self::EffectMul>,
-    ) -> Weak<mpsc::Sender<UpdateEffects>>;
+    ) -> mpsc::Sender<UpdateEffects>;
 }
