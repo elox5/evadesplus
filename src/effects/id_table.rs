@@ -9,7 +9,7 @@ pub fn get(id: &'static str) -> EffectId {
     *ID_TABLE
         .load()
         .get(id)
-        .expect(&format!("Effect id \"{id}\" not found in initial id table"))
+        .unwrap_or_else(|| panic!("Effect id \"{id}\" not found in initial id table"))
 }
 
 pub fn get_or_insert(name: String) -> EffectId {

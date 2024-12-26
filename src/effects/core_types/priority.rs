@@ -26,7 +26,7 @@ impl EffectPriority {
 
 impl PartialEq for EffectPriority {
     fn eq(&self, other: &Self) -> bool {
-        self.group != other.group || (self.group == other.group && self.value == other.value)
+        self.group != other.group || self.value == other.value
     }
 }
 
@@ -34,11 +34,7 @@ impl Eq for EffectPriority {}
 
 impl PartialOrd for EffectPriority {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        if self.group == other.group {
-            self.value.partial_cmp(&other.value)
-        } else {
-            Some(Ordering::Equal)
-        }
+        Some(self.cmp(other))
     }
 }
 

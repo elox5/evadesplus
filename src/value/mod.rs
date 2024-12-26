@@ -1,9 +1,8 @@
+use crate::effects::core_types::{EffectId, EffectMain, EffectPriority, UpdateEffects};
 use std::{
     ops::{AddAssign, MulAssign},
     sync::{mpsc, Arc},
 };
-
-use crate::effects::core_types::{EffectMain, EffectPriority, UpdateEffects};
 
 pub mod effects;
 
@@ -34,42 +33,35 @@ where
     }
 
     pub fn get(&mut self) -> T {
-        let mut rx_iter = self.rx.try_iter().peekable();
-        if rx_iter.peek().is_some() {
+        let mut rx_iter = self.rx.try_iter();
+        if rx_iter.next().is_some() {
             self.effects
                 .retain(|effect| effect.action.upgrade().is_some());
-            self.value = self.base;
             self.recalculate();
         }
         self.value
     }
 
-    fn find_copy(&self, effect: &EffectMain<T>) -> Option<usize> {
-        self.effects.iter().position(|other_effect| {
-            if effect.id == other_effect.id {
-                true
-            } else {
-                false
-            }
-        })
-    }
-
     fn recalculate(&mut self) {
+        self.value = self.base;
         let mut groups: Vec<EffectPriority> = Vec::new();
+        let mut ids: Vec<EffectId> = Vec::new();
         for effect in self.effects.iter() {
             if let Some(group) = groups
                 .iter()
                 .find(|group| effect.priority.group == group.group)
             {
-                if effect.priority.value != group.value {
-                    return;
+                if effect.priority.value != group.value || ids.contains(&effect.id) {
+                    continue;
                 }
                 if let Some(effect_ref) = effect.action.upgrade() {
-                    effect_ref.apply(&mut self.value);
+                    effect_ref.apply_to(&mut self.value);
+                    ids.push(effect.id);
                 }
             } else if let Some(effect_ref) = effect.action.upgrade() {
+                effect_ref.apply_to(&mut self.value);
                 groups.push(effect.priority);
-                effect_ref.apply(&mut self.value);
+                ids.push(effect.id);
             }
         }
     }

@@ -14,7 +14,7 @@ impl<T> EffectAction<T>
 where
     T: Clone + Copy + Send + Sync + AddAssign + MulAssign,
 {
-    pub fn apply(&self, value: &mut T) {
+    pub fn apply_to(&self, value: &mut T) {
         match *self {
             EffectAction::Overwrite(applied) => *value = applied,
             EffectAction::Add(applied) => *value += applied,

@@ -6,9 +6,10 @@ pub static GROUP_TABLE: LazyLock<ArcSwap<HashMap<&str, PriorityGroup>>> =
     LazyLock::new(|| ArcSwap::new(HashMap::from([("group", 0), ("other_group", 1)]).into()));
 
 pub fn get(group: &'static str) -> PriorityGroup {
-    *GROUP_TABLE.load().get(group).expect(&format!(
-        "Effect group \"{group}\" not found in initial group table"
-    ))
+    *GROUP_TABLE
+        .load()
+        .get(group)
+        .unwrap_or_else(|| panic!("Effect group \"{group}\" not found in initial group table"))
 }
 
 pub fn get_or_insert(name: String) -> PriorityGroup {
