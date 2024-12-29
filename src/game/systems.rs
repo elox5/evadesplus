@@ -208,25 +208,21 @@ pub fn system_enemy_collision(area: &mut Area) {
 pub fn system_hero_collision(area: &mut Area) {
     let mut to_revive = Vec::new();
 
-    for (entity_1, (pos_1, size_1)) in area
+    for (_, (pos_1, size_1)) in area
         .world
         .query::<Without<With<(&Position, &Size), &Hero>, &Downed>>()
         .iter()
     {
-        for (entity_2, (pos_2, size_2)) in area
+        for (entity, (pos_2, size_2)) in area
             .world
             .query::<With<(&Position, &Size), (&Hero, &Downed)>>()
             .iter()
         {
-            if entity_1 == entity_2 {
-                continue;
-            }
-
             let distance_sq = (pos_1.0 - pos_2.0).magnitude_sq();
             let radius_sum = (size_1.0 + size_2.0) * 0.5;
 
             if distance_sq < radius_sum * radius_sum {
-                to_revive.push(entity_2);
+                to_revive.push(entity);
             }
         }
     }
