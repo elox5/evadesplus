@@ -1,6 +1,6 @@
 use super::{
     area::Area,
-    components::{self, Hero},
+    components::{self, Hero, Position},
     data::MapData,
     systems::*,
     templates::MapTemplate,
@@ -26,12 +26,12 @@ pub struct Game {
 
     start_area_id: String,
 
-    transfer_tx: mpsc::Sender<(Entity, String)>,
+    transfer_tx: mpsc::Sender<(Entity, String, Vec2)>,
 }
 
 impl Game {
     pub fn new(maps: Vec<MapData>, start_area_id: &str) -> Arc<Mutex<Self>> {
-        let (tx, mut rx) = mpsc::channel::<(Entity, String)>(8);
+        let (tx, mut rx) = mpsc::channel::<(Entity, String, Vec2)>(8);
 
         let game = Game {
             maps: maps.into_iter().map(|m| m.to_template()).collect(),
@@ -45,9 +45,9 @@ impl Game {
         let arc_clone = arc.clone();
 
         tokio::spawn(async move {
-            while let Some((entity, target_area)) = rx.recv().await {
+            while let Some((entity, target_area, target_pos)) = rx.recv().await {
                 let mut game = arc_clone.lock().await;
-                let _ = game.transfer_player(entity, &target_area).await;
+                let _ = game.transfer_player(entity, &target_area, target_pos).await;
             }
         });
 
@@ -183,7 +183,12 @@ impl Game {
         }
     }
 
-    pub async fn transfer_player(&mut self, entity: Entity, target_area: &str) -> Result<()> {
+    pub async fn transfer_player(
+        &mut self,
+        entity: Entity,
+        target_area: &str,
+        target_pos: Vec2,
+    ) -> Result<()> {
         let target_area_arc = self.get_or_create_area(target_area)?;
         let mut target_area = target_area_arc.lock().await;
 
@@ -204,10 +209,12 @@ impl Game {
         let new_player = Player::new(entity, target_area_arc.clone());
         player_arcswap.store(Arc::new(new_player));
 
-        let player_component = target_area
+        let (player_component, pos) = target_area
             .world
-            .query_one_mut::<&components::Player>(entity)
+            .query_one_mut::<(&components::Player, &mut Position)>(entity)
             .unwrap();
+
+        pos.0 = target_pos;
 
         let mut response_stream = player_component.connection.open_uni().await?.await?;
         response_stream

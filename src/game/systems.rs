@@ -287,10 +287,8 @@ pub async fn system_portals(area: &mut Area) {
             if portal.rect.contains_circle(pos.0, size.0 / 2.0) {
                 let _ = area
                     .transfer_tx
-                    .send((entity, portal.target_id.clone()))
+                    .send((entity, portal.target_id.clone(), portal.target_pos))
                     .await;
-
-                pos.0 = portal.target_pos;
             }
         }
     }

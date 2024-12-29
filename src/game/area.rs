@@ -33,13 +33,13 @@ pub struct Area {
 
     pub loop_handle: Option<AbortHandle>,
 
-    pub transfer_tx: mpsc::Sender<(Entity, String)>,
+    pub transfer_tx: mpsc::Sender<(Entity, String, Vec2)>,
 }
 
 impl Area {
     pub fn from_template(
         template: &AreaTemplate,
-        transfer_tx: mpsc::Sender<(Entity, String)>,
+        transfer_tx: mpsc::Sender<(Entity, String, Vec2)>,
     ) -> Self {
         let mut area = Self {
             area_id: template.area_id.clone(),
