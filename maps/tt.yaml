@@ -2,8 +2,15 @@ id: "tt"
 name: "Testing Territory"
 background_color: "#c8c8c8"
 areas:
-  - width: 100
-    height: 15
+  - enemy_groups:
+      - color: "#64646455"
+        count: 50
+        speed: 5
+        size: 1
+      - color: "#00FF00"
+        count: 50
+        speed: 10
+        size: 0.3
     inner_walls:
       - x: 40
         y: 5
@@ -18,10 +25,10 @@ areas:
         w: 7
         h: 2
     safe_zones:
-      - x: 50
-        y: 3
-        w: 10
-        h: 4
+      - x: 48
+        y: 5
+        w: 5
+        h: 5
     portals:
       - rect:
           x: 55
@@ -30,21 +37,10 @@ areas:
           h: 2
         target_id: "tt:1"
         target_pos:
-          x: 30
-          y: 5
-    enemy_groups:
-      - color: "#64646455"
-        count: 50
-        speed: 5
-        size: 1
-      - color: "#00FF00"
-        count: 50
-        speed: 10
-        size: 0.3
+          x: 5
+          y: 7.5
   - name: "Named Area"
     background_color: "#64C864"
-    width: 500
-    height: 15
     enemy_groups:
       - color: "#c8c8c8"
         count: 10
@@ -54,13 +50,22 @@ areas:
         count: 100
         speed: 1
         size: 0.3
+    safe_zones:
+      - x: 1
+        y: 0
+        w: 10
+        h: 15
+      - x: 90
+        y: 0
+        w: 10
+        h: 15
     portals:
       - rect:
-          x: 35
+          x: 0
           y: 0
-          w: 10
-          h: 2
+          w: 1
+          h: 15
         target_id: "tt:0"
         target_pos:
           x: 50
-          y: 5
+          y: 7.5

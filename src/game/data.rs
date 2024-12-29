@@ -78,13 +78,17 @@ impl MapData {
     }
 }
 
+#[serde_inline_default]
 #[derive(Deserialize)]
 pub struct AreaData {
     pub id: Option<String>,
     pub name: Option<String>,
     pub background_color: Option<String>,
 
+    #[serde_inline_default(100.0)]
     pub width: f32,
+
+    #[serde_inline_default(15.0)]
     pub height: f32,
 
     pub inner_walls: Option<Vec<Rect>>,
