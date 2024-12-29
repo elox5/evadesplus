@@ -192,7 +192,8 @@ export function renderFrame(offset, rects, nodes) {
         });
 
         if (node.name !== undefined) {
-            drawText(mainCanvas, node.x, node.y + 1, node.name, "black", 16, "bold");
+            const nameColor = node.downed ? "red" : "black";
+            drawText(mainCanvas, node.x, node.y + 1, node.name, nameColor, 16, "bold");
         }
     }
 

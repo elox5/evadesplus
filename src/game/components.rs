@@ -5,6 +5,8 @@ use wtransport::Connection;
 pub struct Hero;
 pub struct Enemy;
 
+pub struct Downed;
+
 pub struct Bounded;
 pub struct BounceOffBounds;
 

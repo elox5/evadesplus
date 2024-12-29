@@ -1,6 +1,6 @@
 use super::{
     area::Area,
-    components::{BounceOffBounds, Bounded, Color, Enemy, Hero, Player, Size},
+    components::{BounceOffBounds, Bounded, Color, Downed, Enemy, Hero, Player, Size},
 };
 use crate::{
     game::components::{Direction, Position, Speed, Velocity},
@@ -9,7 +9,10 @@ use crate::{
 use hecs::{With, Without};
 
 pub fn system_update_position(area: &mut Area) {
-    for (_, (pos, vel)) in area.world.query_mut::<(&mut Position, &Velocity)>() {
+    for (_, (pos, vel)) in area
+        .world
+        .query_mut::<Without<(&mut Position, &Velocity), &Downed>>()
+    {
         pos.0 += vel.0 * area.delta_time;
     }
 }
@@ -172,10 +175,10 @@ pub fn system_safe_zone_collision(area: &mut Area) {
 }
 
 pub fn system_enemy_collision(area: &mut Area) {
-    for (_, (hero_pos, hero_size, hero_color)) in area
-        .world
-        .query::<With<(&Position, &Size, &mut Color), &Hero>>()
-        .iter()
+    let mut to_down = Vec::new();
+
+    for (entity, (hero_pos, hero_size)) in
+        area.world.query::<With<(&Position, &Size), &Hero>>().iter()
     {
         let hero_pos = hero_pos.0;
         let hero_size = hero_size.0;
@@ -192,17 +195,28 @@ pub fn system_enemy_collision(area: &mut Area) {
             let radius_sum = (hero_size + enemy_size) * 0.5;
 
             if distance_sq < radius_sum * radius_sum {
-                *hero_color = Color::rgb(rand::random(), rand::random(), rand::random());
+                to_down.push(entity);
             }
         }
+    }
+
+    for entity in to_down {
+        let _ = area.world.insert_one(entity, Downed);
     }
 }
 
 pub fn system_hero_collision(area: &mut Area) {
-    for (entity_1, (pos_1, size_1)) in area.world.query::<With<(&Position, &Size), &Hero>>().iter()
+    let mut to_revive = Vec::new();
+
+    for (entity_1, (pos_1, size_1)) in area
+        .world
+        .query::<Without<With<(&Position, &Size), &Hero>, &Downed>>()
+        .iter()
     {
-        for (entity_2, (pos_2, size_2)) in
-            area.world.query::<With<(&Position, &Size), &Hero>>().iter()
+        for (entity_2, (pos_2, size_2)) in area
+            .world
+            .query::<With<(&Position, &Size), (&Hero, &Downed)>>()
+            .iter()
         {
             if entity_1 == entity_2 {
                 continue;
@@ -212,9 +226,13 @@ pub fn system_hero_collision(area: &mut Area) {
             let radius_sum = (size_1.0 + size_2.0) * 0.5;
 
             if distance_sq < radius_sum * radius_sum {
-                println!("Collision: {:?} and {:?}", entity_1, entity_2);
+                to_revive.push(entity_2);
             }
         }
+    }
+
+    for entity in to_revive {
+        let _ = area.world.remove_one::<Downed>(entity);
     }
 }
 
@@ -222,19 +240,26 @@ pub fn system_render(area: &mut Area) {
     area.render_packet = Some(RenderPacket::new());
     let nodes = &mut area.render_packet.as_mut().unwrap().nodes;
 
-    for (_, (pos, size, color, player, enemy)) in
-        area.world
-            .query_mut::<(&Position, &Size, &Color, Option<&Player>, Option<&Enemy>)>()
-    {
-        let name = player.map(|p| p.name.clone());
-        let node = RenderNode::new(
-            pos.0.x,
-            pos.0.y,
-            size.0 / 2.0,
-            color.clone(),
-            enemy.is_some(),
-            name,
-        );
+    for (_, (pos, size, color, player, enemy, downed)) in area.world.query_mut::<(
+        &Position,
+        &Size,
+        &Color,
+        Option<&Player>,
+        Option<&Enemy>,
+        Option<&Downed>,
+    )>() {
+        let mut name = player.map(|p| p.name.clone());
+        let mut color = color.clone();
+
+        if downed.is_some() {
+            color.a = 127;
+
+            if let Some(name) = &mut name {
+                name.push_str("%d");
+            }
+        }
+
+        let node = RenderNode::new(pos.0.x, pos.0.y, size.0 / 2.0, color, enemy.is_some(), name);
         nodes.push(node);
     }
 }

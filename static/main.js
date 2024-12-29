@@ -172,11 +172,17 @@ function handleRenderUpdate(data) {
         let g = colorBytes[1];
         let b = colorBytes[2];
         let a = colorBytes[3];
-        node.color = `rgba(${r}, ${g}, ${b}, ${a})`;
+        node.color = `rgba(${r}, ${g}, ${b}, ${a / 255})`;
         node.hasBorder = hasBorder;
 
         if (nameLength > 0) {
             node.name = String.fromCharCode(...data.slice(idx, idx + nameLength));
+
+            if (node.name.endsWith("%d")) {
+                node.name = node.name.slice(0, node.name.length - 2);
+                node.downed = true;
+            }
+
             idx += nameLength;
         }
 
