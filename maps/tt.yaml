@@ -51,7 +51,7 @@ areas:
         speed: 1
         size: 0.3
     safe_zones:
-      - x: 1
+      - x: 0
         y: 0
         w: 10
         h: 15

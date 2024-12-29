@@ -73,11 +73,22 @@ impl Area {
 
     pub fn spawn_enemy_group(&mut self, group: &EnemyGroup) {
         let enemies = (0..group.count).map(|_| {
-            let pos = Position(self.bounds.random_inside());
+            let size = Size(group.size);
+
+            let mut pos = Position(self.bounds.random_inside());
+
+            while self
+                .safe_zones
+                .iter()
+                .chain(self.inner_walls.iter())
+                .any(|zone| zone.contains_circle(pos.0, size.0))
+            {
+                pos = Position(self.bounds.random_inside());
+            }
+
             let vel = Velocity(Vec2::ZERO);
             let dir = Direction(Vec2::random_unit());
             let speed = Speed(group.speed);
-            let size = Size(group.size);
             let color = group.color.clone();
 
             (
