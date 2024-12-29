@@ -54,7 +54,7 @@ function handleAreaUpdate(data) {
     const g = colorBytes[1];
     const b = colorBytes[2];
     const a = colorBytes[3];
-    const color = `rgba(${r}, ${g}, ${b}, ${a})`;
+    const color = `rgba(${r}, ${g}, ${b}, ${a / 255})`;
 
     const wallsLengthBytes = data.slice(12, 14);
     const wallsLength = new Uint16Array(wallsLengthBytes.buffer)[0];
@@ -62,21 +62,25 @@ function handleAreaUpdate(data) {
     const safeZonesLengthBytes = data.slice(14, 16);
     const safeZonesLength = new Uint16Array(safeZonesLengthBytes.buffer)[0];
 
-    let idx = 16;
+    const portalsLengthBytes = data.slice(16, 18);
+    const portalsLength = new Uint16Array(portalsLengthBytes.buffer)[0];
+
+    let idx = 18;
 
     const walls = [];
     const safeZones = [];
+    const portals = [];
 
     for (let i = 0; i < wallsLength; i++) {
-        let xBytes = data.slice(idx, idx + 4);
-        let yBytes = data.slice(idx + 4, idx + 8);
-        let wBytes = data.slice(idx + 8, idx + 12);
-        let hBytes = data.slice(idx + 12, idx + 16);
+        const xBytes = data.slice(idx, idx + 4);
+        const yBytes = data.slice(idx + 4, idx + 8);
+        const wBytes = data.slice(idx + 8, idx + 12);
+        const hBytes = data.slice(idx + 12, idx + 16);
 
-        let x = new Float32Array(xBytes.buffer)[0];
-        let y = new Float32Array(yBytes.buffer)[0];
-        let w = new Float32Array(wBytes.buffer)[0];
-        let h = new Float32Array(hBytes.buffer)[0];
+        const x = new Float32Array(xBytes.buffer)[0];
+        const y = new Float32Array(yBytes.buffer)[0];
+        const w = new Float32Array(wBytes.buffer)[0];
+        const h = new Float32Array(hBytes.buffer)[0];
 
         walls.push({ x, y, w, h });
 
@@ -84,19 +88,42 @@ function handleAreaUpdate(data) {
     }
 
     for (let i = 0; i < safeZonesLength; i++) {
-        let xBytes = data.slice(idx, idx + 4);
-        let yBytes = data.slice(idx + 4, idx + 8);
-        let wBytes = data.slice(idx + 8, idx + 12);
-        let hBytes = data.slice(idx + 12, idx + 16);
+        const xBytes = data.slice(idx, idx + 4);
+        const yBytes = data.slice(idx + 4, idx + 8);
+        const wBytes = data.slice(idx + 8, idx + 12);
+        const hBytes = data.slice(idx + 12, idx + 16);
 
-        let x = new Float32Array(xBytes.buffer)[0];
-        let y = new Float32Array(yBytes.buffer)[0];
-        let w = new Float32Array(wBytes.buffer)[0];
-        let h = new Float32Array(hBytes.buffer)[0];
+        const x = new Float32Array(xBytes.buffer)[0];
+        const y = new Float32Array(yBytes.buffer)[0];
+        const w = new Float32Array(wBytes.buffer)[0];
+        const h = new Float32Array(hBytes.buffer)[0];
 
         safeZones.push({ x, y, w, h });
 
         idx += 16;
+    }
+
+    for (let i = 0; i < portalsLength; i++) {
+        const xBytes = data.slice(idx, idx + 4);
+        const yBytes = data.slice(idx + 4, idx + 8);
+        const wBytes = data.slice(idx + 8, idx + 12);
+        const hBytes = data.slice(idx + 12, idx + 16);
+
+        const x = new Float32Array(xBytes.buffer)[0];
+        const y = new Float32Array(yBytes.buffer)[0];
+        const w = new Float32Array(wBytes.buffer)[0];
+        const h = new Float32Array(hBytes.buffer)[0];
+
+        const r = data[idx + 16];
+        const g = data[idx + 17];
+        const b = data[idx + 18];
+        const a = data[idx + 19];
+
+        const color = `rgba(${r}, ${g}, ${b}, ${a / 255})`;
+
+        portals.push({ x, y, w, h, color });
+
+        idx += 20;
     }
 
     const nameLengthBytes = data.slice(idx, idx + 4);
@@ -107,7 +134,7 @@ function handleAreaUpdate(data) {
 
     areaName.innerHTML = name;
 
-    renderArea(width, height, color, walls, safeZones);
+    renderArea(width, height, color, walls, safeZones, portals);
 }
 
 const nodes = [];

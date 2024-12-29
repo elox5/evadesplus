@@ -10,7 +10,7 @@ use crate::{
     physics::{rect::Rect, vec2::Vec2},
 };
 use hecs::{Entity, World};
-use tokio::task::AbortHandle;
+use tokio::{sync::mpsc, task::AbortHandle};
 use wtransport::Connection;
 
 pub struct Area {
@@ -24,6 +24,7 @@ pub struct Area {
     pub bounds: Rect,
     pub inner_walls: Vec<Rect>,
     pub safe_zones: Vec<Rect>,
+    pub portals: Vec<Portal>,
 
     pub time: f32,
     pub delta_time: f32,
@@ -31,10 +32,15 @@ pub struct Area {
     pub render_packet: Option<RenderPacket>,
 
     pub loop_handle: Option<AbortHandle>,
+
+    pub transfer_tx: mpsc::Sender<(Entity, String)>,
 }
 
 impl Area {
-    pub fn from_template(template: &AreaTemplate) -> Self {
+    pub fn from_template(
+        template: &AreaTemplate,
+        transfer_tx: mpsc::Sender<(Entity, String)>,
+    ) -> Self {
         let mut area = Self {
             area_id: template.area_id.clone(),
             full_id: template.full_id.clone(),
@@ -43,11 +49,13 @@ impl Area {
             bounds: Rect::new(0.0, 0.0, template.width, template.height),
             inner_walls: template.inner_walls.clone(),
             safe_zones: template.safe_zones.clone(),
+            portals: template.portals.clone(),
             world: World::new(),
             time: 0.0,
             delta_time: 0.0,
             render_packet: None,
             loop_handle: None,
+            transfer_tx,
         };
 
         for group in &template.enemy_groups {
@@ -113,7 +121,6 @@ impl Area {
 
     pub fn update_player_input(&mut self, entity: Entity, input: Vec2) {
         let dir = self.world.query_one_mut::<&mut Direction>(entity);
-
         if let Ok(dir) = dir {
             dir.0 = input;
         }
@@ -129,6 +136,7 @@ impl Area {
 
         packet.extend_from_slice(&(self.inner_walls.len() as u16).to_le_bytes());
         packet.extend_from_slice(&(self.safe_zones.len() as u16).to_le_bytes());
+        packet.extend_from_slice(&(self.portals.len() as u16).to_le_bytes());
 
         for wall in &self.inner_walls {
             packet.extend_from_slice(&wall.to_bytes());
@@ -138,9 +146,22 @@ impl Area {
             packet.extend_from_slice(&zone.to_bytes());
         }
 
+        for portal in &self.portals {
+            packet.extend_from_slice(&portal.rect.to_bytes());
+            packet.extend_from_slice(&portal.color.to_bytes());
+        }
+
         packet.extend_from_slice(&self.name.len().to_le_bytes()[..4]);
         packet.extend_from_slice(self.name.as_bytes());
 
         packet
     }
+}
+
+#[derive(Clone)]
+pub struct Portal {
+    pub rect: Rect,
+    pub color: Color,
+    pub target_id: String,
+    pub target_pos: Vec2,
 }

@@ -1,30 +1,57 @@
-use super::{area::Area, components::Hero, data::MapData, systems::*, templates::MapTemplate};
+use super::{
+    area::Area,
+    components::{self, Hero},
+    data::MapData,
+    systems::*,
+    templates::MapTemplate,
+};
 use crate::physics::vec2::Vec2;
 use anyhow::Result;
+use arc_swap::{ArcSwap, Guard};
 use hecs::Entity;
 use std::{sync::Arc, time::Duration};
 use tokio::{
-    sync::Mutex,
+    sync::{
+        mpsc::{self},
+        Mutex,
+    },
     time::{interval, Instant},
 };
 use wtransport::Connection;
 
 pub struct Game {
-    pub maps: Vec<MapTemplate>,
-    pub areas: Vec<Arc<Mutex<Area>>>,
-    pub players: Vec<Player>,
+    maps: Vec<MapTemplate>,
+    areas: Vec<Arc<Mutex<Area>>>,
+    players: Vec<Arc<ArcSwap<Player>>>,
 
     start_area_id: String,
+
+    transfer_tx: mpsc::Sender<(Entity, String)>,
 }
 
 impl Game {
-    pub fn new(maps: Vec<MapData>, start_area_id: &str) -> Self {
-        Self {
+    pub fn new(maps: Vec<MapData>, start_area_id: &str) -> Arc<Mutex<Self>> {
+        let (tx, mut rx) = mpsc::channel::<(Entity, String)>(8);
+
+        let game = Game {
             maps: maps.into_iter().map(|m| m.to_template()).collect(),
             areas: Vec::new(),
             players: Vec::new(),
             start_area_id: start_area_id.to_owned(),
-        }
+            transfer_tx: tx.clone(),
+        };
+
+        let arc = Arc::new(Mutex::new(game));
+        let arc_clone = arc.clone();
+
+        tokio::spawn(async move {
+            while let Some((entity, target_area)) = rx.recv().await {
+                let mut game = arc_clone.lock().await;
+                let _ = game.transfer_player(entity, &target_area).await;
+            }
+        });
+
+        arc
     }
 
     pub fn try_create_area(&mut self, id: &str) -> Result<Arc<Mutex<Area>>> {
@@ -38,7 +65,7 @@ impl Game {
             .get_area(area_id)
             .ok_or(anyhow::anyhow!("Area not found"))?;
 
-        let area = Area::from_template(template);
+        let area = Area::from_template(template, self.transfer_tx.clone());
         let area = Arc::new(Mutex::new(area));
         let _ = Self::start_update_loop(area.clone());
         self.areas.push(area.clone());
@@ -67,15 +94,17 @@ impl Game {
         self.get_or_create_area(&start_area_id)
     }
 
-    fn update_area(area: &mut Area, delta_time: f32) {
+    async fn update_area(area: &mut Area, delta_time: f32) {
         area.time += delta_time;
         area.delta_time = delta_time;
 
         system_update_velocity(area);
         system_update_position(area);
         system_bounds_check(area);
+
         system_inner_wall_collision(area);
         system_safe_zone_collision(area);
+        system_portals(area).await;
 
         system_hero_collision(area);
         system_enemy_collision(area);
@@ -95,7 +124,7 @@ impl Game {
             loop {
                 {
                     let mut area = area_clone.lock().await;
-                    Self::update_area(&mut area, last_time.elapsed().as_secs_f32());
+                    Self::update_area(&mut area, last_time.elapsed().as_secs_f32()).await;
                 }
 
                 last_time = Instant::now();
@@ -106,7 +135,11 @@ impl Game {
         area.try_lock().unwrap().loop_handle = Some(handle.abort_handle());
     }
 
-    pub async fn spawn_player(&mut self, name: &str, connection: Connection) -> &Player {
+    pub async fn spawn_player(
+        &mut self,
+        name: &str,
+        connection: Connection,
+    ) -> Arc<ArcSwap<Player>> {
         let start_area_id = self.start_area_id.clone();
 
         let area_arc = self
@@ -118,16 +151,20 @@ impl Game {
         println!("Spawning entity: {}", entity.id());
 
         let player = Player::new(entity, area_arc.clone());
-        self.players.push(player);
+        let player = Arc::new(ArcSwap::new(Arc::new(player)));
 
-        self.players.last().unwrap()
+        self.players.push(player.clone());
+
+        player
     }
 
     pub async fn despawn_player(&mut self, entity: Entity) {
         let mut area_to_remove = None;
 
-        if let Some(player_index) = self.players.iter().position(|p| p.entity == entity) {
+        if let Some(player_index) = self.players.iter().position(|p| p.load().entity == entity) {
             let player = self.players.swap_remove(player_index);
+            let player = player.load();
+
             let mut area = player.area.lock().await;
             let _ = area.despawn_player(entity);
 
@@ -150,20 +187,33 @@ impl Game {
         let target_area_arc = self.get_or_create_area(target_area)?;
         let mut target_area = target_area_arc.lock().await;
 
-        let player = self
+        let player_arcswap = self
             .players
             .iter_mut()
-            .find(|p| p.entity == entity)
+            .find(|p| p.load().entity == entity)
             .ok_or(anyhow::anyhow!("Player not found"))?;
+        let player = player_arcswap.load();
 
         let mut area = player.area.lock().await;
         let entity = area.world.take(player.entity)?;
 
-        target_area.world.spawn(entity);
+        let entity = target_area.world.spawn(entity);
 
         drop(area);
 
-        player.area = target_area_arc.clone();
+        let new_player = Player::new(entity, target_area_arc.clone());
+        player_arcswap.store(Arc::new(new_player));
+
+        let player_component = target_area
+            .world
+            .query_one_mut::<&components::Player>(entity)
+            .unwrap();
+
+        let mut response_stream = player_component.connection.open_uni().await?.await?;
+        response_stream
+            .write_all(&target_area.definition_packet())
+            .await?;
+        response_stream.finish().await?;
 
         Ok(())
     }
@@ -175,8 +225,11 @@ impl Game {
         }
     }
 
-    pub fn get_player(&self, entity: Entity) -> Option<&Player> {
-        self.players.iter().find(|p| p.entity == entity)
+    pub fn get_player(&self, entity: Entity) -> Option<Guard<Arc<Player>>> {
+        self.players
+            .iter()
+            .map(|p| p.load())
+            .find(|p| p.entity == entity)
     }
 
     fn split_id(id: &str) -> Option<(&str, &str)> {

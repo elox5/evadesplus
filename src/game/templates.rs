@@ -1,4 +1,4 @@
-use super::components::Color;
+use super::{area::Portal, components::Color};
 use crate::physics::rect::Rect;
 
 pub struct MapTemplate {
@@ -23,8 +23,10 @@ pub struct AreaTemplate {
 
     pub width: f32,
     pub height: f32,
+
     pub inner_walls: Vec<Rect>,
     pub safe_zones: Vec<Rect>,
+    pub portals: Vec<Portal>,
 
     pub enemy_groups: Vec<EnemyGroup>,
 }

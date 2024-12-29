@@ -134,7 +134,7 @@ function drawGrid(width, height) {
     }
 }
 
-export function renderArea(width, height, color, walls, safeZones) {
+export function renderArea(width, height, color, walls, safeZones, portals) {
     areaCanvas.setDimensions(width * renderSettings.tileSize, height * renderSettings.tileSize);
 
     const ctx = areaCanvas.ctx;
@@ -155,6 +155,13 @@ export function renderArea(width, height, color, walls, safeZones) {
         drawRect(areaCanvas, safeZone.x, safeZone.y, safeZone.w, safeZone.h, {
             hasFill: true,
             fillColor: "#00000022",
+        });
+    }
+
+    for (const portal of portals) {
+        drawRect(areaCanvas, portal.x, portal.y, portal.w, portal.h, {
+            hasFill: true,
+            fillColor: portal.color,
         });
     }
 }

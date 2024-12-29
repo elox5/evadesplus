@@ -2,8 +2,6 @@ use anyhow::Result;
 use evadesplus::{
     game::game::Game, networking::webtransport::WebTransportServer, parsing::parse_map,
 };
-use std::sync::Arc;
-use tokio::sync::Mutex;
 use warp::Filter;
 use wtransport::{tls::Sha256DigestFmt, Identity};
 
@@ -12,12 +10,11 @@ async fn main() -> Result<()> {
     let map = parse_map("maps/tt.yaml").unwrap();
 
     let game = Game::new(vec![map], "tt:0");
-    let game_arc = Arc::new(Mutex::new(game));
 
     let identity = Identity::self_signed(["localhost", "127.0.0.1", "[::1]"])?;
     let cert_digest = identity.certificate_chain().as_slice()[0].hash();
 
-    let webtransport_server = WebTransportServer::new(identity, game_arc)?;
+    let webtransport_server = WebTransportServer::new(identity, game)?;
 
     let root_route = warp::fs::dir("static");
     let cert_route = warp::path("cert").and(warp::get()).then(move || {

@@ -252,3 +252,21 @@ pub fn system_send_render_packet(area: &mut Area) {
         }
     }
 }
+
+pub async fn system_portals(area: &mut Area) {
+    for (entity, (pos, size)) in area
+        .world
+        .query_mut::<With<(&mut Position, &Size), &Hero>>()
+    {
+        for portal in &area.portals {
+            if portal.rect.contains_circle(pos.0, size.0 / 2.0) {
+                let _ = area
+                    .transfer_tx
+                    .send((entity, portal.target_id.clone()))
+                    .await;
+
+                pos.0 = portal.target_pos;
+            }
+        }
+    }
+}

@@ -1,6 +1,10 @@
-use super::templates::{AreaTemplate, EnemyGroup, MapTemplate};
-use crate::physics::rect::Rect;
+use super::{
+    area::Portal,
+    templates::{AreaTemplate, EnemyGroup, MapTemplate},
+};
+use crate::physics::{rect::Rect, vec2::Vec2};
 use serde::Deserialize;
+use serde_inline_default::serde_inline_default;
 
 #[derive(Deserialize)]
 pub struct MapData {
@@ -28,6 +32,17 @@ impl MapData {
                 let name = data.name.unwrap_or(format!("Area {}", index + 1));
                 let name = format!("{} - {}", self.name, name);
 
+                let portals = data.portals.unwrap_or_default();
+                let portals = portals
+                    .into_iter()
+                    .map(|data| Portal {
+                        rect: data.rect,
+                        color: data.color.into(),
+                        target_id: data.target_id,
+                        target_pos: data.target_pos,
+                    })
+                    .collect::<Vec<_>>();
+
                 let enemy_groups = data
                     .enemy_groups
                     .into_iter()
@@ -46,6 +61,7 @@ impl MapData {
                     background_color,
                     width: data.width,
                     height: data.height,
+                    portals,
                     inner_walls: data.inner_walls.unwrap_or_default(),
                     safe_zones: data.safe_zones.unwrap_or_default(),
                     enemy_groups,
@@ -73,6 +89,8 @@ pub struct AreaData {
 
     pub inner_walls: Option<Vec<Rect>>,
     pub safe_zones: Option<Vec<Rect>>,
+    pub portals: Option<Vec<PortalData>>,
+
     pub enemy_groups: Vec<EnemyGroupData>,
 }
 
@@ -82,4 +100,14 @@ pub struct EnemyGroupData {
     pub count: u32,
     pub speed: f32,
     pub size: f32,
+}
+
+#[serde_inline_default]
+#[derive(Deserialize)]
+pub struct PortalData {
+    pub rect: Rect,
+    #[serde_inline_default("#ffff0033".to_owned())]
+    pub color: String,
+    pub target_id: String,
+    pub target_pos: Vec2,
 }

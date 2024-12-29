@@ -1,5 +1,9 @@
-use crate::{game::game::Game, physics::vec2::Vec2};
+use crate::{
+    game::game::{Game, Player},
+    physics::vec2::Vec2,
+};
 use anyhow::Result;
+use arc_swap::ArcSwap;
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::Arc,
@@ -79,7 +83,7 @@ impl WebTransportServer {
 
         println!("Accepted connection from client {id}. Awaiting streams...");
 
-        let mut entity = None;
+        let mut player: Option<Arc<ArcSwap<Player>>> = None;
 
         loop {
             tokio::select! {
@@ -98,9 +102,10 @@ impl WebTransportServer {
                         println!("Accepted name '{name}' from client {id}. Spawning hero...");
 
                         let mut game = game.lock().await;
-                        let player = game.spawn_player(name, connection.clone()).await;
-                        entity = Some(player.entity);
-                        let area = player.area.clone();
+                        let player_arcswap = game.spawn_player(name, connection.clone()).await;
+                        player = Some(player_arcswap.clone());
+
+                        let area = player_arcswap.load().area.clone();
 
                         let definition = area.lock().await.definition_packet();
 
@@ -110,7 +115,7 @@ impl WebTransportServer {
                     }
                 }
                 dgram = connection.receive_datagram() => {
-                    if let Some(entity) = entity {
+                    if let Some(ref player) = player {
                         let dgram = dgram?;
                         let payload = dgram.payload();
 
@@ -120,15 +125,15 @@ impl WebTransportServer {
                         // println!("Received input '({x:.2}, {y:.2})' from client {id}");
 
                         let mut game = game.lock().await;
-                        game.update_player_input(entity, Vec2::new(x, y)).await;
+                        game.update_player_input(player.load().entity, Vec2::new(x, y)).await;
                     }
                 }
                 _ = connection.closed() => {
                     println!("Connection from client {id} closed");
 
-                    if let Some(entity) = entity {
+                    if let Some(player) = player {
                         let mut game = game.lock().await;
-                        game.despawn_player(entity).await;
+                        game.despawn_player(player.load().entity).await;
                     }
 
                     return Ok(());

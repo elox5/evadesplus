@@ -3,7 +3,9 @@ use std::{
     ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+use serde::Deserialize;
+
+#[derive(Debug, Clone, Copy, PartialEq, Default, Deserialize)]
 pub struct Vec2 {
     pub x: f32,
     pub y: f32,
