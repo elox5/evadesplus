@@ -15,11 +15,12 @@ pub struct UpdateEffects;
 pub type EffectId = u16;
 pub type PriorityGroup = u16;
 pub type EffectStore<T> = Arc<
-    ArcSwap<
+    ArcSwap<(
+        bool,
         EffectAction<
             <T as EffectTarget>::EffectValue,
             <T as EffectTarget>::EffectAdd,
             <T as EffectTarget>::EffectMul,
         >,
-    >,
+    )>,
 >;

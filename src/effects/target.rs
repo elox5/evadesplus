@@ -12,8 +12,8 @@ where
         + Sync
         + Add<Self::EffectAdd, Output = Self::EffectValue>
         + Mul<Self::EffectMul, Output = Self::EffectValue>,
-    Self::EffectAdd: Copy + Send + Sync,
-    Self::EffectMul: Copy + Send + Sync,
+    Self::EffectAdd: Copy + Send + Sync + Mul<f32, Output = Self::EffectAdd>,
+    Self::EffectMul: Copy + Send + Sync + Mul<f32, Output = Self::EffectMul>,
 {
     type EffectValue;
     type EffectAdd;

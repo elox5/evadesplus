@@ -10,9 +10,9 @@ use std::{
 
 impl<T, TAdd, TMul> EffectTarget for Value<T, TAdd, TMul>
 where
-    T: Copy + Send + Sync + Add<TAdd, Output = T> + Mul<TMul, Output = T>,
-    TAdd: Copy + Send + Sync,
-    TMul: Copy + Send + Sync,
+    T: Clone + Copy + Send + Sync + Add<TAdd, Output = T> + Mul<TMul, Output = T>,
+    TAdd: Copy + Send + Sync + Mul<f32, Output = TAdd>,
+    TMul: Copy + Send + Sync + Mul<f32, Output = TMul>,
 {
     type EffectValue = T;
     type EffectAdd = TAdd;

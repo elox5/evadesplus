@@ -24,66 +24,80 @@ where
     T: EffectTarget + 'static,
 {
     pub fn apply_toggle(
+        target_list: &mut Vec<&mut T>,
         id: &'static str,
         priority: EffectPriority,
         action: EffectAction<T::EffectValue, T::EffectAdd, T::EffectMul>,
-        target_list: &mut Vec<&mut T>,
+        ignore_receptivity: bool,
     ) -> Self {
         Self::Togglable(Some(TogglableEffect::apply(
+            target_list,
             id_table::get(id),
             priority,
             action,
-            target_list,
+            ignore_receptivity,
         )))
     }
 
     pub fn apply_toggle_from_string(
+        target_list: &mut Vec<&mut T>,
         id: String,
         priority: EffectPriority,
         action: EffectAction<T::EffectValue, T::EffectAdd, T::EffectMul>,
-        target_list: &mut Vec<&mut T>,
+        ignore_receptivity: bool,
     ) -> Self {
         Self::Togglable(Some(TogglableEffect::apply(
+            target_list,
             id_table::get_or_insert(id),
             priority,
             action,
-            target_list,
+            ignore_receptivity,
         )))
     }
 
     pub fn apply_timed(
+        target_list: &mut Vec<&mut T>,
         id: &'static str,
         priority: EffectPriority,
         action: EffectAction<T::EffectValue, T::EffectAdd, T::EffectMul>,
-        target_list: &mut Vec<&mut T>,
+        ignore_receptivity: bool,
         duration: Duration,
     ) -> Self {
         Self::Timed(TimedEffect::apply(
+            target_list,
             id_table::get(id),
             priority,
             action,
-            target_list,
+            ignore_receptivity,
             duration,
         ))
     }
 
     pub fn apply_timed_from_string(
+        target_list: &mut Vec<&mut T>,
         id: String,
         priority: EffectPriority,
         action: EffectAction<T::EffectValue, T::EffectAdd, T::EffectMul>,
-        target_list: &mut Vec<&mut T>,
+        ignore_receptivity: bool,
         duration: Duration,
     ) -> Self {
         Self::Timed(TimedEffect::apply(
+            target_list,
             id_table::get_or_insert(id),
             priority,
             action,
-            target_list,
+            ignore_receptivity,
             duration,
         ))
     }
 
-    pub fn update(&self, action: EffectAction<T::EffectValue, T::EffectAdd, T::EffectMul>) {
+    pub fn update(
+        &self,
+        action: (
+            bool,
+            EffectAction<T::EffectValue, T::EffectAdd, T::EffectMul>,
+        ),
+    ) {
         match self {
             Effect::Togglable(effect) => {
                 if let Some(effect) = effect {
@@ -98,7 +112,12 @@ where
         }
     }
 
-    pub fn get(&self) -> Option<EffectAction<T::EffectValue, T::EffectAdd, T::EffectMul>> {
+    pub fn get(
+        &self,
+    ) -> Option<(
+        bool,
+        EffectAction<T::EffectValue, T::EffectAdd, T::EffectMul>,
+    )> {
         match self {
             Effect::Togglable(effect) => {
                 if let Some(effect) = effect {

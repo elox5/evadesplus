@@ -23,13 +23,14 @@ where
     T: EffectTarget + 'static,
 {
     pub(super) fn apply(
+        target_list: &mut Vec<&mut T>,
         id: EffectId,
         priority: EffectPriority,
         action: EffectAction<T::EffectValue, T::EffectAdd, T::EffectMul>,
-        target_list: &mut Vec<&mut T>,
+        ignore_receptivity: bool,
         duration: Duration,
     ) -> Weak<Self> {
-        let effect = Arc::new(ArcSwap::new(Arc::new(action)));
+        let effect = Arc::new(ArcSwap::new(Arc::new((ignore_receptivity, action))));
         let new = Self {
             targets: target_list
                 .iter_mut()
@@ -52,11 +53,22 @@ where
         unsafe { self.handle.get().unwrap_unchecked() }.abort();
     }
 
-    pub(super) fn get(&self) -> EffectAction<T::EffectValue, T::EffectAdd, T::EffectMul> {
+    pub(super) fn get(
+        &self,
+    ) -> (
+        bool,
+        EffectAction<T::EffectValue, T::EffectAdd, T::EffectMul>,
+    ) {
         **self.effect.load()
     }
 
-    pub(super) fn update(&self, action: EffectAction<T::EffectValue, T::EffectAdd, T::EffectMul>) {
+    pub(super) fn update(
+        &self,
+        action: (
+            bool,
+            EffectAction<T::EffectValue, T::EffectAdd, T::EffectMul>,
+        ),
+    ) {
         self.effect.store(Arc::new(action));
     }
 }
