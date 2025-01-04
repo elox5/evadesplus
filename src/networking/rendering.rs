@@ -31,7 +31,7 @@ impl RenderPacket {
 
             while node_total_size < max_size && nodes.len() > 0 {
                 let node = nodes.pop().unwrap();
-                let node_size = node.to_bytes(own_entity).len() as u32;
+                let node_size = node.length() as u32;
 
                 // println!("Node size: {node_size} bytes. Remaining: {}", nodes.len());
 
@@ -127,5 +127,23 @@ impl RenderNode {
             bytes.push(0u8);
         }
         bytes
+    }
+
+    pub fn length(&self) -> u32 {
+        // x: 4 bytes
+        // y: 4 bytes
+        // radius: 4 bytes
+        // color: 4 bytes
+        // flags: 1 byte
+        // name length: 1 byte
+        // name: (name length) bytes
+
+        let length = 4 + 4 + 4 + 4 + 1 + 1;
+
+        if let Some(name) = &self.name {
+            length + name.len() as u32
+        } else {
+            length
+        }
     }
 }
