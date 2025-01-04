@@ -176,7 +176,8 @@ function handleRenderUpdate(data) {
         node.hasBorder = hasBorder;
 
         if (nameLength > 0) {
-            node.name = String.fromCharCode(...data.slice(idx, idx + nameLength));
+            const decoder = new TextDecoder("utf-8");
+            node.name = decoder.decode(data.slice(idx, idx + nameLength));
 
             if (node.name.endsWith("%d")) {
                 node.name = node.name.slice(0, node.name.length - 2);
