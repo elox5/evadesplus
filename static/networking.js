@@ -25,7 +25,8 @@ export async function connect(name) {
 
     console.log("Connected");
 
-    window.onbeforeunload = () => {
+    window.onpagehide = () => {
+        console.log("Closing WebTransport connection");
         transport.close();
     }
 
