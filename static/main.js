@@ -16,11 +16,11 @@ async function main() {
 window.onload = main;
 
 async function handleConnection() {
-    let name = nameInput.value;
+    let name = nameInput.value.trim();
 
     console.log("Connecting...");
 
-    if (name.trim().length === 0) {
+    if (name.length === 0) {
         console.log("Name empty");
         return;
     }
