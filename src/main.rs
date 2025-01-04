@@ -7,12 +7,19 @@ use wtransport::{tls::Sha256DigestFmt, Identity};
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let map = parse_map("maps/tt.yaml").unwrap();
+    let tt = parse_map("maps/tt.yaml").unwrap();
+    let lm = parse_map("maps/lm.yaml").unwrap();
 
-    let game = Game::new(vec![map], "tt:0");
+    let game = Game::new(vec![tt, lm], "tt:0");
 
     let identity = Identity::self_signed(["localhost", "127.0.0.1", "[::1]"])?;
     let cert_digest = identity.certificate_chain().as_slice()[0].hash();
+
+    let cert = identity.certificate_chain().as_slice()[0].clone();
+    let cert = cert.to_pem();
+
+    let key = identity.private_key().clone_key();
+    let key = key.to_secret_pem();
 
     let webtransport_server = WebTransportServer::new(identity, game)?;
 
@@ -26,8 +33,8 @@ async fn main() -> Result<()> {
     let addr = webtransport_server.local_addr();
 
     tokio::select! {
-        _result = warp::serve(routes).run(addr) => {
-            println!("HTTP server closed");
+        _result = warp::serve(routes).tls().cert(cert).key(key).run(addr) => {
+            println!("HTTPS server closed");
         }
         _result = webtransport_server.serve() => {
             println!("WebTransport server closed");

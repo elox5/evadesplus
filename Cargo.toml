@@ -12,5 +12,5 @@ serde = { version = "1.0.216", features = ["derive"] }
 serde-inline-default = "0.2.3"
 serde_yaml = "0.9.34"
 tokio = { version = "1.42.0", features = ["full"] }
-warp = "0.3.7"
+warp = { version = "0.3.7", features = ["tls"] }
 wtransport = "0.5.0"
