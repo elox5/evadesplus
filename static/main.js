@@ -25,6 +25,8 @@ async function handleConnection() {
         return;
     }
 
+    connectButton.disabled = true;
+
     await connect(name);
     establishInputConnection();
     establishRenderConnection(handleRenderUpdate);
