@@ -1,0 +1,427 @@
+id: "lm"
+name: "Long Map"
+background_color: "#ffffdd"
+areas:
+  - enemy_groups:
+      - color: "#777777"
+        count: 50
+        speed: 5
+        size: 1
+    safe_zones:
+      - x: 0
+        y: 0
+        w: 10
+        h: 15
+      - x: 90
+        y: 0
+        w: 10
+        h: 15
+    portals:
+      - rect:
+          x: 0
+          y: 0
+          w: 1
+          h: 15
+        target_id: "tt:0"
+        target_pos:
+          x: 50
+          y: 7.5 
+      - rect:
+          x: 99
+          y: 0
+          w: 1
+          h: 15
+        target_id: "lm:1"
+        target_pos:
+          x: 5
+          y: 7.5 
+  - enemy_groups:
+      - color: "#777777"
+        count: 60
+        speed: 5
+        size: 1
+      - color: "#aa77ff"
+        count: 5
+        speed: 5
+        size: 3
+    safe_zones:
+      - x: 0
+        y: 0
+        w: 10
+        h: 15
+      - x: 90
+        y: 0
+        w: 10
+        h: 15
+    portals:
+      - rect:
+          x: 0
+          y: 0
+          w: 1
+          h: 15
+        target_id: "lm:0"
+        target_pos:
+          x: 95
+          y: 7.5 
+      - rect:
+          x: 99
+          y: 0
+          w: 1
+          h: 15
+        target_id: "lm:2"
+        target_pos:
+          x: 5
+          y: 7.5 
+  - enemy_groups:
+      - color: "#777777"
+        count: 70
+        speed: 5
+        size: 1
+      - color: "#aa77ff"
+        count: 10
+        speed: 5
+        size: 3
+    safe_zones:
+      - x: 0
+        y: 0
+        w: 10
+        h: 15
+      - x: 90
+        y: 0
+        w: 10
+        h: 15
+    portals:
+      - rect:
+          x: 0
+          y: 0
+          w: 1
+          h: 15
+        target_id: "lm:1"
+        target_pos:
+          x: 95
+          y: 7.5 
+      - rect:
+          x: 99
+          y: 0
+          w: 1
+          h: 15
+        target_id: "lm:3"
+        target_pos:
+          x: 5
+          y: 7.5
+  - enemy_groups:
+      - color: "#777777"
+        count: 80
+        speed: 5
+        size: 1
+      - color: "#aa77ff"
+        count: 15
+        speed: 5
+        size: 3
+    safe_zones:
+      - x: 0
+        y: 0
+        w: 10
+        h: 15
+      - x: 90
+        y: 0
+        w: 10
+        h: 15
+    portals:
+      - rect:
+          x: 0
+          y: 0
+          w: 1
+          h: 15
+        target_id: "lm:2"
+        target_pos:
+          x: 95
+          y: 7.5 
+      - rect:
+          x: 99
+          y: 0
+          w: 1
+          h: 15
+        target_id: "lm:4"
+        target_pos:
+          x: 5
+          y: 7.5 
+  - enemy_groups:
+      - color: "#777777"
+        count: 90
+        speed: 5
+        size: 1
+      - color: "#aa77ff"
+        count: 20
+        speed: 5
+        size: 3
+    safe_zones:
+      - x: 0
+        y: 0
+        w: 10
+        h: 15
+      - x: 90
+        y: 0
+        w: 10
+        h: 15
+    portals:
+      - rect:
+          x: 0
+          y: 0
+          w: 1
+          h: 15
+        target_id: "lm:3"
+        target_pos:
+          x: 95
+          y: 7.5 
+      - rect:
+          x: 99
+          y: 0
+          w: 1
+          h: 15
+        target_id: "lm:5"
+        target_pos:
+          x: 5
+          y: 7.5 
+  - enemy_groups:
+      - color: "#777777"
+        count: 100
+        speed: 5
+        size: 1
+      - color: "#aa77ff"
+        count: 25
+        speed: 5
+        size: 3
+    safe_zones:
+      - x: 0
+        y: 0
+        w: 10
+        h: 15
+      - x: 90
+        y: 0
+        w: 10
+        h: 15
+    portals:
+      - rect:
+          x: 0
+          y: 0
+          w: 1
+          h: 15
+        target_id: "lm:4"
+        target_pos:
+          x: 95
+          y: 7.5 
+      - rect:
+          x: 99
+          y: 0
+          w: 1
+          h: 15
+        target_id: "lm:6"
+        target_pos:
+          x: 5
+          y: 7.5 
+  - enemy_groups:
+      - color: "#777777"
+        count: 90
+        speed: 5
+        size: 1
+      - color: "#aa77ff"
+        count: 30
+        speed: 5
+        size: 3
+      - color: "#77ff77"
+        count: 3
+        speed: 10
+        size: 5
+    safe_zones:
+      - x: 0
+        y: 0
+        w: 10
+        h: 15
+      - x: 90
+        y: 0
+        w: 10
+        h: 15
+    portals:
+      - rect:
+          x: 0
+          y: 0
+          w: 1
+          h: 15
+        target_id: "lm:5"
+        target_pos:
+          x: 95
+          y: 7.5 
+      - rect:
+          x: 99
+          y: 0
+          w: 1
+          h: 15
+        target_id: "lm:7"
+        target_pos:
+          x: 5
+          y: 7.5 
+  - enemy_groups:
+      - color: "#777777"
+        count: 80
+        speed: 5
+        size: 1
+      - color: "#aa77ff"
+        count: 35
+        speed: 5
+        size: 3
+      - color: "#77ff77"
+        count: 6
+        speed: 10
+        size: 5
+    safe_zones:
+      - x: 0
+        y: 0
+        w: 10
+        h: 15
+      - x: 90
+        y: 0
+        w: 10
+        h: 15
+    portals:
+      - rect:
+          x: 0
+          y: 0
+          w: 1
+          h: 15
+        target_id: "lm:6"
+        target_pos:
+          x: 95
+          y: 7.5 
+      - rect:
+          x: 99
+          y: 0
+          w: 1
+          h: 15
+        target_id: "lm:8"
+        target_pos:
+          x: 5
+          y: 7.5 
+  - enemy_groups:
+      - color: "#777777"
+        count: 70
+        speed: 5
+        size: 1
+      - color: "#aa77ff"
+        count: 40
+        speed: 5
+        size: 3
+      - color: "#77ff77"
+        count: 9
+        speed: 10
+        size: 5
+    safe_zones:
+      - x: 0
+        y: 0
+        w: 10
+        h: 15
+      - x: 90
+        y: 0
+        w: 10
+        h: 15
+    portals:
+      - rect:
+          x: 0
+          y: 0
+          w: 1
+          h: 15
+        target_id: "lm:7"
+        target_pos:
+          x: 95
+          y: 7.5 
+      - rect:
+          x: 99
+          y: 0
+          w: 1
+          h: 15
+        target_id: "lm:9"
+        target_pos:
+          x: 5
+          y: 7.5 
+  - enemy_groups:
+      - color: "#777777"
+        count: 60
+        speed: 5
+        size: 1
+      - color: "#aa77ff"
+        count: 45
+        speed: 5
+        size: 3
+      - color: "#77ff77"
+        count: 12
+        speed: 10
+        size: 5
+    safe_zones:
+      - x: 0
+        y: 0
+        w: 10
+        h: 15
+      - x: 90
+        y: 0
+        w: 10
+        h: 15
+    portals:
+      - rect:
+          x: 0
+          y: 0
+          w: 1
+          h: 15
+        target_id: "lm:8"
+        target_pos:
+          x: 95
+          y: 7.5 
+      - rect:
+          x: 99
+          y: 0
+          w: 1
+          h: 15
+        target_id: "lm:10"
+        target_pos:
+          x: 5
+          y: 7.5 
+  - enemy_groups:
+      - color: "#777777"
+        count: 50
+        speed: 5
+        size: 1
+      - color: "#aa77ff"
+        count: 50
+        speed: 5
+        size: 3
+      - color: "#77ff77"
+        count: 15
+        speed: 10
+        size: 5
+    safe_zones:
+      - x: 0
+        y: 0
+        w: 10
+        h: 15
+      - x: 90
+        y: 0
+        w: 10
+        h: 15
+    portals:
+      - rect:
+          x: 0
+          y: 0
+          w: 1
+          h: 15
+        target_id: "lm:9"
+        target_pos:
+          x: 95
+          y: 7.5 
+      - rect:
+          x: 99
+          y: 0
+          w: 1
+          h: 15
+        target_id: "tt:1"
+        target_pos:
+          x: 5
+          y: 7.5 

@@ -39,6 +39,16 @@ areas:
         target_pos:
           x: 5
           y: 7.5
+      - rect:
+          x: 38
+          y: 5
+          w: 1
+          h: 1
+        target_id: "lm:0"
+        target_pos:
+          x: 5
+          y: 7.5
+        color: "#77ffff55"
   - name: "Named Area"
     background_color: "#64C864"
     enemy_groups:
@@ -69,3 +79,79 @@ areas:
         target_pos:
           x: 50
           y: 7.5
+      - rect:
+          x: 99
+          y: 0
+          w: 1
+          h: 15
+        target_id: "tt:2"
+        target_pos:
+          x: 5
+          y: 7.5
+  - enemy_groups:
+      - color: "#ff000055"
+        count: 100
+        speed: 1
+        size: 4
+      - color: "#000000"
+        count: 50
+        speed: 2
+        size: 0.5
+    inner_walls:
+      - x: 30
+        y: 7
+        w: 40
+        h: 1
+    safe_zones:
+      - x: 0
+        y: 0
+        w: 10
+        h: 15
+      - x: 90
+        y: 0
+        w: 10
+        h: 15
+    portals:
+      - rect:
+          x: 0
+          y: 0
+          w: 1
+          h: 15
+        target_id: "tt:1"
+        target_pos:
+          x: 95
+          y: 7.5 
+      - rect:
+          x: 99
+          y: 0
+          w: 1
+          h: 15
+        target_id: "tt:3"
+        target_pos:
+          x: 5
+          y: 7.5 
+  - width: 35
+    enemy_groups:
+      - color: "#0077ff"
+        count: 1
+        speed: 50
+        size: 2
+    safe_zones:
+      - x: 0
+        y: 0
+        w: 10
+        h: 15
+      - x: 25
+        y: 0
+        w: 10
+        h: 15
+    portals:
+      - rect:
+          x: 0
+          y: 0
+          w: 1
+          h: 15
+        target_id: "tt:2"
+        target_pos:
+          x: 95
+          y: 7.5 
