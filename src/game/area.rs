@@ -9,7 +9,7 @@ use crate::{
     networking::rendering::RenderPacket,
     physics::{rect::Rect, vec2::Vec2},
 };
-use hecs::{Entity, World};
+use hecs::{Entity, TakenEntity, World};
 use tokio::{sync::mpsc, task::AbortHandle};
 use wtransport::Connection;
 
@@ -65,9 +65,10 @@ impl Area {
         area
     }
 
-    pub fn close(&mut self) {
+    fn close(&mut self) {
         if let Some(handle) = self.loop_handle.take() {
             handle.abort();
+            println!("Area {} closed", self.full_id);
         }
     }
 
@@ -125,9 +126,18 @@ impl Area {
             .spawn((player, Hero, pos, vel, speed, dir, size, color, Bounded))
     }
 
-    pub fn despawn_player(&mut self, entity: Entity) {
-        let _ = self.world.despawn(entity);
-        println!("Despawning player");
+    pub fn despawn_player(
+        &mut self,
+        entity: Entity,
+    ) -> (Result<TakenEntity<'_>, hecs::NoSuchEntity>, bool) {
+        let hero_count = self.world.query_mut::<&Hero>().into_iter().count();
+        let should_close = hero_count == 1;
+
+        if should_close {
+            self.close();
+        }
+
+        (self.world.take(entity), should_close)
     }
 
     pub fn update_player_input(&mut self, entity: Entity, input: Vec2) {

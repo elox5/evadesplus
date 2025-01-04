@@ -1,6 +1,6 @@
 use super::{
     area::Area,
-    components::{self, Hero, Position},
+    components::{self, Position},
     data::MapData,
     systems::*,
     templates::MapTemplate,
@@ -70,7 +70,7 @@ impl Game {
         let _ = Self::start_update_loop(area.clone());
         self.areas.push(area.clone());
 
-        println!("Created area {}", id);
+        println!("Area {} opened", id);
         Ok(area)
     }
 
@@ -159,27 +159,16 @@ impl Game {
     }
 
     pub async fn despawn_player(&mut self, entity: Entity) {
-        let mut area_to_remove = None;
-
         if let Some(player_index) = self.players.iter().position(|p| p.load().entity == entity) {
             let player = self.players.swap_remove(player_index);
             let player = player.load();
 
             let mut area = player.area.lock().await;
-            let _ = area.despawn_player(entity);
+            let (_, should_close) = area.despawn_player(entity);
 
-            let player_count = area.world.query_mut::<&Hero>().into_iter().count();
-            if player_count == 0 {
-                area_to_remove = Some(player.area.clone());
+            if should_close {
+                self.areas.retain(|a| !Arc::ptr_eq(a, &player.area));
             }
-        }
-
-        if let Some(area) = area_to_remove {
-            self.areas.retain(|a| !Arc::ptr_eq(a, &area));
-            let mut area = area.lock().await;
-            area.close();
-
-            println!("Removed area {}", area.full_id);
         }
     }
 
@@ -190,21 +179,26 @@ impl Game {
         target_pos: Vec2,
     ) -> Result<()> {
         let target_area_arc = self.get_or_create_area(target_area)?;
-        let mut target_area = target_area_arc.lock().await;
 
         let player_arcswap = self
             .players
             .iter_mut()
             .find(|p| p.load().entity == entity)
-            .ok_or(anyhow::anyhow!("Player not found"))?;
+            .unwrap();
         let player = player_arcswap.load();
 
         let mut area = player.area.lock().await;
-        let entity = area.world.take(player.entity)?;
+        let mut target_area = target_area_arc.lock().await;
 
+        let (entity, should_close) = area.despawn_player(player.entity);
+        let entity = entity?;
         let entity = target_area.world.spawn(entity);
 
         drop(area);
+
+        if should_close {
+            self.areas.retain(|a| !Arc::ptr_eq(a, &player.area));
+        }
 
         let new_player = Player::new(entity, target_area_arc.clone());
         player_arcswap.store(Arc::new(new_player));
