@@ -156,6 +156,8 @@ impl Game {
 
     pub async fn despawn_hero(&mut self, entity: Entity) {
         if let Some(player_index) = self.players.iter().position(|p| p.load().entity == entity) {
+            println!("Despawning hero (entity {})", entity.id());
+
             let player = self.players.swap_remove(player_index);
             let player = player.load();
 

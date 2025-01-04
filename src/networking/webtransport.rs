@@ -132,7 +132,9 @@ impl WebTransportServer {
                     println!("Connection from client {id} closed");
 
                     if let Some(player) = player {
+                        println!("Despawning player {:?} from client {id}", player.load().entity);
                         let mut game = game.lock().await;
+                        println!("Game lock acquired");
                         game.despawn_hero(player.load().entity).await;
                     }
 
