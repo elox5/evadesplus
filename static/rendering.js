@@ -183,8 +183,18 @@ export function renderFrame(offset, rects, nodes) {
     }
 
     let namedNodes = [];
+    let ownHero = null;
 
     for (const node of nodes) {
+        if (node.name !== undefined) {
+            namedNodes.push(node);
+        }
+
+        if (node.ownHero) {
+            ownHero = node;
+            continue;
+        }
+
         drawCircle(mainCanvas, node.x, node.y, node.radius, {
             hasFill: true,
             fillColor: node.color,
@@ -192,10 +202,13 @@ export function renderFrame(offset, rects, nodes) {
             strokeColor: "black",
             strokeWidth: 2
         });
+    }
 
-        if (node.name !== undefined) {
-            namedNodes.push(node);
-        }
+    if (ownHero !== null) {
+        drawCircle(mainCanvas, ownHero.x, ownHero.y, ownHero.radius, {
+            hasFill: true,
+            fillColor: ownHero.color,
+        });
     }
 
     for (const node of namedNodes) {

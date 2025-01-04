@@ -1,3 +1,5 @@
+use hecs::Entity;
+
 use crate::{game::components::Color, physics::vec2::Vec2};
 
 pub struct RenderPacket {
@@ -11,7 +13,7 @@ impl RenderPacket {
         Self { nodes: Vec::new() }
     }
 
-    pub fn to_datagrams(&self, max_size: u32, offset: Vec2) -> Vec<Vec<u8>> {
+    pub fn to_datagrams(&self, max_size: u32, offset: Vec2, own_entity: Entity) -> Vec<Vec<u8>> {
         let mut nodes = self.nodes.clone();
         let mut datagrams = Vec::new();
 
@@ -29,7 +31,7 @@ impl RenderPacket {
 
             while node_total_size < max_size && nodes.len() > 0 {
                 let node = nodes.pop().unwrap();
-                let node_size = node.to_bytes().len() as u32;
+                let node_size = node.to_bytes(own_entity).len() as u32;
 
                 // println!("Node size: {node_size} bytes. Remaining: {}", nodes.len());
 
@@ -46,7 +48,7 @@ impl RenderPacket {
 
             datagram.extend_from_slice(&node_count.to_le_bytes());
             for node in &datagram_nodes {
-                datagram.extend_from_slice(&node.to_bytes());
+                datagram.extend_from_slice(&node.to_bytes(own_entity));
             }
 
             // println!(
@@ -75,8 +77,9 @@ pub struct RenderNode {
     pub radius: f32,
     pub color: Color,
     pub has_border: bool,
-    pub name: Option<String>,
     pub downed: bool,
+    pub entity: Entity,
+    pub name: Option<String>,
 }
 
 impl RenderNode {
@@ -86,8 +89,9 @@ impl RenderNode {
         radius: f32,
         color: Color,
         has_border: bool,
-        name: Option<String>,
         downed: bool,
+        entity: Entity,
+        name: Option<String>,
     ) -> RenderNode {
         RenderNode {
             x,
@@ -95,19 +99,22 @@ impl RenderNode {
             radius,
             color,
             has_border,
-            name,
             downed,
+            entity,
+            name,
         }
     }
 
-    pub fn to_bytes(&self) -> Vec<u8> {
+    pub fn to_bytes(&self, own_entity: Entity) -> Vec<u8> {
         let mut bytes = Vec::new();
         bytes.extend_from_slice(&self.x.to_le_bytes());
         bytes.extend_from_slice(&self.y.to_le_bytes());
         bytes.extend_from_slice(&self.radius.to_le_bytes());
         bytes.extend_from_slice(&self.color.to_bytes());
 
-        let flags = (self.has_border as u8) | (self.downed as u8) << 1;
+        let flags = (self.has_border as u8)
+            | (self.downed as u8) << 1
+            | ((self.entity == own_entity) as u8) << 2;
         bytes.push(flags);
 
         if let Some(name) = &self.name {

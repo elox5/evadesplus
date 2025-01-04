@@ -176,6 +176,7 @@ function handleRenderUpdate(data) {
         node.color = `rgba(${r}, ${g}, ${b}, ${a / 255})`;
         node.hasBorder = (flags & 1) === 1;
         node.downed = (flags & 2) === 2;
+        node.ownHero = (flags & 4) === 4;
 
         if (nameLength > 0) {
             const decoder = new TextDecoder("utf-8");
