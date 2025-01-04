@@ -7,12 +7,20 @@ use wtransport::{tls::Sha256DigestFmt, Identity};
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    dotenv::dotenv().ok();
+
+    let env_local_ip = std::env::var("LOCAL_IP").expect(".env LOCAL_IP must be set");
+    let env_port = std::env::var("PORT").expect(".env PORT must be set");
+
+    let local_ip = env_local_ip.parse().expect("Invalid local ip");
+    let port = env_port.parse().expect("Invalid port");
+
     let tt = parse_map("maps/tt.yaml").unwrap();
     let lm = parse_map("maps/lm.yaml").unwrap();
 
     let game = Game::new(vec![tt, lm], "tt:0");
 
-    let identity = Identity::self_signed(["localhost", "127.0.0.1", "[::1]"])?;
+    let identity = Identity::self_signed([env_local_ip])?;
     let cert_digest = identity.certificate_chain().as_slice()[0].hash();
 
     let cert = identity.certificate_chain().as_slice()[0].clone();
@@ -21,7 +29,7 @@ async fn main() -> Result<()> {
     let key = identity.private_key().clone_key();
     let key = key.to_secret_pem();
 
-    let webtransport_server = WebTransportServer::new(identity, game)?;
+    let webtransport_server = WebTransportServer::new(identity, game, local_ip, port)?;
 
     let root_route = warp::fs::dir("static");
     let cert_route = warp::path("cert").and(warp::get()).then(move || {
