@@ -12,6 +12,7 @@ use std::{
 use tokio::sync::Mutex;
 use wtransport::{
     endpoint::{endpoint_side::Server, IncomingSession},
+    error::ConnectionError,
     Endpoint, Identity, ServerConfig,
 };
 
@@ -48,7 +49,10 @@ impl WebTransportServer {
         for id in 0.. {
             let incomming_session = self.endpoint.accept().await;
 
-            println!("Accepting session {}", incomming_session.remote_address());
+            println!(
+                "Accepting session {id} from {}",
+                incomming_session.remote_address()
+            );
 
             tokio::spawn(Self::handle_session(
                 incomming_session,
@@ -70,16 +74,10 @@ impl WebTransportServer {
         session: IncomingSession,
         game: Arc<Mutex<Game>>,
         id: u64,
-    ) -> Result<()> {
+    ) -> Result<ConnectionError> {
         let mut buffer = vec![0; 65536].into_boxed_slice();
 
         let session_request = session.await?;
-
-        println!(
-            "New session request from client {id}: Authority: '{}', Path: '{}'",
-            session_request.authority(),
-            session_request.path()
-        );
 
         let connection = session_request.accept().await?;
 
@@ -104,7 +102,7 @@ impl WebTransportServer {
                         println!("Accepted name '{name}' from client {id}. Spawning hero...");
 
                         let mut game = game.lock().await;
-                        let player_arcswap = game.spawn_player(name, connection.clone()).await;
+                        let player_arcswap = game.spawn_hero(name, connection.clone()).await;
                         player = Some(player_arcswap.clone());
 
                         let area = player_arcswap.load().area.clone();
@@ -130,15 +128,15 @@ impl WebTransportServer {
                         game.update_player_input(player.load().entity, Vec2::new(x, y)).await;
                     }
                 }
-                _ = connection.closed() => {
+                connection_result = connection.closed() => {
                     println!("Connection from client {id} closed");
 
                     if let Some(player) = player {
                         let mut game = game.lock().await;
-                        game.despawn_player(player.load().entity).await;
+                        game.despawn_hero(player.load().entity).await;
                     }
 
-                    return Ok(());
+                    return Ok(connection_result);
                 }
             }
         }

@@ -47,7 +47,7 @@ impl Game {
         tokio::spawn(async move {
             while let Some((entity, target_area, target_pos)) = rx.recv().await {
                 let mut game = arc_clone.lock().await;
-                let _ = game.transfer_player(entity, &target_area, target_pos).await;
+                let _ = game.transfer_hero(entity, &target_area, target_pos).await;
             }
         });
 
@@ -135,11 +135,7 @@ impl Game {
         area.try_lock().unwrap().loop_handle = Some(handle.abort_handle());
     }
 
-    pub async fn spawn_player(
-        &mut self,
-        name: &str,
-        connection: Connection,
-    ) -> Arc<ArcSwap<Player>> {
+    pub async fn spawn_hero(&mut self, name: &str, connection: Connection) -> Arc<ArcSwap<Player>> {
         let start_area_id = self.start_area_id.clone();
 
         let area_arc = self
@@ -148,7 +144,7 @@ impl Game {
         let mut area = area_arc.lock().await;
 
         let entity = area.spawn_player(name, connection);
-        println!("Spawning entity: {}", entity.id());
+        println!("Spawning hero (entity {})", entity.id());
 
         let player = Player::new(entity, area_arc.clone());
         let player = Arc::new(ArcSwap::new(Arc::new(player)));
@@ -158,7 +154,7 @@ impl Game {
         player
     }
 
-    pub async fn despawn_player(&mut self, entity: Entity) {
+    pub async fn despawn_hero(&mut self, entity: Entity) {
         if let Some(player_index) = self.players.iter().position(|p| p.load().entity == entity) {
             let player = self.players.swap_remove(player_index);
             let player = player.load();
@@ -172,7 +168,7 @@ impl Game {
         }
     }
 
-    pub async fn transfer_player(
+    pub async fn transfer_hero(
         &mut self,
         entity: Entity,
         target_area: &str,
