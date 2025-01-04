@@ -1,7 +1,5 @@
 import { input } from "./input.js";
 
-const url = "https://localhost:3333";
-
 export let transport;
 
 export let networkSettings = {
@@ -9,6 +7,7 @@ export let networkSettings = {
 }
 
 export async function connect(name) {
+    const url = window.location.origin;
     let certificate = await get_certificate();
 
     transport = new WebTransport(url, {
