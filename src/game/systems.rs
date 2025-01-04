@@ -244,18 +244,22 @@ pub fn system_render(area: &mut Area) {
         Option<&Enemy>,
         Option<&Downed>,
     )>() {
-        let mut name = player.map(|p| p.name.clone());
+        let name = player.map(|p| p.name.clone());
         let mut color = color.clone();
 
         if downed.is_some() {
             color.a = 127;
-
-            if let Some(name) = &mut name {
-                name.push_str("%d");
-            }
         }
 
-        let node = RenderNode::new(pos.0.x, pos.0.y, size.0 / 2.0, color, enemy.is_some(), name);
+        let node = RenderNode::new(
+            pos.0.x,
+            pos.0.y,
+            size.0 / 2.0,
+            color,
+            enemy.is_some(),
+            name,
+            downed.is_some(),
+        );
         nodes.push(node);
     }
 }

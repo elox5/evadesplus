@@ -154,35 +154,32 @@ function handleRenderUpdate(data) {
     let idx = 13;
 
     for (let i = 0; i < length; i++) {
-        let xBytes = data.slice(idx, idx + 4);
-        let yBytes = data.slice(idx + 4, idx + 8);
-        let rBytes = data.slice(idx + 8, idx + 12);
-        let colorBytes = data.slice(idx + 12, idx + 16);
-        let hasBorder = data[idx + 16] === 1;
-        let nameLength = data[idx + 17];
+        const xBytes = data.slice(idx, idx + 4);
+        const yBytes = data.slice(idx + 4, idx + 8);
+        const rBytes = data.slice(idx + 8, idx + 12);
+        const colorBytes = data.slice(idx + 12, idx + 16);
+        const flags = data[idx + 16];
+        const nameLength = data[idx + 17];
 
         idx += 18;
 
-        let node = {};
+        const node = {};
 
         node.x = new Float32Array(xBytes.buffer)[0];
         node.y = new Float32Array(yBytes.buffer)[0];
         node.radius = new Float32Array(rBytes.buffer)[0];
-        let r = colorBytes[0];
-        let g = colorBytes[1];
-        let b = colorBytes[2];
-        let a = colorBytes[3];
+
+        const r = colorBytes[0];
+        const g = colorBytes[1];
+        const b = colorBytes[2];
+        const a = colorBytes[3];
         node.color = `rgba(${r}, ${g}, ${b}, ${a / 255})`;
-        node.hasBorder = hasBorder;
+        node.hasBorder = (flags & 1) === 1;
+        node.downed = (flags & 2) === 2;
 
         if (nameLength > 0) {
             const decoder = new TextDecoder("utf-8");
             node.name = decoder.decode(data.slice(idx, idx + nameLength));
-
-            if (node.name.endsWith("%d")) {
-                node.name = node.name.slice(0, node.name.length - 2);
-                node.downed = true;
-            }
 
             idx += nameLength;
         }

@@ -76,6 +76,7 @@ pub struct RenderNode {
     pub color: Color,
     pub has_border: bool,
     pub name: Option<String>,
+    pub downed: bool,
 }
 
 impl RenderNode {
@@ -86,6 +87,7 @@ impl RenderNode {
         color: Color,
         has_border: bool,
         name: Option<String>,
+        downed: bool,
     ) -> RenderNode {
         RenderNode {
             x,
@@ -94,6 +96,7 @@ impl RenderNode {
             color,
             has_border,
             name,
+            downed,
         }
     }
 
@@ -103,7 +106,10 @@ impl RenderNode {
         bytes.extend_from_slice(&self.y.to_le_bytes());
         bytes.extend_from_slice(&self.radius.to_le_bytes());
         bytes.extend_from_slice(&self.color.to_bytes());
-        bytes.push(self.has_border as u8);
+
+        let flags = (self.has_border as u8) | (self.downed as u8) << 1;
+        bytes.push(flags);
+
         if let Some(name) = &self.name {
             let length = name.len();
             let capped_length = std::cmp::min(length, 255);
