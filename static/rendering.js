@@ -182,6 +182,8 @@ export function renderFrame(offset, rects, nodes) {
         });
     }
 
+    let namedNodes = [];
+
     for (const node of nodes) {
         drawCircle(mainCanvas, node.x, node.y, node.radius, {
             hasFill: true,
@@ -192,9 +194,13 @@ export function renderFrame(offset, rects, nodes) {
         });
 
         if (node.name !== undefined) {
-            const nameColor = node.downed ? "red" : "black";
-            drawText(mainCanvas, node.x, node.y + 1, node.name, nameColor, 16, "bold");
+            namedNodes.push(node);
         }
+    }
+
+    for (const node of namedNodes) {
+        const nameColor = node.downed ? "red" : "black";
+        drawText(mainCanvas, node.x, node.y + 1, node.name, nameColor, 16, "bold");
     }
 
     let range = inputSettings.mouseInputRange;
