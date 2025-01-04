@@ -108,7 +108,7 @@ function drawText(canvas, _x, _y, text, color = "#000", size = 16, modifiers = "
     const { x, y } = canvas.gameToCanvasPos(_x, _y);
 
     ctx.fillStyle = color;
-    ctx.font = `${modifiers} ${size}px Nunito`;
+    ctx.font = `${modifiers} ${size}px Noto Color Emoji, Nunito`;
     ctx.textAlign = "center";
     ctx.fillText(text, x, y);
 }
