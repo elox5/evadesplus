@@ -43,8 +43,8 @@ impl MapData {
                     })
                     .collect::<Vec<_>>();
 
-                let enemy_groups = data
-                    .enemy_groups
+                let enemy_groups = data.enemy_groups.unwrap_or_default();
+                let enemy_groups = enemy_groups
                     .into_iter()
                     .map(|data| EnemyGroup {
                         color: data.color.into(),
@@ -95,7 +95,7 @@ pub struct AreaData {
     pub safe_zones: Option<Vec<Rect>>,
     pub portals: Option<Vec<PortalData>>,
 
-    pub enemy_groups: Vec<EnemyGroupData>,
+    pub enemy_groups: Option<Vec<EnemyGroupData>>,
 }
 
 #[derive(Deserialize)]
