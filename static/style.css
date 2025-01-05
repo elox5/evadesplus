@@ -102,10 +102,18 @@ main {
     bottom: 5px;
     right: 5px;
 
-    width: 200px;
+    width: fit-content;
     height: fit-content;
 
     display: flex;
     flex-direction: column;
     gap: 5px;
+
+    padding-right: 10px;
+}
+
+.metric {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
 }

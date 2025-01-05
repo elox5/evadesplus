@@ -1,7 +1,7 @@
 import { renderSettings, setupCanvas, renderArea, renderFrame } from "./rendering.js";
 import { setupInput } from "./input.js";
 import { connect, establishUniConnection, establishInputConnection, establishRenderConnection } from "./networking.js";
-import { reportFrameStart } from "./metrics.js";
+import { reportBandwidth, reportFrameStart } from "./metrics.js";
 
 const gameContainer = document.querySelector("#game-container");
 const connectionPanel = document.querySelector("#connection-panel");
@@ -141,6 +141,8 @@ function handleAreaUpdate(data) {
 const nodes = [];
 
 function handleRenderUpdate(data) {
+    reportBandwidth(data.length);
+
     const offsetXBytes = data.slice(0, 4);
     const offsetYBytes = data.slice(4, 8);
 
