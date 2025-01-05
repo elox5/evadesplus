@@ -9,8 +9,6 @@ const connectButton = document.querySelector("#connect-button");
 const areaName = document.querySelector("#area-name");
 
 async function main() {
-    renderSettings.tileSize = 40;
-
     connectButton.onclick = handleConnection;
 }
 window.onload = main;
@@ -177,8 +175,9 @@ function handleRenderUpdate(data) {
         const a = colorBytes[3];
         node.color = `rgba(${r}, ${g}, ${b}, ${a / 255})`;
         node.hasBorder = (flags & 1) === 1;
-        node.downed = (flags & 2) === 2;
-        node.ownHero = (flags & 4) === 4;
+        node.isHero = (flags & 2) === 2;
+        node.downed = (flags & 4) === 4;
+        node.ownHero = (flags & 8) === 8;
 
         if (nameLength > 0) {
             const decoder = new TextDecoder("utf-8");

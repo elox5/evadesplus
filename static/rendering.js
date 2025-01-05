@@ -2,11 +2,16 @@ import { input, inputSettings } from "./input.js";
 import Canvas from "./canvas.js";
 
 export let renderSettings = {
-    tileSize: 32,
+    tileSize: 40,
+    minimapTileSize: 6,
+    minimapHeroScale: 2,
 }
 
-const mainCanvas = new Canvas("main-canvas");
-const areaCanvas = new Canvas("area-canvas");
+const mainCanvas = new Canvas("main-canvas", renderSettings.tileSize);
+const areaCanvas = new Canvas("area-canvas", renderSettings.tileSize);
+
+const areaMinimap = new Canvas("area-minimap", renderSettings.minimapTileSize);
+const heroMinimap = new Canvas("hero-minimap", renderSettings.minimapTileSize, renderSettings.minimapHeroScale);
 
 export function setupCanvas() {
     mainCanvas.updateDimensions();
@@ -32,7 +37,7 @@ function drawCircle(canvas, _x, _y, _r, settings = {
 }) {
     const ctx = canvas.ctx;
     const { x, y } = canvas.gameToCanvasPos(_x, _y);
-    const r = _r * renderSettings.tileSize;
+    const r = _r * canvas.tileSize * canvas.radiusScale;
 
     ctx.beginPath();
     ctx.arc(x, y, r, 0, 2 * Math.PI);
@@ -121,21 +126,21 @@ function drawGrid(width, height) {
 
     for (let i = 0; i < width; i++) {
         ctx.beginPath();
-        ctx.moveTo(i * renderSettings.tileSize, 0);
-        ctx.lineTo(i * renderSettings.tileSize, areaCanvas.canvas.height);
+        ctx.moveTo(i * areaCanvas.tileSize, 0);
+        ctx.lineTo(i * areaCanvas.tileSize, areaCanvas.canvas.height);
         ctx.stroke();
     }
 
     for (let j = 0; j < height; j++) {
         ctx.beginPath();
-        ctx.moveTo(0, j * renderSettings.tileSize);
-        ctx.lineTo(areaCanvas.canvas.width, j * renderSettings.tileSize);
+        ctx.moveTo(0, j * areaCanvas.tileSize);
+        ctx.lineTo(areaCanvas.canvas.width, j * areaCanvas.tileSize);
         ctx.stroke();
     }
 }
 
 export function renderArea(width, height, color, walls, safeZones, portals) {
-    areaCanvas.setDimensions(width * renderSettings.tileSize, height * renderSettings.tileSize);
+    areaCanvas.setDimensions(width * areaCanvas.tileSize, height * areaCanvas.tileSize);
 
     const ctx = areaCanvas.ctx;
 
@@ -164,11 +169,17 @@ export function renderArea(width, height, color, walls, safeZones, portals) {
             fillColor: portal.color,
         });
     }
+
+    areaMinimap.setDimensions(width * renderSettings.minimapTileSize, height * renderSettings.minimapTileSize);
+    heroMinimap.setDimensions(width * renderSettings.minimapTileSize, height * renderSettings.minimapTileSize);
+
+    areaMinimap.ctx.drawImage(areaCanvas.canvas, 0, 0, areaCanvas.canvas.width, areaCanvas.canvas.height, 0, 0, areaMinimap.canvas.width, areaMinimap.canvas.height);
 }
 
 
 export function renderFrame(offset, rects, nodes) {
     mainCanvas.clear();
+    heroMinimap.clear();
 
     setDrawOffset(offset.x, offset.y);
 
@@ -188,6 +199,14 @@ export function renderFrame(offset, rects, nodes) {
     for (const node of nodes) {
         if (node.name !== undefined) {
             namedNodes.push(node);
+        }
+
+        if (node.isHero) {
+            drawMinimapHero(node);
+
+            if (node.downed) {
+                drawText(heroMinimap, node.x, node.y + 1, "!", "red", 16, "bold");
+            }
         }
 
         if (node.ownHero) {
@@ -222,5 +241,12 @@ export function renderFrame(offset, rects, nodes) {
         hasOutline: true,
         strokeColor: "orange",
         strokeWidth: 2
+    });
+}
+
+function drawMinimapHero(hero) {
+    drawCircle(heroMinimap, hero.x, hero.y, hero.radius, {
+        hasFill: true,
+        fillColor: hero.color,
     });
 }

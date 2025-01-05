@@ -1,10 +1,11 @@
 export default class Canvas {
-    constructor(id) {
+    constructor(id, tileSize, radiusScale = 1) {
         this.canvas = document.getElementById(id);
         this.ctx = this.canvas.getContext("2d");
         this.updateDimensions();
         this.renderOffset = { x: 0, y: 0 };
-        this.tileSize = 40;
+        this.tileSize = tileSize;
+        this.radiusScale = radiusScale;
     }
 
     clear() {

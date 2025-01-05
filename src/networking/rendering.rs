@@ -77,6 +77,7 @@ pub struct RenderNode {
     pub radius: f32,
     pub color: Color,
     pub has_border: bool,
+    pub is_hero: bool,
     pub downed: bool,
     pub entity: Entity,
     pub name: Option<String>,
@@ -89,6 +90,7 @@ impl RenderNode {
         radius: f32,
         color: Color,
         has_border: bool,
+        is_hero: bool,
         downed: bool,
         entity: Entity,
         name: Option<String>,
@@ -99,6 +101,7 @@ impl RenderNode {
             radius,
             color,
             has_border,
+            is_hero,
             downed,
             entity,
             name,
@@ -113,8 +116,9 @@ impl RenderNode {
         bytes.extend_from_slice(&self.color.to_bytes());
 
         let flags = (self.has_border as u8)
-            | (self.downed as u8) << 1
-            | ((self.entity == own_entity) as u8) << 2;
+            | (self.is_hero as u8) << 1
+            | (self.downed as u8) << 2
+            | ((self.entity == own_entity) as u8) << 3;
         bytes.push(flags);
 
         if let Some(name) = &self.name {
