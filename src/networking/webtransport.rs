@@ -114,6 +114,26 @@ impl WebTransportServer {
                         response_stream.finish().await?;
                     }
                 }
+                streams = connection.accept_bi() => {
+                    let streams = streams?;
+                    let (mut send_stream, mut recv_stream) = streams;
+
+                    let bytes_read = match recv_stream.read(&mut buffer).await? {
+                        Some(bytes_read) => bytes_read,
+                        None => continue,
+                    };
+
+                    let data = &buffer[..bytes_read];
+                    let text = std::str::from_utf8(data);
+
+                    if let Ok(text) = text {
+                        if text == "ping" {
+                            send_stream.write_all(b"pong").await?;
+                        }
+                    }
+
+                    send_stream.finish().await?;
+                }
                 dgram = connection.receive_datagram() => {
                     if let Some(ref player) = player {
                         let dgram = dgram?;

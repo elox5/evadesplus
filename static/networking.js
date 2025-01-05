@@ -1,4 +1,5 @@
 import { input } from "./input.js";
+import { metricSettings, startPing, reportPing } from "./metrics.js";
 
 export let transport;
 
@@ -35,6 +36,8 @@ export async function connect(name) {
     await writer.write(new TextEncoder().encode(name));
     await writer.close();
 
+    initializePingMeter();
+
     console.log("Sent player data");
 }
 
@@ -50,6 +53,28 @@ async function get_certificate() {
 let lastInput = {
     x: 0,
     y: 0
+}
+
+async function initializePingMeter() {
+    setInterval(async () => {
+        startPing();
+        const stream = await transport.createBidirectionalStream();
+
+        const readable = stream.readable;
+        const writer = stream.writable.getWriter();
+
+        await writer.write(new TextEncoder().encode("ping"));
+        await writer.close();
+
+        await readStream(readable, [
+            {
+                header: "pong",
+                callback: (data) => {
+                    reportPing(data);
+                }
+            }
+        ]);
+    }, metricSettings.pingFrequency);
 }
 
 async function sendInput(writer, input) {
@@ -114,7 +139,6 @@ async function readStream(stream, callbacks) {
         const header = new TextDecoder().decode(data.slice(0, 4));
 
         for (const callback of callbacks) {
-
             if (callback.header === header) {
                 callback.callback(data.slice(4));
             }
