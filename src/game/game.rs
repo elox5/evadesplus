@@ -5,13 +5,17 @@ use super::{
     systems::*,
     templates::MapTemplate,
 };
-use crate::physics::vec2::Vec2;
+use crate::{
+    networking::leaderboard::{LeaderboardState, LeaderboardUpdate, LeaderboardUpdatePacket},
+    physics::vec2::Vec2,
+};
 use anyhow::Result;
 use arc_swap::{ArcSwap, Guard};
 use hecs::Entity;
 use std::{sync::Arc, time::Duration};
 use tokio::{
     sync::{
+        broadcast,
         mpsc::{self},
         Mutex,
     },
@@ -26,26 +30,34 @@ pub struct Game {
 
     start_area_id: String,
 
+    pub leaderboard_state: LeaderboardState,
+
     transfer_tx: mpsc::Sender<(Entity, String, Vec2)>,
+    leaderboard_tx: broadcast::Sender<LeaderboardUpdatePacket>,
+    pub leaderboard_rx: broadcast::Receiver<LeaderboardUpdatePacket>,
 }
 
 impl Game {
     pub fn new(maps: Vec<MapData>, start_area_id: &str) -> Arc<Mutex<Self>> {
-        let (tx, mut rx) = mpsc::channel::<(Entity, String, Vec2)>(8);
+        let (transfer_tx, mut transfer_rx) = mpsc::channel::<(Entity, String, Vec2)>(8);
+        let (leaderboard_tx, leaderboard_rx) = broadcast::channel(8);
 
         let game = Game {
             maps: maps.into_iter().map(|m| m.to_template()).collect(),
             areas: Vec::new(),
             players: Vec::new(),
             start_area_id: start_area_id.to_owned(),
-            transfer_tx: tx.clone(),
+            leaderboard_state: LeaderboardState::new(),
+            transfer_tx: transfer_tx.clone(),
+            leaderboard_tx,
+            leaderboard_rx,
         };
 
         let arc = Arc::new(Mutex::new(game));
         let arc_clone = arc.clone();
 
         tokio::spawn(async move {
-            while let Some((entity, target_area, target_pos)) = rx.recv().await {
+            while let Some((entity, target_area, target_pos)) = transfer_rx.recv().await {
                 let mut game = arc_clone.lock().await;
                 let _ = game.transfer_hero(entity, &target_area, target_pos).await;
             }
@@ -151,6 +163,19 @@ impl Game {
 
         self.players.push(player.clone());
 
+        let id_split = area.full_id.split(':').collect::<Vec<_>>();
+        let area_name_split = area.name.split(" - ").collect::<Vec<_>>();
+
+        let add_entry = LeaderboardUpdatePacket::add(
+            entity,
+            area.full_id.clone(),
+            name.to_owned(),
+            area_name_split[0].to_owned(),
+            area_name_split[1].to_owned(),
+            id_split[1].parse().unwrap(),
+        );
+        self.handle_leaderboard_entry(add_entry);
+
         player
     }
 
@@ -163,6 +188,9 @@ impl Game {
 
             let mut area = player.area.lock().await;
             let (_, should_close) = area.despawn_player(entity);
+
+            let remove_entry = LeaderboardUpdatePacket::remove(entity, area.full_id.clone());
+            self.handle_leaderboard_entry(remove_entry);
 
             if should_close {
                 self.areas.retain(|a| !Arc::ptr_eq(a, &player.area));
@@ -188,6 +216,13 @@ impl Game {
         let mut area = player.area.lock().await;
         let mut target_area = target_area_arc.lock().await;
 
+        let target_area_id = target_area.full_id.clone();
+        let target_area_name_split = target_area.name.split(" - ").collect::<Vec<_>>();
+        let target_map_name = target_area_name_split[0].to_owned();
+        let target_area_name = target_area_name_split[1].to_owned();
+
+        let remove_entry = LeaderboardUpdatePacket::remove(entity, area.full_id.clone());
+
         let (entity, should_close) = area.despawn_player(player.entity);
         let entity = entity?;
         let entity = target_area.world.spawn(entity);
@@ -207,6 +242,18 @@ impl Game {
             .unwrap();
 
         pos.0 = target_pos;
+
+        let add_entry = LeaderboardUpdatePacket::add(
+            entity,
+            target_area_id.clone(),
+            player_component.name.clone(),
+            target_map_name,
+            target_area_name,
+            target_area_id.split(":").nth(1).unwrap().parse().unwrap(),
+        );
+
+        self.handle_leaderboard_entry(remove_entry);
+        self.handle_leaderboard_entry(add_entry);
 
         let mut response_stream = player_component.connection.open_uni().await?.await?;
         response_stream
@@ -240,6 +287,19 @@ impl Game {
 
     fn try_get_map(&self, map_id: &str) -> Option<&MapTemplate> {
         self.maps.iter().find(|m| m.id == map_id)
+    }
+
+    fn handle_leaderboard_entry(&mut self, entry: LeaderboardUpdatePacket) {
+        let _ = self.leaderboard_tx.send(entry.clone());
+
+        match entry.update {
+            LeaderboardUpdate::Add { .. } => {
+                self.leaderboard_state.add(entry);
+            }
+            LeaderboardUpdate::Remove => {
+                self.leaderboard_state.remove(entry.get_hash());
+            }
+        }
     }
 }
 

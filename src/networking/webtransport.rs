@@ -85,6 +85,8 @@ impl WebTransportServer {
 
         let mut player: Option<Arc<ArcSwap<Player>>> = None;
 
+        let mut lb_rx = game.lock().await.leaderboard_rx.resubscribe();
+
         loop {
             tokio::select! {
                 stream = connection.accept_uni() => {
@@ -102,6 +104,8 @@ impl WebTransportServer {
                         println!("Accepted name '{name}' from client {id}. Spawning hero...");
 
                         let mut game = game.lock().await;
+                        let leaderboard_state = game.leaderboard_state.clone();
+
                         let player_arcswap = game.spawn_hero(name, connection.clone()).await;
                         player = Some(player_arcswap.clone());
 
@@ -109,9 +113,15 @@ impl WebTransportServer {
 
                         let definition = area.lock().await.definition_packet();
 
-                        let mut response_stream = connection.open_uni().await?.await?;
-                        response_stream.write_all(&definition).await?;
-                        response_stream.finish().await?;
+                        if !leaderboard_state.is_empty() {
+                            let mut state_stream = connection.open_uni().await?.await?;
+                            state_stream.write_all(&leaderboard_state.to_bytes()).await?;
+                            state_stream.finish().await?;
+                        }
+
+                        let mut def_stream = connection.open_uni().await?.await?;
+                        def_stream.write_all(&definition).await?;
+                        def_stream.finish().await?;
                     }
                 }
                 streams = connection.accept_bi() => {
@@ -159,6 +169,14 @@ impl WebTransportServer {
                     }
 
                     return Ok(connection_result);
+                }
+                leaderboard_update = lb_rx.recv() => {
+                    if let Ok(leaderboard_update) = leaderboard_update {
+                        let mut update_stream = connection.open_uni().await?.await?;
+
+                        update_stream.write_all(&leaderboard_update.to_bytes()).await?;
+                        update_stream.finish().await?;
+                    }
                 }
             }
         }

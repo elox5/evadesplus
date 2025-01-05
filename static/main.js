@@ -2,6 +2,7 @@ import { renderSettings, setupCanvas, renderArea, renderFrame } from "./renderin
 import { setupInput } from "./input.js";
 import { connect, establishUniConnection, establishInputConnection, establishRenderConnection } from "./networking.js";
 import { reportBandwidth, reportFrameStart } from "./metrics.js";
+import { leaderboard } from "./leaderboard.js";
 
 const gameContainer = document.querySelector("#game-container");
 const connectionPanel = document.querySelector("#connection-panel");
@@ -33,6 +34,14 @@ async function handleConnection() {
         {
             header: "ADEF",
             callback: handleAreaUpdate,
+        },
+        {
+            header: "LBUP",
+            callback: handleLeaderboardUpdate,
+        },
+        {
+            header: "LBST",
+            callback: handleLeaderboardStateUpdate,
         }
     ]);
     setupInput();
@@ -197,5 +206,57 @@ function handleRenderUpdate(data) {
 
         renderFrame({ x: offsetX, y: offsetY }, [], nodes);
         nodes.length = 0;
+    }
+}
+
+function handleLeaderboardUpdate(data) {
+    const isAdd = data[0] === 1;
+
+    const hashBytes = data.slice(1, 9);
+    const hash = new BigUint64Array(hashBytes.buffer)[0];
+
+    if (isAdd) {
+        handleLeaderboardAdd(hash, data.slice(9));
+    } else {
+        handleLeaderboardRemove(hash);
+    }
+}
+
+function handleLeaderboardAdd(hash, data) {
+    const areaOrderBytes = data.slice(0, 2);
+    const areaOrder = new Uint16Array(areaOrderBytes.buffer)[0];
+
+    const playerNameLength = data[2];
+    const areaNameLength = data[3];
+    const mapNameLength = data[4];
+
+    let idx = 5;
+
+    const decoder = new TextDecoder("utf-8");
+
+    const playerName = decoder.decode(data.slice(idx, idx + playerNameLength));
+    idx += playerNameLength;
+
+    const areaName = decoder.decode(data.slice(idx, idx + areaNameLength));
+    idx += areaNameLength;
+
+    const mapName = decoder.decode(data.slice(idx, idx + mapNameLength));
+
+    leaderboard.add(hash, areaOrder, playerName, areaName, mapName);
+}
+
+function handleLeaderboardRemove(hash) {
+    leaderboard.remove(hash);
+}
+
+function handleLeaderboardStateUpdate(data) {
+    const entryCount = data[0];
+
+    let idx = 1;
+
+    for (let i = 0; i < entryCount; i++) {
+        const length = data[idx];
+        handleLeaderboardUpdate(data.slice(idx + 1, idx + 1 + length));
+        idx += length;
     }
 }
