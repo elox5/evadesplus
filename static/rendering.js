@@ -1,5 +1,6 @@
 import { input, inputSettings } from "./input.js";
 import Canvas from "./canvas.js";
+import { reportRenderEnd, reportRenderStart } from "./metrics.js";
 
 export let renderSettings = {
     tileSize: 40,
@@ -178,6 +179,8 @@ export function renderArea(width, height, color, walls, safeZones, portals) {
 
 
 export function renderFrame(offset, rects, nodes) {
+    reportRenderStart();
+
     mainCanvas.clear();
     heroMinimap.clear();
 
@@ -242,6 +245,8 @@ export function renderFrame(offset, rects, nodes) {
         strokeColor: "orange",
         strokeWidth: 2
     });
+
+    reportRenderEnd();
 }
 
 function drawMinimapHero(hero) {

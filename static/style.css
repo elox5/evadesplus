@@ -96,3 +96,16 @@ main {
 
     text-shadow: 2px 2px 4px black;
 }
+
+#metrics-container {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+
+    width: 200px;
+    height: fit-content;
+
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}

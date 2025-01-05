@@ -1,6 +1,7 @@
 import { renderSettings, setupCanvas, renderArea, renderFrame } from "./rendering.js";
 import { setupInput } from "./input.js";
 import { connect, establishUniConnection, establishInputConnection, establishRenderConnection } from "./networking.js";
+import { reportFrameStart } from "./metrics.js";
 
 const gameContainer = document.querySelector("#game-container");
 const connectionPanel = document.querySelector("#connection-panel");
@@ -190,6 +191,8 @@ function handleRenderUpdate(data) {
     }
 
     if (render) {
+        reportFrameStart();
+
         renderFrame({ x: offsetX, y: offsetY }, [], nodes);
         nodes.length = 0;
     }

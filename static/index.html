@@ -7,6 +7,7 @@
     <title>Evades+</title>
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/x-icon" href="https://fav.farm/🪴">
+    <script type="module" src="metrics.js"></script>
     <script type="module" src="canvas.js"></script>
     <script type="module" src="rendering.js"></script>
     <script type="module" src="networking.js"></script>
@@ -29,6 +30,18 @@
             <div id="minimap-container">
                 <canvas id="area-minimap" class="minimap"></canvas>
                 <canvas id="hero-minimap" class="minimap"></canvas>
+            </div>
+
+            <div id="metrics-container">
+                <div class="metric">
+                    Ping: <b><span id="ping-meter">-</span> ms</b>
+                </div>
+                <div class="metric">
+                    FPS: <b><span id="fps-meter">-</span></b>
+                </div>
+                <div class="metric">
+                    Render time: <b><span id="render-ms-meter">-</span> ms</b>
+                </div>
             </div>
         </div>
     </main>
