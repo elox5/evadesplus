@@ -1,7 +1,7 @@
 use super::{
     components::{
-        BounceOffBounds, Bounded, Color, Direction, Enemy, Hero, Player, Position, Size, Speed,
-        Velocity,
+        BounceOffBounds, Bounded, Color, Direction, Enemy, Hero, Named, Position, RenderReceiver,
+        Size, Speed, Velocity,
     },
     templates::{AreaTemplate, EnemyGroup},
 };
@@ -123,21 +123,18 @@ impl Area {
     }
 
     pub fn spawn_player(&mut self, name: &str, connection: Connection) -> Entity {
-        let player = Player {
-            connection,
-            name: name.to_owned(),
-        };
-
-        let pos = Position(self.bounds.center());
-        let vel = Velocity(Vec2::ZERO);
-        let speed = Speed(17.0);
-        let dir = Direction(Vec2::ZERO);
-
-        let size = Size(1.0);
-        let color = Color::rgb(rand::random(), rand::random(), rand::random());
-
-        self.world
-            .spawn((player, Hero, pos, vel, speed, dir, size, color, Bounded))
+        self.world.spawn((
+            Position(self.bounds.center()),
+            Velocity(Vec2::ZERO),
+            Speed(17.0),
+            Direction(Vec2::ZERO),
+            Size(1.0),
+            Color::rgb(rand::random(), rand::random(), rand::random()),
+            Named(name.to_owned()),
+            RenderReceiver { connection },
+            Hero,
+            Bounded,
+        ))
     }
 
     pub fn despawn_player(

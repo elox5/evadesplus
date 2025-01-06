@@ -1,6 +1,8 @@
 use super::{
     area::Area,
-    components::{BounceOffBounds, Bounded, Color, Downed, Enemy, Hero, Player, Size},
+    components::{
+        BounceOffBounds, Bounded, Color, Downed, Enemy, Hero, Named, RenderReceiver, Size,
+    },
 };
 use crate::{
     game::components::{Direction, Position, Speed, Velocity},
@@ -127,7 +129,7 @@ pub fn system_safe_zone_collision(area: &mut Area) {
 
     for (_, (dir, pos, size)) in area
         .world
-        .query_mut::<Without<With<(&mut Direction, &Position, &Size), &BounceOffBounds>, &Player>>()
+        .query_mut::<Without<With<(&mut Direction, &Position, &Size), &BounceOffBounds>, &RenderReceiver>>()
     {
         for wall in &area.safe_zones {
             if wall.contains_circle(pos.0, size.0 / 2.0) {
@@ -147,7 +149,7 @@ pub fn system_safe_zone_collision(area: &mut Area) {
 
     for (_, (pos, size)) in area
         .world
-        .query_mut::<Without<With<(&mut Position, &Size), &Bounded>, &Player>>()
+        .query_mut::<Without<With<(&mut Position, &Size), &Bounded>, &RenderReceiver>>()
     {
         for wall in &area.safe_zones {
             if wall.contains_circle(pos.0, size.0 / 2.0) {
@@ -236,16 +238,16 @@ pub fn system_render(area: &mut Area) {
     area.render_packet = Some(RenderPacket::new());
     let nodes = &mut area.render_packet.as_mut().unwrap().nodes;
 
-    for (entity, (pos, size, color, player, hero, enemy, downed)) in area.world.query_mut::<(
+    for (entity, (pos, size, color, named, hero, enemy, downed)) in area.world.query_mut::<(
         &Position,
         &Size,
         &Color,
-        Option<&Player>,
+        Option<&Named>,
         Option<&Hero>,
         Option<&Enemy>,
         Option<&Downed>,
     )>() {
-        let name = player.map(|p| p.name.clone());
+        let name = named.map(|n| n.0.clone());
         let mut color = color.clone();
 
         if downed.is_some() {
@@ -269,12 +271,12 @@ pub fn system_render(area: &mut Area) {
 
 pub fn system_send_render_packet(area: &mut Area) {
     if let Some(packet) = &area.render_packet {
-        for (entity, (player, pos)) in area.world.query_mut::<(&Player, &Position)>() {
-            if let Some(max_datagram_size) = player.connection.max_datagram_size() {
+        for (entity, (render, pos)) in area.world.query_mut::<(&RenderReceiver, &Position)>() {
+            if let Some(max_datagram_size) = render.connection.max_datagram_size() {
                 let datagrams = packet.to_datagrams(max_datagram_size as u32, pos.0, entity);
 
                 for datagram in datagrams {
-                    let _ = player.connection.send_datagram(datagram);
+                    let _ = render.connection.send_datagram(datagram);
                 }
             }
         }

@@ -10,8 +10,9 @@ pub struct Downed;
 pub struct Bounded;
 pub struct BounceOffBounds;
 
-pub struct Player {
-    pub name: String,
+pub struct Named(pub String);
+
+pub struct RenderReceiver {
     pub connection: Connection,
 }
 

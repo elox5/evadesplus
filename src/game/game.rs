@@ -1,6 +1,6 @@
 use super::{
     area::Area,
-    components::{self, Position},
+    components::{Named, Position, RenderReceiver},
     data::MapData,
     systems::*,
     templates::MapTemplate,
@@ -233,9 +233,9 @@ impl Game {
         let new_player = Player::new(entity, target_area_arc.clone());
         player_arcswap.store(Arc::new(new_player));
 
-        let (player_component, pos) = target_area
+        let (named, render, pos) = target_area
             .world
-            .query_one_mut::<(&components::Player, &mut Position)>(entity)
+            .query_one_mut::<(&Named, &RenderReceiver, &mut Position)>(entity)
             .unwrap();
 
         pos.0 = target_pos;
@@ -243,7 +243,7 @@ impl Game {
         let add_entry = LeaderboardUpdatePacket::add(
             entity,
             target_area_full_id,
-            player_component.name.clone(),
+            named.0.clone(),
             target_map_name,
             target_area_name,
             target_area_order,
@@ -252,7 +252,7 @@ impl Game {
         self.handle_leaderboard_entry(remove_entry);
         self.handle_leaderboard_entry(add_entry);
 
-        let mut response_stream = player_component.connection.open_uni().await?.await?;
+        let mut response_stream = render.connection.open_uni().await?.await?;
         response_stream
             .write_all(&target_area.definition_packet())
             .await?;
