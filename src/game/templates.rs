@@ -1,5 +1,5 @@
 use super::{area::Portal, components::Color};
-use crate::physics::rect::Rect;
+use crate::physics::{rect::Rect, vec2::Vec2};
 
 pub struct MapTemplate {
     pub id: String,
@@ -28,6 +28,8 @@ pub struct AreaTemplate {
 
     pub width: f32,
     pub height: f32,
+
+    pub spawn_pos: Vec2,
 
     pub inner_walls: Vec<Rect>,
     pub safe_zones: Vec<Rect>,

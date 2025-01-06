@@ -29,6 +29,9 @@ areas:
         y: 5
         w: 5
         h: 5
+    spawn_pos:
+      x: 50.5
+      y: 7.5
     portals:
       - rect:
           x: 55

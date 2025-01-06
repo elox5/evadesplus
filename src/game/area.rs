@@ -29,6 +29,8 @@ pub struct Area {
     pub world: World,
 
     pub bounds: Rect,
+    pub spawn_pos: Vec2,
+
     pub inner_walls: Vec<Rect>,
     pub safe_zones: Vec<Rect>,
     pub portals: Vec<Portal>,
@@ -61,6 +63,7 @@ impl Area {
 
             background_color: template.background_color.clone(),
             bounds: Rect::new(0.0, 0.0, template.width, template.height),
+            spawn_pos: template.spawn_pos,
             inner_walls: template.inner_walls.clone(),
             safe_zones: template.safe_zones.clone(),
             portals: template.portals.clone(),
@@ -124,7 +127,7 @@ impl Area {
 
     pub fn spawn_player(&mut self, name: &str, connection: Connection) -> Entity {
         self.world.spawn((
-            Position(self.bounds.center()),
+            Position(self.spawn_pos),
             Velocity(Vec2::ZERO),
             Speed(17.0),
             Direction(Vec2::ZERO),

@@ -59,7 +59,9 @@ impl Game {
         tokio::spawn(async move {
             while let Some((entity, target_area, target_pos)) = transfer_rx.recv().await {
                 let mut game = arc_clone.lock().await;
-                let _ = game.transfer_hero(entity, &target_area, target_pos).await;
+                let _ = game
+                    .transfer_hero(entity, &target_area, Some(target_pos))
+                    .await;
             }
         });
 
@@ -199,7 +201,7 @@ impl Game {
         &mut self,
         entity: Entity,
         target_area: &str,
-        target_pos: Vec2,
+        target_pos: Option<Vec2>,
     ) -> Result<()> {
         let target_area_arc = self.get_or_create_area(target_area)?;
 
@@ -217,6 +219,7 @@ impl Game {
         let target_area_full_id = target_area.full_id.clone();
         let target_map_name = target_area.map_name.clone();
         let target_area_name = target_area.area_name.clone();
+        let target_area_spawn_pos = target_area.spawn_pos;
 
         let remove_entry = LeaderboardUpdatePacket::remove(entity, area.full_id.clone());
 
@@ -238,7 +241,7 @@ impl Game {
             .query_one_mut::<(&Named, &RenderReceiver, &mut Position)>(entity)
             .unwrap();
 
-        pos.0 = target_pos;
+        pos.0 = target_pos.unwrap_or_else(|| target_area_spawn_pos);
 
         let add_entry = LeaderboardUpdatePacket::add(
             entity,

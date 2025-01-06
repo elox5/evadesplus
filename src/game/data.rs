@@ -62,6 +62,9 @@ impl MapData {
                     background_color,
                     width: data.width,
                     height: data.height,
+                    spawn_pos: data
+                        .spawn_pos
+                        .unwrap_or_else(|| Vec2::new(5.0, data.height / 2.0)),
                     portals,
                     inner_walls: data.inner_walls.unwrap_or_default(),
                     safe_zones: data.safe_zones.unwrap_or_default(),
@@ -91,6 +94,8 @@ pub struct AreaData {
 
     #[serde_inline_default(15.0)]
     pub height: f32,
+
+    pub spawn_pos: Option<Vec2>,
 
     pub inner_walls: Option<Vec<Rect>>,
     pub safe_zones: Option<Vec<Rect>>,
