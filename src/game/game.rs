@@ -163,16 +163,13 @@ impl Game {
 
         self.players.push(player.clone());
 
-        let id_split = area.full_id.split(':').collect::<Vec<_>>();
-        let area_name_split = area.name.split(" - ").collect::<Vec<_>>();
-
         let add_entry = LeaderboardUpdatePacket::add(
             entity,
             area.full_id.clone(),
             name.to_owned(),
-            area_name_split[0].to_owned(),
-            area_name_split[1].to_owned(),
-            id_split[1].parse().unwrap(),
+            area.map_name.clone(),
+            area.area_name.clone(),
+            area.order,
         );
         self.handle_leaderboard_entry(add_entry);
 
@@ -216,10 +213,10 @@ impl Game {
         let mut area = player.area.lock().await;
         let mut target_area = target_area_arc.lock().await;
 
-        let target_area_id = target_area.full_id.clone();
-        let target_area_name_split = target_area.name.split(" - ").collect::<Vec<_>>();
-        let target_map_name = target_area_name_split[0].to_owned();
-        let target_area_name = target_area_name_split[1].to_owned();
+        let target_area_order = target_area.order;
+        let target_area_full_id = target_area.full_id.clone();
+        let target_map_name = target_area.map_name.clone();
+        let target_area_name = target_area.area_name.clone();
 
         let remove_entry = LeaderboardUpdatePacket::remove(entity, area.full_id.clone());
 
@@ -245,11 +242,11 @@ impl Game {
 
         let add_entry = LeaderboardUpdatePacket::add(
             entity,
-            target_area_id.clone(),
+            target_area_full_id,
             player_component.name.clone(),
             target_map_name,
             target_area_name,
-            target_area_id.split(":").nth(1).unwrap().parse().unwrap(),
+            target_area_order,
         );
 
         self.handle_leaderboard_entry(remove_entry);

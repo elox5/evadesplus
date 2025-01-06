@@ -16,9 +16,14 @@ impl MapTemplate {
 }
 
 pub struct AreaTemplate {
+    pub order: u16,
+
+    pub area_name: String,
+    pub map_name: String,
+
     pub area_id: String,
-    pub full_id: String,
-    pub name: String,
+    pub map_id: String,
+
     pub background_color: Color,
 
     pub width: f32,

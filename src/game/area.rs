@@ -14,9 +14,16 @@ use tokio::{sync::mpsc, task::AbortHandle};
 use wtransport::Connection;
 
 pub struct Area {
+    pub order: u16,
+
+    pub area_name: String,
+    pub map_name: String,
+    pub full_name: String,
+
     pub area_id: String,
+    pub map_id: String,
     pub full_id: String,
-    pub name: String,
+
     pub background_color: Color,
 
     pub world: World,
@@ -42,9 +49,16 @@ impl Area {
         transfer_tx: mpsc::Sender<(Entity, String, Vec2)>,
     ) -> Self {
         let mut area = Self {
+            order: template.order,
+
+            area_name: template.area_name.clone(),
+            map_name: template.map_name.clone(),
+            full_name: format!("{} - {}", template.map_name, template.area_name),
+
             area_id: template.area_id.clone(),
-            full_id: template.full_id.clone(),
-            name: template.name.clone(),
+            map_id: template.map_id.clone(),
+            full_id: format!("{}:{}", template.map_id, template.area_id),
+
             background_color: template.background_color.clone(),
             bounds: Rect::new(0.0, 0.0, template.width, template.height),
             inner_walls: template.inner_walls.clone(),
@@ -172,8 +186,8 @@ impl Area {
             packet.extend_from_slice(&portal.color.to_bytes());
         }
 
-        packet.extend_from_slice(&self.name.len().to_le_bytes()[..4]);
-        packet.extend_from_slice(self.name.as_bytes());
+        packet.extend_from_slice(&self.full_name.len().to_le_bytes()[..4]);
+        packet.extend_from_slice(self.full_name.as_bytes());
 
         packet
     }

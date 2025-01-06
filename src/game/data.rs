@@ -21,16 +21,15 @@ impl MapData {
             .areas
             .into_iter()
             .enumerate()
-            .map(|(index, data)| {
-                let area_id = data.id.unwrap_or(format!("{}", index));
-                let full_id = format!("{}:{}", self.id.clone(), area_id.clone());
+            .map(|(order, data)| {
+                let area_id = data.id.unwrap_or(order.to_string());
+
                 let background_color = data
                     .background_color
                     .unwrap_or(self.background_color.clone())
                     .into();
 
-                let name = data.name.unwrap_or(format!("Area {}", index + 1));
-                let name = format!("{} - {}", self.name, name);
+                let name = data.name.unwrap_or(format!("Area {}", order + 1));
 
                 let portals = data.portals.unwrap_or_default();
                 let portals = portals
@@ -55,9 +54,11 @@ impl MapData {
                     .collect::<Vec<_>>();
 
                 AreaTemplate {
+                    order: order as u16,
                     area_id,
-                    full_id,
-                    name,
+                    map_id: self.id.clone(),
+                    area_name: name,
+                    map_name: self.name.clone(),
                     background_color,
                     width: data.width,
                     height: data.height,
