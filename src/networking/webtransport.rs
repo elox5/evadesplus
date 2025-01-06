@@ -1,3 +1,4 @@
+use super::chat::ChatRequest;
 use crate::{
     game::game::{Game, Player},
     physics::vec2::Vec2,
@@ -9,7 +10,7 @@ use std::{
     sync::Arc,
     time::Duration,
 };
-use tokio::sync::Mutex;
+use tokio::sync::{broadcast, Mutex};
 use wtransport::{
     endpoint::{endpoint_side::Server, IncomingSession},
     error::ConnectionError,
@@ -19,6 +20,8 @@ use wtransport::{
 pub struct WebTransportServer {
     endpoint: Endpoint<Server>,
     game: Arc<Mutex<Game>>,
+    chat_tx: broadcast::Sender<ChatRequest>,
+    chat_rx: broadcast::Receiver<ChatRequest>,
 }
 
 impl WebTransportServer {
@@ -36,7 +39,14 @@ impl WebTransportServer {
 
         let endpoint = Endpoint::server(config)?;
 
-        Ok(Self { endpoint, game })
+        let (chat_tx, chat_rx) = broadcast::channel(16);
+
+        Ok(Self {
+            endpoint,
+            game,
+            chat_tx,
+            chat_rx,
+        })
     }
 
     pub fn local_addr(&self) -> SocketAddr {
@@ -57,6 +67,8 @@ impl WebTransportServer {
             tokio::spawn(Self::handle_session(
                 incomming_session,
                 self.game.clone(),
+                self.chat_tx.clone(),
+                self.chat_rx.resubscribe(),
                 id,
             ));
         }
@@ -64,8 +76,14 @@ impl WebTransportServer {
         Ok(())
     }
 
-    async fn handle_session(session: IncomingSession, game: Arc<Mutex<Game>>, id: u64) {
-        let result = Self::handle_session_impl(session, game, id).await;
+    async fn handle_session(
+        session: IncomingSession,
+        game: Arc<Mutex<Game>>,
+        chat_tx: broadcast::Sender<ChatRequest>,
+        chat_rx: broadcast::Receiver<ChatRequest>,
+        id: u64,
+    ) {
+        let result = Self::handle_session_impl(session, game, chat_tx, chat_rx, id).await;
 
         println!("Session {id} closed with result: {result:?}");
     }
@@ -73,6 +91,8 @@ impl WebTransportServer {
     async fn handle_session_impl(
         session: IncomingSession,
         game: Arc<Mutex<Game>>,
+        chat_tx: broadcast::Sender<ChatRequest>,
+        mut chat_rx: broadcast::Receiver<ChatRequest>,
         id: u64,
     ) -> Result<ConnectionError> {
         let mut buffer = vec![0; 65536].into_boxed_slice();
@@ -98,30 +118,53 @@ impl WebTransportServer {
                     };
 
                     let data = &buffer[..bytes_read];
-                    let name = std::str::from_utf8(data);
+                    let header = &data[0..4];
+                    let data = &data[4..];
 
-                    if let Ok(name) = name {
-                        println!("Accepted name '{name}' from client {id}. Spawning hero...");
+                    match header {
+                        b"NAME" => {
+                            let name = std::str::from_utf8(data);
 
-                        let mut game = game.lock().await;
-                        let leaderboard_state = game.leaderboard_state.clone();
+                            if let Ok(name) = name {
+                                println!("Accepted name '{name}' from client {id}. Spawning hero...");
 
-                        let player_arcswap = game.spawn_hero(name, connection.clone()).await;
-                        player = Some(player_arcswap.clone());
+                                let mut game = game.lock().await;
+                                let leaderboard_state = game.leaderboard_state.clone();
 
-                        let area = player_arcswap.load().area.clone();
+                                let player_arcswap = game.spawn_hero(name, connection.clone()).await;
+                                player = Some(player_arcswap.clone());
 
-                        let definition = area.lock().await.definition_packet();
+                                let area = player_arcswap.load().area.clone();
 
-                        if !leaderboard_state.is_empty() {
-                            let mut state_stream = connection.open_uni().await?.await?;
-                            state_stream.write_all(&leaderboard_state.to_bytes()).await?;
-                            state_stream.finish().await?;
+                                let definition = area.lock().await.definition_packet();
+
+                                if !leaderboard_state.is_empty() {
+                                    let mut state_stream = connection.open_uni().await?.await?;
+                                    state_stream.write_all(&leaderboard_state.to_bytes()).await?;
+                                    state_stream.finish().await?;
+                                }
+
+                                let mut def_stream = connection.open_uni().await?.await?;
+                                def_stream.write_all(&definition).await?;
+                                def_stream.finish().await?;
+                            }
+                        },
+                        b"CHAT" => {
+                            if let Some(player) = &player {
+                                let text = std::str::from_utf8(data);
+
+                                if let Ok(text) = text {
+                                    let name = player.load().name.clone();
+
+                                    let request = ChatRequest::new(text.to_owned(), name.clone());
+
+                                    let _ = chat_tx.send(request);
+                                }
+                            }
+                        },
+                        _ => {
+                            println!("Received unknown packet from client {id} (header: {})", std::str::from_utf8(header).unwrap_or(&format!("{header:x?}").clone()));
                         }
-
-                        let mut def_stream = connection.open_uni().await?.await?;
-                        def_stream.write_all(&definition).await?;
-                        def_stream.finish().await?;
                     }
                 }
                 streams = connection.accept_bi() => {
@@ -176,6 +219,14 @@ impl WebTransportServer {
 
                         update_stream.write_all(&leaderboard_update.to_bytes()).await?;
                         update_stream.finish().await?;
+                    }
+                }
+                chat_broadcast = chat_rx.recv() => {
+                    if let Ok(chat_broadcast) = chat_broadcast {
+                        let mut chat_stream = connection.open_uni().await?.await?;
+
+                        chat_stream.write_all(&chat_broadcast.to_bytes()).await?;
+                        chat_stream.finish().await?;
                     }
                 }
             }

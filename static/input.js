@@ -1,6 +1,7 @@
+import { chat } from "./chat.js";
 import { renderSettings } from "./rendering.js";
 
-const gameContainer = document.querySelector("#game-container");
+const canvasContainer = document.querySelector("#canvas-container");
 
 export let input = {
     x: 0,
@@ -69,6 +70,8 @@ function getKeyboardInput() {
 
 export function setupInput() {
     window.onkeydown = (e) => {
+        if (chat.focused()) return;
+
         if (e.key === "Shift") {
             sneaking = true;
             updateInput();
@@ -85,6 +88,9 @@ export function setupInput() {
         }
         else if (e.key === "ArrowDown" || e.code === "KeyS") {
             keyboardPressed.down = true;
+        } else if (e.key === "Enter" && !chat.focused()) {
+            chat.focus();
+            return;
         } else {
             return;
         }
@@ -124,7 +130,7 @@ export function setupInput() {
         updateInput();
     };
 
-    gameContainer.onmousedown = (e) => {
+    canvasContainer.onmousedown = (e) => {
         mouseInputActive = !mouseInputActive;
         if (!mouseInputActive) {
             mouseInput.y = 0;

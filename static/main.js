@@ -3,6 +3,7 @@ import { setupInput } from "./input.js";
 import { connect, establishUniConnection, establishInputConnection, establishRenderConnection } from "./networking.js";
 import { reportBandwidth, reportFrameStart } from "./metrics.js";
 import { leaderboard } from "./leaderboard.js";
+import { chat } from "./chat.js";
 
 const gameContainer = document.querySelector("#game-container");
 const connectionPanel = document.querySelector("#connection-panel");
@@ -27,6 +28,8 @@ async function handleConnection() {
 
     connectButton.disabled = true;
 
+    chat.setUsername(name);
+
     await connect(name);
     establishInputConnection();
     establishRenderConnection(handleRenderUpdate);
@@ -42,7 +45,11 @@ async function handleConnection() {
         {
             header: "LBST",
             callback: handleLeaderboardStateUpdate,
-        }
+        },
+        {
+            header: "CHBR",
+            callback: handleChatBroadcast
+        },
     ]);
     setupInput();
 
@@ -259,4 +266,20 @@ function handleLeaderboardStateUpdate(data) {
         handleLeaderboardUpdate(data.slice(idx + 1, idx + 1 + length));
         idx += length;
     }
+}
+
+function handleChatBroadcast(data) {
+    const decoder = new TextDecoder("utf-8");
+
+    const nameLength = data[0];
+    const messageLength = data[1];
+
+    let idx = 2;
+
+    const name = decoder.decode(data.slice(idx, idx + nameLength));
+    idx += nameLength;
+
+    const message = decoder.decode(data.slice(idx, idx + messageLength));
+
+    chat.receiveMessage(message, name);
 }

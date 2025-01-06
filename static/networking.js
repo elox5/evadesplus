@@ -31,9 +31,11 @@ export async function connect(name) {
         transport.close();
     }
 
+    const encoder = new TextEncoder();
+
     const stream = await transport.createUnidirectionalStream();
     const writer = stream.getWriter();
-    await writer.write(new TextEncoder().encode(name));
+    await writer.write(encoder.encode(`NAME${name}`));
     await writer.close();
 
     initializePingMeter();
@@ -75,6 +77,16 @@ async function initializePingMeter() {
             }
         ]);
     }, metricSettings.pingFrequency);
+}
+
+export async function sendChatMessage(message, name) {
+    const stream = await transport.createUnidirectionalStream();
+    const writer = stream.getWriter();
+
+    const encoder = new TextEncoder();
+    await writer.write(encoder.encode(`CHAT${message}`));
+
+    await writer.close();
 }
 
 async function sendInput(writer, input) {

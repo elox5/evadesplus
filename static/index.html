@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/x-icon" href="https://fav.farm/🪴">
     <script type="module" src="metrics.js"></script>
+    <script type="module" src="chat.js"></script>
     <script type="module" src="leaderboard.js"></script>
     <script type="module" src="canvas.js"></script>
     <script type="module" src="rendering.js"></script>
@@ -26,8 +27,12 @@
 
         <div id="game-container" class="hidden">
             <h1 id="area-name"></h1>
-            <canvas id="area-canvas"></canvas>
-            <canvas id="main-canvas"></canvas>
+
+            <div id="canvas-container">
+                <canvas id="area-canvas"></canvas>
+                <canvas id="main-canvas"></canvas>
+            </div>
+
             <div id="minimap-container">
                 <canvas id="area-minimap" class="minimap"></canvas>
                 <canvas id="hero-minimap" class="minimap"></canvas>
@@ -49,6 +54,14 @@
                 <div class="metric">
                     <span>Render time:</span>
                     <b><span id="render-ms-meter">-</span> ms</b>
+                </div>
+            </div>
+
+            <div id="chat">
+                <div id="chat-list"></div>
+                <div id="chat-input-container">
+                    <input type="text" id="chat-input" placeholder="Enter message..." maxlength="100">
+                    <button id="chat-send-button">Send</button>
                 </div>
             </div>
 

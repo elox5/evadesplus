@@ -158,7 +158,7 @@ impl Game {
         let entity = area.spawn_player(name, connection);
         println!("Spawning hero (entity {})", entity.id());
 
-        let player = Player::new(entity, area_arc.clone());
+        let player = Player::new(entity, area_arc.clone(), name.to_owned());
         let player = Arc::new(ArcSwap::new(Arc::new(player)));
 
         self.players.push(player.clone());
@@ -230,7 +230,7 @@ impl Game {
             self.areas.retain(|a| !Arc::ptr_eq(a, &player.area));
         }
 
-        let new_player = Player::new(entity, target_area_arc.clone());
+        let new_player = Player::new(entity, target_area_arc.clone(), player.name.clone());
         player_arcswap.store(Arc::new(new_player));
 
         let (named, render, pos) = target_area
@@ -303,10 +303,11 @@ impl Game {
 pub struct Player {
     pub entity: Entity,
     pub area: Arc<Mutex<Area>>,
+    pub name: String,
 }
 
 impl Player {
-    pub fn new(entity: Entity, area: Arc<Mutex<Area>>) -> Self {
-        Self { entity, area }
+    pub fn new(entity: Entity, area: Arc<Mutex<Area>>, name: String) -> Self {
+        Self { entity, area, name }
     }
 }
