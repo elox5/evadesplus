@@ -17,7 +17,7 @@ impl RenderPacket {
         let mut nodes = self.nodes.clone();
         let mut datagrams = Vec::new();
 
-        while nodes.len() > 0 {
+        while !nodes.is_empty() {
             let mut datagram = Vec::new();
 
             let clear: u8 = 0;
@@ -29,9 +29,9 @@ impl RenderPacket {
             let mut datagram_nodes: Vec<RenderNode> = Vec::new();
             let mut node_total_size = 0;
 
-            while node_total_size < max_size && nodes.len() > 0 {
+            while node_total_size < max_size && !nodes.is_empty() {
                 let node = nodes.pop().unwrap();
-                let node_size = node.length() as u32;
+                let node_size = node.length();
 
                 // println!("Node size: {node_size} bytes. Remaining: {}", nodes.len());
 
@@ -84,30 +84,6 @@ pub struct RenderNode {
 }
 
 impl RenderNode {
-    pub fn new(
-        x: f32,
-        y: f32,
-        radius: f32,
-        color: Color,
-        has_border: bool,
-        is_hero: bool,
-        downed: bool,
-        entity: Entity,
-        name: Option<String>,
-    ) -> RenderNode {
-        RenderNode {
-            x,
-            y,
-            radius,
-            color,
-            has_border,
-            is_hero,
-            downed,
-            entity,
-            name,
-        }
-    }
-
     pub fn to_bytes(&self, own_entity: Entity) -> Vec<u8> {
         let mut bytes = Vec::new();
         bytes.extend_from_slice(&self.x.to_le_bytes());

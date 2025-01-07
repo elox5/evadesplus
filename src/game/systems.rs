@@ -35,15 +35,12 @@ pub fn system_bounds_check(area: &mut Area) {
     {
         let bounds = &area.bounds;
 
-        if (pos.0.x + size.0 / 2.0) > bounds.right() {
+        if (pos.0.x + size.0 / 2.0) > bounds.right()
+            || (pos.0.x - size.0 / 2.0) < bounds.left()
+            || (pos.0.y + size.0 / 2.0) > bounds.bottom()
+            || (pos.0.y - size.0 / 2.0) < bounds.top()
+        {
             dir.0.x *= -1.0;
-        } else if (pos.0.x - size.0 / 2.0) < bounds.left() {
-            dir.0.x *= -1.0;
-        }
-        if (pos.0.y + size.0 / 2.0) > bounds.bottom() {
-            dir.0.y *= -1.0;
-        } else if (pos.0.y - size.0 / 2.0) < bounds.top() {
-            dir.0.y *= -1.0;
         }
     }
 
@@ -254,17 +251,17 @@ pub fn system_render(area: &mut Area) {
             color.a = 127;
         }
 
-        let node = RenderNode::new(
-            pos.0.x,
-            pos.0.y,
-            size.0 / 2.0,
+        let node = RenderNode {
+            x: pos.0.x,
+            y: pos.0.y,
+            radius: size.0 / 2.0,
             color,
-            enemy.is_some(),
-            hero.is_some(),
-            downed.is_some(),
+            has_border: enemy.is_some(),
+            is_hero: hero.is_some(),
+            downed: downed.is_some(),
             entity,
             name,
-        );
+        };
         nodes.push(node);
     }
 }

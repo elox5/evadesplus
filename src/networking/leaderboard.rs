@@ -151,11 +151,11 @@ impl LeaderboardState {
         bytes.push(self.entries.len() as u8);
 
         for entry in &self.entries {
-            let entry_bytes = &&entry.to_bytes_no_header();
+            let entry_bytes = &entry.to_bytes_no_header();
             let length = entry_bytes.len();
 
             bytes.push(length as u8);
-            bytes.extend_from_slice(&entry_bytes);
+            bytes.extend_from_slice(entry_bytes);
         }
 
         bytes

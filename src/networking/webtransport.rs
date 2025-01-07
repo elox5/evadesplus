@@ -140,14 +140,14 @@ impl WebTransportServer {
 
     async fn handle_uni_stream(
         mut stream: RecvStream,
-        mut buffer: &mut Box<[u8]>,
+        buffer: &mut Box<[u8]>,
         connection: &Connection,
         game: &Arc<Mutex<Game>>,
         id: u64,
         player: &mut Option<Arc<ArcSwap<Player>>>,
         chat_tx: &broadcast::Sender<ChatRequest>,
     ) -> Result<()> {
-        let bytes_read = match stream.read(&mut buffer).await? {
+        let bytes_read = match stream.read(buffer).await? {
             Some(bytes_read) => bytes_read,
             None => return Ok(()),
         };
@@ -213,9 +213,9 @@ impl WebTransportServer {
     async fn handle_bi_stream(
         mut send_stream: SendStream,
         mut recv_stream: RecvStream,
-        mut buffer: &mut Box<[u8]>,
+        buffer: &mut Box<[u8]>,
     ) -> Result<()> {
-        let bytes_read = match recv_stream.read(&mut buffer).await? {
+        let bytes_read = match recv_stream.read(buffer).await? {
             Some(bytes_read) => bytes_read,
             None => return Ok(()),
         };
@@ -271,7 +271,7 @@ impl WebTransportServer {
             game.despawn_hero(player.load().entity).await;
         }
 
-        return Ok(connection_result);
+        Ok(connection_result)
     }
 
     async fn handle_leaderboard_update(

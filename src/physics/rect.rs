@@ -63,7 +63,7 @@ impl Rect {
         let corner_distance_sq =
             (distance_abs - Vec2::new(self.w / 2.0, self.h / 2.0)).magnitude_sq();
 
-        return corner_distance_sq <= radius * radius;
+        corner_distance_sq <= radius * radius
     }
 
     pub fn intersects(&self, other: &Rect) -> bool {

@@ -76,7 +76,7 @@ impl Area {
         };
 
         for group in &template.enemy_groups {
-            area.spawn_enemy_group(&group);
+            area.spawn_enemy_group(group);
         }
 
         area

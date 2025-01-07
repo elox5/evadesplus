@@ -81,7 +81,7 @@ impl Game {
 
         let area = Area::from_template(template, self.transfer_tx.clone());
         let area = Arc::new(Mutex::new(area));
-        let _ = Self::start_update_loop(area.clone());
+        Self::start_update_loop(area.clone());
         self.areas.push(area.clone());
 
         println!("Area {} opened", id);
@@ -154,7 +154,7 @@ impl Game {
 
         let area_arc = self
             .get_or_create_area(&start_area_id)
-            .expect(&format!("Start area '{start_area_id}' not found"));
+            .unwrap_or_else(|_| panic!("Start area '{start_area_id}' not found"));
         let mut area = area_arc.lock().await;
 
         let entity = area.spawn_player(name, connection);
@@ -241,7 +241,7 @@ impl Game {
             .query_one_mut::<(&Named, &RenderReceiver, &mut Position)>(entity)
             .unwrap();
 
-        pos.0 = target_pos.unwrap_or_else(|| target_area_spawn_pos);
+        pos.0 = target_pos.unwrap_or(target_area_spawn_pos);
 
         let add_entry = LeaderboardUpdatePacket::add(
             entity,
