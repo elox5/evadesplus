@@ -7,14 +7,22 @@ use wtransport::{tls::Sha256DigestFmt, Identity};
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    dotenv::dotenv().ok();
+    dotenvy::dotenv()?;
 
-    let env_local_ip = std::env::var("LOCAL_IP").expect(".env LOCAL_IP must be set");
-    let env_port = std::env::var("PORT").expect(".env PORT must be set");
-    let map_path = std::env::var("MAP_PATH").expect(".env MAP_PATH must be set");
-    let maps = std::env::var("MAPS").expect(".env MAPS must be set");
+    let local_ip_string = dotenvy::var("LOCAL_IP").expect(".env LOCAL_IP must be set");
+    let local_ip = local_ip_string.parse().expect("Invalid local ip");
+
+    let port = dotenvy::var("PORT")
+        .expect(".env PORT must be set")
+        .parse()
+        .expect("Invalid port");
+
+    let map_path = dotenvy::var("MAP_PATH").expect(".env MAP_PATH must be set");
+
+    let maps = dotenvy::var("MAPS").expect(".env MAPS must be set");
     let maps = maps.split(',').collect::<Vec<_>>();
-    let start_area_id = std::env::var("START_AREA_ID").expect(".env START_AREA_ID must be set");
+
+    let start_area_id = dotenvy::var("START_AREA_ID").expect(".env START_AREA_ID must be set");
 
     if maps.len() == 0 {
         panic!(".env MAPS must contain at least one map");
@@ -25,12 +33,9 @@ async fn main() -> Result<()> {
         .map(|m| parse_map(&format!("{}/{}.yaml", map_path, m)).unwrap())
         .collect::<Vec<_>>();
 
-    let local_ip = env_local_ip.parse().expect("Invalid local ip");
-    let port = env_port.parse().expect("Invalid port");
-
     let game = Game::new(maps, &start_area_id);
 
-    let identity = Identity::self_signed([env_local_ip])?;
+    let identity = Identity::self_signed([local_ip_string])?;
     let cert_digest = identity.certificate_chain().as_slice()[0].hash();
 
     let cert = identity.certificate_chain().as_slice()[0].clone();
