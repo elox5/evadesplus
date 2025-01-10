@@ -88,7 +88,7 @@ export function setupInput() {
         }
         else if (e.key === "ArrowDown" || e.code === "KeyS") {
             keyboardPressed.down = true;
-        } else if (e.key === "Enter" && !chat.focused()) {
+        } else if ((e.key === "Enter" || e.code === "Slash") && !chat.focused()) {
             chat.focus();
             return;
         } else {
