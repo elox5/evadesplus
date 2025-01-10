@@ -35,8 +35,7 @@ use wtransport::Connection;
 pub struct Game {
     maps: Vec<MapTemplate>,
 
-    areas: Vec<Arc<Mutex<Area>>>,
-    area_lookup: HashMap<String, Arc<Mutex<Area>>>,
+    areas: HashMap<String, Arc<Mutex<Area>>>,
 
     players: Vec<Arc<ArcSwap<Player>>>,
 
@@ -74,8 +73,7 @@ impl Game {
 
         let game = Game {
             maps: maps.into_iter().map(|m| m.to_template()).collect(),
-            areas: Vec::new(),
-            area_lookup: HashMap::new(),
+            areas: HashMap::new(),
             players: Vec::new(),
             start_area_id: start_area_id.to_owned(),
             transfer_tx: transfer_tx.clone(),
@@ -142,19 +140,18 @@ impl Game {
         );
         let area = Arc::new(Mutex::new(area));
         Self::start_update_loop(area.clone(), self.frame_duration);
-        self.areas.push(area.clone());
-        self.area_lookup.insert(id.to_owned(), area.clone());
+        self.areas.insert(id.to_owned(), area.clone());
 
         println!(
             "Area {} opened. Area lookup: {:?}",
             id,
-            self.area_lookup.keys().collect::<Vec<_>>()
+            self.areas.keys().collect::<Vec<_>>()
         );
         Ok(area)
     }
 
     pub fn get_or_create_area(&mut self, id: &str) -> Result<Arc<Mutex<Area>>> {
-        if let Some(area) = self.area_lookup.get(id) {
+        if let Some(area) = self.areas.get(id) {
             return Ok(area.clone());
         }
 
@@ -162,16 +159,12 @@ impl Game {
     }
 
     pub fn close_area(&mut self, id: &str) {
-        let area = self.area_lookup.remove(id);
-
-        if let Some(area) = area {
-            self.areas.retain(|a| !Arc::ptr_eq(a, &area));
-        }
+        self.areas.remove(id);
 
         println!(
             "Area {} closed. Area lookup: {:?}",
             id,
-            self.area_lookup.keys().collect::<Vec<_>>()
+            self.areas.keys().collect::<Vec<_>>()
         );
     }
 
