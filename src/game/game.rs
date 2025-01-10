@@ -32,14 +32,14 @@ pub struct Game {
 
     pub leaderboard_state: LeaderboardState,
 
-    transfer_tx: mpsc::Sender<(Entity, String, Vec2)>,
+    transfer_tx: mpsc::Sender<TransferRequest>,
     leaderboard_tx: broadcast::Sender<LeaderboardUpdatePacket>,
     pub leaderboard_rx: broadcast::Receiver<LeaderboardUpdatePacket>,
 }
 
 impl Game {
     pub fn new(maps: Vec<MapData>, start_area_id: &str) -> Arc<Mutex<Self>> {
-        let (transfer_tx, mut transfer_rx) = mpsc::channel::<(Entity, String, Vec2)>(8);
+        let (transfer_tx, mut transfer_rx) = mpsc::channel::<TransferRequest>(8);
         let (leaderboard_tx, leaderboard_rx) = broadcast::channel(8);
 
         let game = Game {
@@ -57,10 +57,10 @@ impl Game {
         let arc_clone = arc.clone();
 
         tokio::spawn(async move {
-            while let Some((entity, target_area, target_pos)) = transfer_rx.recv().await {
+            while let Some(req) = transfer_rx.recv().await {
                 let mut game = arc_clone.lock().await;
                 let _ = game
-                    .transfer_hero(entity, &target_area, Some(target_pos))
+                    .transfer_hero(req.entity, &req.target_area_id, req.target_pos)
                     .await;
             }
         });
@@ -200,10 +200,10 @@ impl Game {
     pub async fn transfer_hero(
         &mut self,
         entity: Entity,
-        target_area: &str,
+        target_area_id: &str,
         target_pos: Option<Vec2>,
     ) -> Result<()> {
-        let target_area_arc = self.get_or_create_area(target_area)?;
+        let target_area_arc = self.get_or_create_area(target_area_id)?;
 
         let player_arcswap = self
             .players
@@ -313,4 +313,12 @@ impl Player {
     pub fn new(entity: Entity, area: Arc<Mutex<Area>>, name: String) -> Self {
         Self { entity, area, name }
     }
+}
+
+#[derive(Clone, Debug)]
+pub struct TransferRequest {
+    pub entity: Entity,
+    pub current_area_id: String,
+    pub target_area_id: String,
+    pub target_pos: Option<Vec2>,
 }

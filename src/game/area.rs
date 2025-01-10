@@ -3,6 +3,7 @@ use super::{
         BounceOffBounds, Bounded, Color, Direction, Enemy, Hero, Named, Position, RenderReceiver,
         Size, Speed, Velocity,
     },
+    game::TransferRequest,
     templates::{AreaTemplate, EnemyGroup},
 };
 use crate::{
@@ -42,13 +43,13 @@ pub struct Area {
 
     pub loop_handle: Option<AbortHandle>,
 
-    pub transfer_tx: mpsc::Sender<(Entity, String, Vec2)>,
+    pub transfer_tx: mpsc::Sender<TransferRequest>,
 }
 
 impl Area {
     pub fn from_template(
         template: &AreaTemplate,
-        transfer_tx: mpsc::Sender<(Entity, String, Vec2)>,
+        transfer_tx: mpsc::Sender<TransferRequest>,
     ) -> Self {
         let mut area = Self {
             order: template.order,
