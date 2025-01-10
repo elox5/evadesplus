@@ -11,14 +11,24 @@ async fn main() -> Result<()> {
 
     let env_local_ip = std::env::var("LOCAL_IP").expect(".env LOCAL_IP must be set");
     let env_port = std::env::var("PORT").expect(".env PORT must be set");
+    let map_path = std::env::var("MAP_PATH").expect(".env MAP_PATH must be set");
+    let maps = std::env::var("MAPS").expect(".env MAPS must be set");
+    let maps = maps.split(',').collect::<Vec<_>>();
+    let start_area_id = std::env::var("START_AREA_ID").expect(".env START_AREA_ID must be set");
+
+    if maps.len() == 0 {
+        panic!(".env MAPS must contain at least one map");
+    }
+
+    let maps = maps
+        .iter()
+        .map(|m| parse_map(&format!("{}/{}.yaml", map_path, m)).unwrap())
+        .collect::<Vec<_>>();
 
     let local_ip = env_local_ip.parse().expect("Invalid local ip");
     let port = env_port.parse().expect("Invalid port");
 
-    let tt = parse_map("maps/tt.yaml").unwrap();
-    let lm = parse_map("maps/lm.yaml").unwrap();
-
-    let game = Game::new(vec![tt, lm], "tt:0");
+    let game = Game::new(maps, &start_area_id);
 
     let identity = Identity::self_signed([env_local_ip])?;
     let cert_digest = identity.certificate_chain().as_slice()[0].hash();
