@@ -10,10 +10,21 @@ use tokio::sync::Mutex;
 
 static COMMANDS: LazyLock<Vec<Command>> = LazyLock::new(|| {
     vec![
-        Command::new("help", "Displays this help message.", Box::new(help)),
-        Command::new("reset", "Resets the player.", Box::new(reset)),
+        Command::new(
+            "help",
+            Some(vec!["h"]),
+            "Displays this help message.",
+            Box::new(help),
+        ),
+        Command::new(
+            "reset",
+            Some(vec!["r"]),
+            "Resets the player.",
+            Box::new(reset),
+        ),
         Command::new(
             "repeat",
+            None,
             "Repeats the input to the command.",
             Box::new(repeat),
         ),
@@ -22,17 +33,40 @@ static COMMANDS: LazyLock<Vec<Command>> = LazyLock::new(|| {
 
 struct Command {
     name: String,
+    aliases: Option<Vec<String>>,
     help_description: String,
     function: Box<dyn AsyncFn>,
 }
 
 impl Command {
-    pub fn new(name: &str, help_description: &str, function: Box<dyn AsyncFn>) -> Self {
+    pub fn new(
+        name: &str,
+        aliases: Option<Vec<&str>>,
+        help_description: &str,
+        function: Box<dyn AsyncFn>,
+    ) -> Self {
         Self {
             name: name.to_owned(),
+            aliases: aliases.map(|a| a.iter().map(|s| (*s).to_owned()).collect()),
             help_description: help_description.to_owned(),
             function,
         }
+    }
+
+    pub fn matches(&self, command_name: &str) -> bool {
+        if self.name == command_name {
+            return true;
+        }
+
+        if let Some(aliases) = &self.aliases {
+            for alias in aliases {
+                if alias == command_name {
+                    return true;
+                }
+            }
+        }
+
+        false
     }
 
     pub async fn execute(&self, req: CommandRequest) -> Option<ChatRequest> {
@@ -42,7 +76,7 @@ impl Command {
 
 pub async fn handle_command(command_name: &str, req: CommandRequest) -> Option<ChatRequest> {
     for command in COMMANDS.iter() {
-        if command.name == command_name {
+        if command.matches(command_name) {
             return command.execute(req).await;
         }
     }
@@ -69,13 +103,20 @@ impl CommandRequest {
 }
 
 async fn help(_req: CommandRequest) -> Option<ChatRequest> {
-    let mut help_message = String::new();
+    let mut messages = Vec::new();
+
     for command in COMMANDS.iter() {
-        help_message.push_str(&format!(
-            "<b>{}</b> - {}\n",
-            command.name, command.help_description
-        ));
+        let mut msg = format!("<b>{}</b> - {}", command.name, command.help_description);
+
+        if let Some(aliases) = &command.aliases {
+            msg.push_str("\nAliases: ");
+            msg.push_str(&aliases.join(", "));
+        }
+
+        messages.push(msg);
     }
+
+    let help_message = messages.join("\n\n");
 
     Some(ChatRequest::new(
         help_message,
