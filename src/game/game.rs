@@ -414,6 +414,17 @@ impl Game {
             .find(|p| p.entity == entity)
     }
 
+    pub fn get_player_by_id(&self, id: u64) -> Option<Guard<Arc<Player>>> {
+        self.players.iter().map(|p| p.load()).find(|p| p.id == id)
+    }
+
+    pub fn get_player_by_name(&self, name: &str) -> Option<Guard<Arc<Player>>> {
+        self.players
+            .iter()
+            .map(|p| p.load())
+            .find(|p| p.name == name)
+    }
+
     fn split_id(id: &str) -> Option<(&str, &str)> {
         let mut split = id.split(':');
         let map_id = split.next()?;

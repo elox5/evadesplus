@@ -28,6 +28,12 @@ static COMMANDS: LazyLock<Vec<Command>> = LazyLock::new(|| {
             "Repeats the input to the command.",
             Box::new(repeat),
         ),
+        Command::new(
+            "whisper",
+            Some(vec!["w", "pm"]),
+            "Sends a private message to another player.",
+            Box::new(whisper),
+        ),
     ]
 });
 
@@ -107,9 +113,14 @@ async fn help(req: CommandRequest) -> Option<ChatRequest> {
     let mut messages = Vec::new();
 
     for command in COMMANDS.iter() {
-        let mut msg = format!("<b>{}</b> - {}", command.name, command.help_description);
+        let mut msg = format!("<b>/{}</b> - {}", command.name, command.help_description);
 
         if let Some(aliases) = &command.aliases {
+            let aliases = aliases
+                .iter()
+                .map(|a| format!("/{}", a))
+                .collect::<Vec<_>>();
+
             msg.push_str("\nAliases: ");
             msg.push_str(&aliases.join(", "));
         }
@@ -150,6 +161,42 @@ async fn repeat(req: CommandRequest) -> Option<ChatRequest> {
         ChatMessageType::CommandResponse,
         Some(vec![req.player.load().id]),
     ))
+}
+
+async fn whisper(req: CommandRequest) -> Option<ChatRequest> {
+    let recipient_name = req.args[0].clone();
+
+    let game = req.game.lock().await;
+    let recipient = game.get_player_by_name(&recipient_name);
+
+    let player = req.player.load();
+
+    if let Some(recipient) = recipient {
+        let message = req.args[1..].join(" ");
+
+        if message.is_empty() {
+            return Some(ChatRequest::new(
+                "Whisper message cannot be empty.".to_owned(),
+                String::new(),
+                ChatMessageType::CommandResponse,
+                Some(vec![player.id]),
+            ));
+        }
+
+        return Some(ChatRequest::new(
+            message,
+            format!("{} -> {}", player.name, recipient_name),
+            ChatMessageType::Whisper,
+            Some(vec![recipient.id, player.id]),
+        ));
+    }
+
+    return Some(ChatRequest::new(
+        format!("Player '{recipient_name}' not found."),
+        String::new(),
+        ChatMessageType::CommandResponse,
+        Some(vec![player.id]),
+    ));
 }
 
 // unholy magic
