@@ -288,12 +288,12 @@ pub async fn system_portals(area: &mut Area) {
     {
         for portal in &area.portals {
             if portal.rect.contains_circle(pos.0, size.0 / 2.0) {
-                let req = TransferRequest {
+                let req = TransferRequest::new(
                     entity,
-                    current_area_id: area.full_id.clone(),
-                    target_area_id: portal.target_id.clone(),
-                    target_pos: Some(portal.target_pos),
-                };
+                    area.full_id.clone(),
+                    portal.target_id.clone(),
+                    Some(portal.target_pos),
+                );
 
                 let _ = area.transfer_tx.send(req).await;
             }

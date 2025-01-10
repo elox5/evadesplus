@@ -12,7 +12,12 @@ use crate::{
 use anyhow::Result;
 use arc_swap::{ArcSwap, Guard};
 use hecs::Entity;
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::{
+    collections::HashMap,
+    hash::{DefaultHasher, Hash, Hasher},
+    sync::Arc,
+    time::Duration,
+};
 use tokio::{
     sync::{
         broadcast,
@@ -36,6 +41,8 @@ pub struct Game {
     pub leaderboard_state: LeaderboardState,
 
     transfer_tx: mpsc::Sender<TransferRequest>,
+    transfer_queue: Vec<u64>,
+
     leaderboard_tx: broadcast::Sender<LeaderboardUpdatePacket>,
     pub leaderboard_rx: broadcast::Receiver<LeaderboardUpdatePacket>,
 }
@@ -53,6 +60,7 @@ impl Game {
             start_area_id: start_area_id.to_owned(),
             leaderboard_state: LeaderboardState::new(),
             transfer_tx: transfer_tx.clone(),
+            transfer_queue: Vec::new(),
             leaderboard_tx,
             leaderboard_rx,
         };
@@ -63,9 +71,12 @@ impl Game {
         tokio::spawn(async move {
             while let Some(req) = transfer_rx.recv().await {
                 let mut game = arc_clone.lock().await;
-                let _ = game
-                    .transfer_hero(req.entity, &req.target_area_id, req.target_pos)
-                    .await;
+
+                if !game.transfer_queue.contains(&req.hash) {
+                    game.transfer_queue.push(req.hash);
+
+                    let _ = game.transfer_hero(req).await;
+                }
             }
         });
 
@@ -215,18 +226,13 @@ impl Game {
         }
     }
 
-    pub async fn transfer_hero(
-        &mut self,
-        entity: Entity,
-        target_area_id: &str,
-        target_pos: Option<Vec2>,
-    ) -> Result<()> {
-        let target_area_arc = self.get_or_create_area(target_area_id)?;
+    pub async fn transfer_hero(&mut self, req: TransferRequest) -> Result<()> {
+        let target_area_arc = self.get_or_create_area(&req.target_area_id)?;
 
         let player_arcswap = self
             .players
             .iter_mut()
-            .find(|p| p.load().entity == entity)
+            .find(|p| p.load().entity == req.entity)
             .unwrap();
         let player = player_arcswap.load();
 
@@ -239,7 +245,7 @@ impl Game {
         let target_area_name = target_area.area_name.clone();
         let target_area_spawn_pos = target_area.spawn_pos;
 
-        let remove_entry = LeaderboardUpdatePacket::remove(entity, area.full_id.clone());
+        let remove_entry = LeaderboardUpdatePacket::remove(req.entity, area.full_id.clone());
 
         let (entity, should_close) = area.despawn_player(player.entity);
         let entity = entity?;
@@ -259,7 +265,7 @@ impl Game {
             .query_one_mut::<(&Named, &RenderReceiver, &mut Position)>(entity)
             .unwrap();
 
-        pos.0 = target_pos.unwrap_or(target_area_spawn_pos);
+        pos.0 = req.target_pos.unwrap_or(target_area_spawn_pos);
 
         let add_entry = LeaderboardUpdatePacket::add(
             entity,
@@ -272,6 +278,13 @@ impl Game {
 
         self.handle_leaderboard_entry(remove_entry);
         self.handle_leaderboard_entry(add_entry);
+
+        self.transfer_queue.swap_remove(
+            self.transfer_queue
+                .iter()
+                .position(|&hash| hash == req.hash)
+                .unwrap(),
+        );
 
         let mut response_stream = render.connection.open_uni().await?.await?;
         response_stream
@@ -339,4 +352,27 @@ pub struct TransferRequest {
     pub current_area_id: String,
     pub target_area_id: String,
     pub target_pos: Option<Vec2>,
+    hash: u64,
+}
+
+impl TransferRequest {
+    pub fn new(
+        entity: Entity,
+        current_area_id: String,
+        target_area_id: String,
+        target_pos: Option<Vec2>,
+    ) -> Self {
+        let mut hasher = DefaultHasher::new();
+        entity.id().hash(&mut hasher);
+        current_area_id.hash(&mut hasher);
+        target_area_id.hash(&mut hasher);
+
+        Self {
+            entity,
+            current_area_id,
+            target_area_id,
+            target_pos,
+            hash: hasher.finish(),
+        }
+    }
 }
