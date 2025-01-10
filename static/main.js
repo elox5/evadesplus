@@ -271,15 +271,16 @@ function handleLeaderboardStateUpdate(data) {
 function handleChatBroadcast(data) {
     const decoder = new TextDecoder("utf-8");
 
-    const nameLength = data[0];
-    const messageLength = data[1];
+    const messageType = data[0];
+    const nameLength = data[1];
+    const messageLength = data[2];
 
-    let idx = 2;
+    let idx = 3;
 
     const name = decoder.decode(data.slice(idx, idx + nameLength));
     idx += nameLength;
 
     const message = decoder.decode(data.slice(idx, idx + messageLength));
 
-    chat.receiveMessage(message, name);
+    chat.receiveMessage(message, name, messageType);
 }

@@ -38,13 +38,29 @@ class Chat {
         this.input.value = "";
     }
 
-    receiveMessage(message, name) {
+    receiveMessage(message, name, messageType) {
         const atBottom = Math.abs(this.list.scrollHeight - this.list.clientHeight - this.list.scrollTop) < 1
 
         const entry = document.createElement("div");
         entry.classList.add("chat-entry");
 
-        entry.innerHTML = `<b>${name}</b>: ${message}`;
+        const showUsername = messageType === 0 || messageType === 1;
+
+        message = message.replace(/\n/g, "<br>");
+        console.log(message);
+
+
+        if (showUsername) {
+            entry.innerHTML = `<b>${name}</b>: ${message}`;
+        } else {
+            entry.innerHTML = message;
+        }
+
+        if (messageType === 0) entry.classList.add("normal");
+        if (messageType === 1) entry.classList.add("whisper");
+        if (messageType === 2) entry.classList.add("command-response");
+        if (messageType === 3) entry.classList.add("server-announcement");
+        if (messageType === 4) entry.classList.add("server-error");
 
         this.list.appendChild(entry);
 

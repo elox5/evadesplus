@@ -128,7 +128,7 @@ main {
     top: 5px;
     left: 5px;
 
-    width: 300px;
+    width: 350px;
     height: 500px;
 
     display: flex;
@@ -168,9 +168,25 @@ main {
 
     overflow: hidden;
     text-wrap: wrap;
-    word-break: break-all;
+    word-break: break-word;
 
     flex-shrink: 0;
+}
+
+.chat-entry.whisper {
+    background-color: #7733ff77;
+}
+
+.chat-entry.command-response {
+    background-color: #ff773377;
+}
+
+.chat-entry.server-announcement {
+    background-color: #ffff0077;
+}
+
+.chat-entry.server-error {
+    background-color: #ff000077;
 }
 
 .chat-entry:nth-of-type(1) {

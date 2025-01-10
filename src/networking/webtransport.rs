@@ -1,4 +1,8 @@
-use super::{chat::ChatRequest, leaderboard::LeaderboardUpdatePacket};
+use super::{
+    chat::{ChatMessageType, ChatRequest},
+    commands::{handle_command, CommandRequest},
+    leaderboard::LeaderboardUpdatePacket,
+};
 use crate::{
     game::game::{Game, Player},
     physics::vec2::Vec2,
@@ -121,7 +125,7 @@ impl WebTransportServer {
                 }
                 dgram = connection.receive_datagram() => {
                     let dgram = dgram?;
-                    Self::handle_datagram(dgram, &game, &mut player).await;
+                    Self::handle_datagram(dgram, &game, &player).await;
                 }
                 connection_result = connection.closed() => {
                     return Self::handle_connection_closed(connection_result, &game, &player, id).await;
@@ -158,42 +162,57 @@ impl WebTransportServer {
 
         match header {
             b"NAME" => {
-                let name = std::str::from_utf8(data);
+                let name = std::str::from_utf8(data)?;
 
-                if let Ok(name) = name {
-                    println!("Accepted name '{name}' from client {id}. Spawning hero...");
+                println!("Accepted name '{name}' from client {id}. Spawning hero...");
 
-                    let mut game = game.lock().await;
-                    let leaderboard_state = game.leaderboard_state.clone();
+                let mut game = game.lock().await;
+                let leaderboard_state = game.leaderboard_state.clone();
 
-                    let player_arcswap = game.spawn_hero(name, connection.clone()).await;
-                    *player = Some(player_arcswap.clone());
+                let player_arcswap = game.spawn_hero(name, connection.clone()).await;
+                *player = Some(player_arcswap.clone());
 
-                    let area = player_arcswap.load().area.clone();
+                let area = player_arcswap.load().area.clone();
 
-                    let definition = area.lock().await.definition_packet();
+                let definition = area.lock().await.definition_packet();
 
-                    if !leaderboard_state.is_empty() {
-                        let mut state_stream = connection.open_uni().await?.await?;
-                        state_stream
-                            .write_all(&leaderboard_state.to_bytes())
-                            .await?;
-                        state_stream.finish().await?;
-                    }
-
-                    let mut def_stream = connection.open_uni().await?.await?;
-                    def_stream.write_all(&definition).await?;
-                    def_stream.finish().await?;
+                if !leaderboard_state.is_empty() {
+                    let mut state_stream = connection.open_uni().await?.await?;
+                    state_stream
+                        .write_all(&leaderboard_state.to_bytes())
+                        .await?;
+                    state_stream.finish().await?;
                 }
+
+                let mut def_stream = connection.open_uni().await?.await?;
+                def_stream.write_all(&definition).await?;
+                def_stream.finish().await?;
             }
             b"CHAT" => {
                 if let Some(player) = &player {
-                    let text = std::str::from_utf8(data);
+                    let text = std::str::from_utf8(data)?;
 
-                    if let Ok(text) = text {
+                    if text.starts_with("/") {
+                        let text = &text[1..];
+                        let splits = text.split(" ").collect::<Vec<&str>>();
+                        let command = splits[0];
+                        let args = splits[1..].iter().map(|s| s.to_string()).collect();
+
+                        let req = CommandRequest::new(args, game.clone(), player.clone());
+
+                        let response = handle_command(command, req).await;
+
+                        if let Some(response) = response {
+                            let _ = chat_tx.send(response);
+                        }
+                    } else {
                         let name = player.load().name.clone();
 
-                        let request = ChatRequest::new(text.to_owned(), name.clone());
+                        let request = ChatRequest::new(
+                            text.to_owned(),
+                            name.clone(),
+                            ChatMessageType::Normal,
+                        );
 
                         let _ = chat_tx.send(request);
                     }
@@ -221,12 +240,10 @@ impl WebTransportServer {
         };
 
         let data = &buffer[..bytes_read];
-        let text = std::str::from_utf8(data);
+        let text = std::str::from_utf8(data)?;
 
-        if let Ok(text) = text {
-            if text == "ping" {
-                send_stream.write_all(b"pong").await?;
-            }
+        if text == "ping" {
+            send_stream.write_all(b"pong").await?;
         }
 
         send_stream.finish().await?;
@@ -237,9 +254,9 @@ impl WebTransportServer {
     async fn handle_datagram(
         datagram: Datagram,
         game: &Arc<Mutex<Game>>,
-        player: &mut Option<Arc<ArcSwap<Player>>>,
+        player: &Option<Arc<ArcSwap<Player>>>,
     ) {
-        if let Some(ref player) = player {
+        if let Some(player) = player {
             let payload = datagram.payload();
 
             let x = f32::from_le_bytes([payload[0], payload[1], payload[2], payload[3]]);
@@ -262,13 +279,8 @@ impl WebTransportServer {
         println!("Connection from client {id} closed");
 
         if let Some(player) = player {
-            println!(
-                "Despawning player {:?} from client {id}",
-                player.load().entity
-            );
             let mut game = game.lock().await;
-            println!("Game lock acquired");
-            game.despawn_hero(player.load().entity).await;
+            game.despawn_hero(player).await;
         }
 
         Ok(connection_result)

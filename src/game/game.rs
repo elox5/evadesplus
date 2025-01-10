@@ -1,6 +1,6 @@
 use super::{
     area::Area,
-    components::{Named, Position, RenderReceiver},
+    components::{Downed, Position, RenderReceiver},
     data::MapData,
     systems::*,
     templates::MapTemplate,
@@ -19,6 +19,7 @@ use std::{
     time::Duration,
 };
 use tokio::{
+    join,
     sync::{
         broadcast,
         mpsc::{self},
@@ -38,10 +39,10 @@ pub struct Game {
 
     start_area_id: String,
 
-    pub leaderboard_state: LeaderboardState,
-
     transfer_tx: mpsc::Sender<TransferRequest>,
     transfer_queue: Vec<u64>,
+
+    pub leaderboard_state: LeaderboardState,
 
     leaderboard_tx: broadcast::Sender<LeaderboardUpdatePacket>,
     pub leaderboard_rx: broadcast::Receiver<LeaderboardUpdatePacket>,
@@ -58,9 +59,9 @@ impl Game {
             area_lookup: HashMap::new(),
             players: Vec::new(),
             start_area_id: start_area_id.to_owned(),
-            leaderboard_state: LeaderboardState::new(),
             transfer_tx: transfer_tx.clone(),
             transfer_queue: Vec::new(),
+            leaderboard_state: LeaderboardState::new(),
             leaderboard_tx,
             leaderboard_rx,
         };
@@ -72,11 +73,7 @@ impl Game {
             while let Some(req) = transfer_rx.recv().await {
                 let mut game = arc_clone.lock().await;
 
-                if !game.transfer_queue.contains(&req.hash) {
-                    game.transfer_queue.push(req.hash);
-
-                    let _ = game.transfer_hero(req).await;
-                }
+                let _ = game.transfer_hero(req).await;
             }
         });
 
@@ -207,17 +204,17 @@ impl Game {
         player
     }
 
-    pub async fn despawn_hero(&mut self, entity: Entity) {
-        if let Some(player_index) = self.players.iter().position(|p| p.load().entity == entity) {
-            println!("Despawning hero (entity {})", entity.id());
+    pub async fn despawn_hero(&mut self, player: &Arc<ArcSwap<Player>>) {
+        if let Some(player_index) = self.players.iter().position(|p| Arc::ptr_eq(p, player)) {
+            println!("Despawning hero {}", player.load().name);
 
             let player = self.players.swap_remove(player_index);
             let player = player.load();
 
             let mut area = player.area.lock().await;
-            let (_, should_close) = area.despawn_player(entity);
+            let (_, should_close) = area.despawn_player(player.entity);
 
-            let remove_entry = LeaderboardUpdatePacket::remove(entity, area.full_id.clone());
+            let remove_entry = LeaderboardUpdatePacket::remove(player.entity, area.full_id.clone());
             self.handle_leaderboard_entry(remove_entry);
 
             if should_close {
@@ -226,7 +223,35 @@ impl Game {
         }
     }
 
+    pub async fn reset_hero(&mut self, player: &Arc<ArcSwap<Player>>) -> Result<()> {
+        let start_area_id = self.start_area_id.clone();
+
+        let req = TransferRequest::new(
+            player.load().entity,
+            player.load().area.lock().await.full_id.clone(),
+            start_area_id,
+            None,
+        );
+
+        self.transfer_hero(req).await?;
+
+        let player = player.load();
+        let mut area = player.area.lock().await;
+
+        let _ = area.world.remove_one::<Downed>(player.entity);
+
+        Ok(())
+    }
+
     pub async fn transfer_hero(&mut self, req: TransferRequest) -> Result<()> {
+        if !self.transfer_queue.contains(&req.hash) {
+            self.transfer_queue.push(req.hash);
+        }
+
+        if req.target_area_id == req.current_area_id {
+            return self.move_hero_across_area(req).await;
+        }
+
         let target_area_arc = self.get_or_create_area(&req.target_area_id)?;
 
         let player_arcswap = self
@@ -236,20 +261,24 @@ impl Game {
             .unwrap();
         let player = player_arcswap.load();
 
-        let mut area = player.area.lock().await;
-        let mut target_area = target_area_arc.lock().await;
-
-        let target_area_order = target_area.order;
-        let target_area_full_id = target_area.full_id.clone();
-        let target_map_name = target_area.map_name.clone();
-        let target_area_name = target_area.area_name.clone();
-        let target_area_spawn_pos = target_area.spawn_pos;
+        let (mut area, mut target_area) = join!(player.area.lock(), target_area_arc.lock());
 
         let remove_entry = LeaderboardUpdatePacket::remove(req.entity, area.full_id.clone());
 
-        let (entity, should_close) = area.despawn_player(player.entity);
-        let entity = entity?;
+        let (taken_entity, should_close) = area.despawn_player(req.entity);
+        let entity = taken_entity?;
         let entity = target_area.world.spawn(entity);
+
+        let add_entry = LeaderboardUpdatePacket::add(
+            entity,
+            target_area.full_id.clone(),
+            player.name.clone(),
+            target_area.map_name.clone(),
+            target_area.area_name.clone(),
+            target_area.order,
+        );
+
+        let target_pos = req.target_pos.unwrap_or(target_area.spawn_pos);
 
         let new_player = Player::new(entity, target_area_arc.clone(), player.name.clone());
         player_arcswap.store(Arc::new(new_player));
@@ -260,24 +289,15 @@ impl Game {
 
         drop(area);
 
-        let (named, render, pos) = target_area
+        self.handle_leaderboard_entry(add_entry);
+        self.handle_leaderboard_entry(remove_entry);
+
+        let (render, pos) = target_area
             .world
-            .query_one_mut::<(&Named, &RenderReceiver, &mut Position)>(entity)
+            .query_one_mut::<(&RenderReceiver, &mut Position)>(entity)
             .unwrap();
 
-        pos.0 = req.target_pos.unwrap_or(target_area_spawn_pos);
-
-        let add_entry = LeaderboardUpdatePacket::add(
-            entity,
-            target_area_full_id,
-            named.0.clone(),
-            target_map_name,
-            target_area_name,
-            target_area_order,
-        );
-
-        self.handle_leaderboard_entry(remove_entry);
-        self.handle_leaderboard_entry(add_entry);
+        pos.0 = target_pos;
 
         self.transfer_queue.swap_remove(
             self.transfer_queue
@@ -291,6 +311,22 @@ impl Game {
             .write_all(&target_area.definition_packet())
             .await?;
         response_stream.finish().await?;
+
+        println!("Transfer finished");
+
+        Ok(())
+    }
+
+    pub async fn move_hero_across_area(&mut self, req: TransferRequest) -> Result<()> {
+        let area = self.get_or_create_area(&req.current_area_id)?;
+
+        let mut area = area.lock().await;
+
+        let area_spawn_pos = area.spawn_pos;
+
+        let pos = area.world.query_one_mut::<&mut Position>(req.entity)?;
+
+        pos.0 = req.target_pos.unwrap_or_else(|| area_spawn_pos);
 
         Ok(())
     }
