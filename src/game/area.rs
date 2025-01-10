@@ -86,7 +86,6 @@ impl Area {
     fn close(&mut self) {
         if let Some(handle) = self.loop_handle.take() {
             handle.abort();
-            println!("Area {} closed", self.full_id);
         }
     }
 

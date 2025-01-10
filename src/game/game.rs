@@ -12,7 +12,7 @@ use crate::{
 use anyhow::Result;
 use arc_swap::{ArcSwap, Guard};
 use hecs::Entity;
-use std::{sync::Arc, time::Duration};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 use tokio::{
     sync::{
         broadcast,
@@ -25,7 +25,10 @@ use wtransport::Connection;
 
 pub struct Game {
     maps: Vec<MapTemplate>,
+
     areas: Vec<Arc<Mutex<Area>>>,
+    area_lookup: HashMap<String, Arc<Mutex<Area>>>,
+
     players: Vec<Arc<ArcSwap<Player>>>,
 
     start_area_id: String,
@@ -45,6 +48,7 @@ impl Game {
         let game = Game {
             maps: maps.into_iter().map(|m| m.to_template()).collect(),
             areas: Vec::new(),
+            area_lookup: HashMap::new(),
             players: Vec::new(),
             start_area_id: start_area_id.to_owned(),
             leaderboard_state: LeaderboardState::new(),
@@ -73,34 +77,48 @@ impl Game {
 
         let map = self
             .try_get_map(map_id)
-            .ok_or(anyhow::anyhow!("Map not found"))?;
+            .ok_or(anyhow::anyhow!("Map '{}' not found", map_id))?;
 
-        let template = map
-            .get_area(area_id)
-            .ok_or(anyhow::anyhow!("Area not found"))?;
+        let template = map.get_area(area_id).ok_or(anyhow::anyhow!(
+            "Area '{}' not found in map '{}'",
+            area_id,
+            map_id
+        ))?;
 
         let area = Area::from_template(template, self.transfer_tx.clone());
         let area = Arc::new(Mutex::new(area));
         Self::start_update_loop(area.clone());
         self.areas.push(area.clone());
+        self.area_lookup.insert(id.to_owned(), area.clone());
 
-        println!("Area {} opened", id);
+        println!(
+            "Area {} opened. Area lookup: {:?}",
+            id,
+            self.area_lookup.keys().collect::<Vec<_>>()
+        );
         Ok(area)
     }
 
-    fn try_get_area(&self, id: &str) -> Option<Arc<Mutex<Area>>> {
-        self.areas
-            .iter()
-            .find(|a| a.try_lock().map(|a| a.full_id == id).unwrap_or(false))
-            .cloned()
-    }
-
     pub fn get_or_create_area(&mut self, id: &str) -> Result<Arc<Mutex<Area>>> {
-        if let Some(area) = self.try_get_area(id) {
-            return Ok(area);
+        if let Some(area) = self.area_lookup.get(id) {
+            return Ok(area.clone());
         }
 
         self.try_create_area(id)
+    }
+
+    pub fn close_area(&mut self, id: &str) {
+        let area = self.area_lookup.remove(id);
+
+        if let Some(area) = area {
+            self.areas.retain(|a| !Arc::ptr_eq(a, &area));
+        }
+
+        println!(
+            "Area {} closed. Area lookup: {:?}",
+            id,
+            self.area_lookup.keys().collect::<Vec<_>>()
+        );
     }
 
     pub fn get_start_area(&mut self) -> Result<Arc<Mutex<Area>>> {
@@ -192,7 +210,7 @@ impl Game {
             self.handle_leaderboard_entry(remove_entry);
 
             if should_close {
-                self.areas.retain(|a| !Arc::ptr_eq(a, &player.area));
+                self.close_area(&area.full_id);
             }
         }
     }
@@ -227,14 +245,14 @@ impl Game {
         let entity = entity?;
         let entity = target_area.world.spawn(entity);
 
-        drop(area);
-
-        if should_close {
-            self.areas.retain(|a| !Arc::ptr_eq(a, &player.area));
-        }
-
         let new_player = Player::new(entity, target_area_arc.clone(), player.name.clone());
         player_arcswap.store(Arc::new(new_player));
+
+        if should_close {
+            self.close_area(&area.full_id);
+        }
+
+        drop(area);
 
         let (named, render, pos) = target_area
             .world
