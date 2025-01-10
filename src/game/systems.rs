@@ -3,6 +3,7 @@ use super::{
     components::{
         BounceOffBounds, Bounded, Color, Downed, Enemy, Hero, Named, RenderReceiver, Size,
     },
+    game::TransferRequest,
 };
 use crate::{
     game::components::{Direction, Position, Speed, Velocity},
@@ -35,12 +36,12 @@ pub fn system_bounds_check(area: &mut Area) {
     {
         let bounds = &area.bounds;
 
-        if (pos.0.x + size.0 / 2.0) > bounds.right()
-            || (pos.0.x - size.0 / 2.0) < bounds.left()
-            || (pos.0.y + size.0 / 2.0) > bounds.bottom()
-            || (pos.0.y - size.0 / 2.0) < bounds.top()
-        {
+        if (pos.0.x + size.0 / 2.0) > bounds.right() || (pos.0.x - size.0 / 2.0) < bounds.left() {
             dir.0.x *= -1.0;
+        }
+
+        if (pos.0.y + size.0 / 2.0) > bounds.bottom() || (pos.0.y - size.0 / 2.0) < bounds.top() {
+            dir.0.y *= -1.0;
         }
     }
 
@@ -287,10 +288,14 @@ pub async fn system_portals(area: &mut Area) {
     {
         for portal in &area.portals {
             if portal.rect.contains_circle(pos.0, size.0 / 2.0) {
-                let _ = area
-                    .transfer_tx
-                    .send((entity, portal.target_id.clone(), portal.target_pos))
-                    .await;
+                let req = TransferRequest {
+                    entity,
+                    current_area_id: area.full_id.clone(),
+                    target_area_id: portal.target_id.clone(),
+                    target_pos: Some(portal.target_pos),
+                };
+
+                let _ = area.transfer_tx.send(req).await;
             }
         }
     }
