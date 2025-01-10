@@ -239,3 +239,7 @@ main {
     justify-content: space-between;
     align-items: center;
 }
+
+.leaderboard-entry.downed>.leaderboard-entry-name {
+    color: red;
+}

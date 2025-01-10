@@ -7,7 +7,10 @@ use super::{
 };
 use crate::{
     game::components::{Direction, Position, Speed, Velocity},
-    networking::rendering::{RenderNode, RenderPacket},
+    networking::{
+        leaderboard::LeaderboardUpdatePacket,
+        rendering::{RenderNode, RenderPacket},
+    },
 };
 use hecs::{With, Without};
 
@@ -177,8 +180,10 @@ pub fn system_safe_zone_collision(area: &mut Area) {
 pub fn system_enemy_collision(area: &mut Area) {
     let mut to_down = Vec::new();
 
-    for (entity, (hero_pos, hero_size)) in
-        area.world.query::<With<(&Position, &Size), &Hero>>().iter()
+    for (entity, (hero_pos, hero_size)) in area
+        .world
+        .query::<Without<With<(&Position, &Size), &Hero>, &Downed>>()
+        .iter()
     {
         let hero_pos = hero_pos.0;
         let hero_size = hero_size.0;
@@ -202,6 +207,14 @@ pub fn system_enemy_collision(area: &mut Area) {
 
     for entity in to_down {
         let _ = area.world.insert_one(entity, Downed);
+
+        let _ = area
+            .leaderboard_tx
+            .send(LeaderboardUpdatePacket::set_downed(
+                entity,
+                area.full_id.clone(),
+                true,
+            ));
     }
 }
 
@@ -228,7 +241,17 @@ pub fn system_hero_collision(area: &mut Area) {
     }
 
     for entity in to_revive {
-        let _ = area.world.remove_one::<Downed>(entity);
+        let result = area.world.remove_one::<Downed>(entity);
+
+        if result.is_ok() {
+            let _ = area
+                .leaderboard_tx
+                .send(LeaderboardUpdatePacket::set_downed(
+                    entity,
+                    area.full_id.clone(),
+                    false,
+                ));
+        }
     }
 }
 

@@ -7,11 +7,14 @@ use super::{
     templates::{AreaTemplate, EnemyGroup},
 };
 use crate::{
-    networking::rendering::RenderPacket,
+    networking::{leaderboard::LeaderboardUpdatePacket, rendering::RenderPacket},
     physics::{rect::Rect, vec2::Vec2},
 };
 use hecs::{Entity, TakenEntity, World};
-use tokio::{sync::mpsc, task::AbortHandle};
+use tokio::{
+    sync::{broadcast, mpsc},
+    task::AbortHandle,
+};
 use wtransport::Connection;
 
 pub struct Area {
@@ -44,12 +47,14 @@ pub struct Area {
     pub loop_handle: Option<AbortHandle>,
 
     pub transfer_tx: mpsc::Sender<TransferRequest>,
+    pub leaderboard_tx: broadcast::Sender<LeaderboardUpdatePacket>,
 }
 
 impl Area {
     pub fn from_template(
         template: &AreaTemplate,
         transfer_tx: mpsc::Sender<TransferRequest>,
+        leaderboard_tx: broadcast::Sender<LeaderboardUpdatePacket>,
     ) -> Self {
         let mut area = Self {
             order: template.order,
@@ -74,6 +79,7 @@ impl Area {
             render_packet: None,
             loop_handle: None,
             transfer_tx,
+            leaderboard_tx,
         };
 
         for group in &template.enemy_groups {

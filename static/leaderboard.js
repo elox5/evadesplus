@@ -7,13 +7,13 @@ class Leaderboard {
     }
 
 
-    add(hash, areaOrder, playerName, areaName, mapName) {
+    add(hash, areaOrder, playerName, areaName, mapName, downed) {
         if (!this.maps[mapName]) {
             this.maps[mapName] = new Map(mapName);
             this.element.appendChild(this.maps[mapName].element);
         }
 
-        this.maps[mapName].add(hash, areaOrder, playerName, areaName);
+        this.maps[mapName].add(hash, areaOrder, playerName, areaName, downed);
     }
 
     remove(hash) {
@@ -24,6 +24,12 @@ class Leaderboard {
                 this.element.removeChild(map.element);
                 delete this.maps[map.name];
             }
+        }
+    }
+
+    setDowned(hash, downed) {
+        for (const map of Object.values(this.maps)) {
+            map.setDowned(hash, downed);
         }
     }
 }
@@ -47,8 +53,8 @@ class Map {
         this.entries = [];
     }
 
-    add(hash, areaOrder, playerName, areaName) {
-        this.entries.push(new Entry(hash, areaOrder, playerName, areaName));
+    add(hash, areaOrder, playerName, areaName, downed) {
+        this.entries.push(new Entry(hash, areaOrder, playerName, areaName, downed));
         this.entries.sort((a, b) => b.area - a.area);
 
         this.updateList();
@@ -60,6 +66,14 @@ class Map {
         this.updateList();
     }
 
+    setDowned(hash, downed) {
+        for (const entry of this.entries) {
+            if (entry.hash === hash) {
+                entry.element.classList.toggle("downed", downed);
+            }
+        }
+    }
+
     updateList() {
         this.list.textContent = "";
         for (const entry of this.entries) {
@@ -69,7 +83,7 @@ class Map {
 }
 
 class Entry {
-    constructor(hash, areaOrder, playerName, areaName) {
+    constructor(hash, areaOrder, playerName, areaName, downed) {
         this.hash = hash;
         this.areaOrder = areaOrder;
         this.playerName = playerName;
@@ -77,6 +91,10 @@ class Entry {
 
         this.element = document.createElement("div");
         this.element.classList.add("leaderboard-entry");
+
+        if (downed) {
+            this.element.classList.add("downed");
+        }
 
         const nameDiv = document.createElement("div");
         nameDiv.classList.add("leaderboard-entry-name");

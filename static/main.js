@@ -217,19 +217,31 @@ function handleRenderUpdate(data) {
 }
 
 function handleLeaderboardUpdate(data) {
-    const isAdd = data[0] === 1;
+    const downed = data[0] & 1;
+
+    const mode = data[0] >> 1;
+
+    const isAdd = mode === 1;
+    const isSetDowned = mode === 2;
 
     const hashBytes = data.slice(1, 9);
     const hash = new BigUint64Array(hashBytes.buffer)[0];
 
+    console.log(data);
+    console.log(`Hash: ${hash}`);
+    console.log(`Downed: ${downed}`);
+    console.log(`Mode: ${mode}`);
+
     if (isAdd) {
-        handleLeaderboardAdd(hash, data.slice(9));
+        handleLeaderboardAdd(hash, downed, data.slice(9));
+    } else if (isSetDowned) {
+        handleLeaderboardSetDowned(hash, downed);
     } else {
         handleLeaderboardRemove(hash);
     }
 }
 
-function handleLeaderboardAdd(hash, data) {
+function handleLeaderboardAdd(hash, downed, data) {
     const areaOrderBytes = data.slice(0, 2);
     const areaOrder = new Uint16Array(areaOrderBytes.buffer)[0];
 
@@ -249,11 +261,15 @@ function handleLeaderboardAdd(hash, data) {
 
     const mapName = decoder.decode(data.slice(idx, idx + mapNameLength));
 
-    leaderboard.add(hash, areaOrder, playerName, areaName, mapName);
+    leaderboard.add(hash, areaOrder, playerName, areaName, mapName, downed);
 }
 
 function handleLeaderboardRemove(hash) {
     leaderboard.remove(hash);
+}
+
+function handleLeaderboardSetDowned(hash, downed) {
+    leaderboard.setDowned(hash, downed);
 }
 
 function handleLeaderboardStateUpdate(data) {

@@ -55,6 +55,8 @@ impl Game {
         let (transfer_tx, mut transfer_rx) = mpsc::channel::<TransferRequest>(8);
         let (leaderboard_tx, leaderboard_rx) = broadcast::channel(8);
 
+        let mut lb_rx_clone = leaderboard_rx.resubscribe();
+
         let framerate: f32 = dotenvy::var("SIMULATION_FRAMERATE")
             .expect(".env SIMULATION_FRAMERATE must be set")
             .parse()
@@ -77,13 +79,33 @@ impl Game {
         };
 
         let arc = Arc::new(Mutex::new(game));
-        let arc_clone = arc.clone();
+        let transfer_arc = arc.clone();
+        let lb_arc = arc.clone();
 
         tokio::spawn(async move {
             while let Some(req) = transfer_rx.recv().await {
-                let mut game = arc_clone.lock().await;
+                let mut game = transfer_arc.lock().await;
 
                 let _ = game.transfer_hero(req).await;
+            }
+        });
+
+        tokio::spawn(async move {
+            while let Ok(entry) = lb_rx_clone.recv().await {
+                let mut game = lb_arc.lock().await;
+
+                match entry.update {
+                    LeaderboardUpdate::Add { .. } => {
+                        game.leaderboard_state.add(entry);
+                    }
+                    LeaderboardUpdate::Remove => {
+                        game.leaderboard_state.remove(entry.get_hash());
+                    }
+                    LeaderboardUpdate::SetDowned => {
+                        game.leaderboard_state
+                            .set_downed(entry.get_hash(), entry.downed);
+                    }
+                }
             }
         });
 
@@ -103,7 +125,11 @@ impl Game {
             map_id
         ))?;
 
-        let area = Area::from_template(template, self.transfer_tx.clone());
+        let area = Area::from_template(
+            template,
+            self.transfer_tx.clone(),
+            self.leaderboard_tx.clone(),
+        );
         let area = Arc::new(Mutex::new(area));
         Self::start_update_loop(area.clone(), self.frame_duration);
         self.areas.push(area.clone());
@@ -209,7 +235,7 @@ impl Game {
             area.area_name.clone(),
             area.order,
         );
-        self.handle_leaderboard_entry(add_entry);
+        let _ = self.leaderboard_tx.send(add_entry);
 
         player
     }
@@ -225,7 +251,7 @@ impl Game {
             let (_, should_close) = area.despawn_player(player.entity);
 
             let remove_entry = LeaderboardUpdatePacket::remove(player.entity, area.full_id.clone());
-            self.handle_leaderboard_entry(remove_entry);
+            let _ = self.leaderboard_tx.send(remove_entry);
 
             if should_close {
                 self.close_area(&area.full_id);
@@ -236,12 +262,13 @@ impl Game {
     pub async fn reset_hero(&mut self, player: &Arc<ArcSwap<Player>>) -> Result<()> {
         let start_area_id = self.start_area_id.clone();
 
-        let req = TransferRequest::new(
-            player.load().entity,
-            player.load().area.lock().await.full_id.clone(),
-            start_area_id,
-            None,
-        );
+        let entity = player.load().entity;
+        let current_area_id = player.load().area.lock().await.full_id.clone();
+
+        let req = TransferRequest::new(entity, current_area_id.clone(), start_area_id, None);
+
+        let lb_entry = LeaderboardUpdatePacket::set_downed(entity, current_area_id, false);
+        let _ = self.leaderboard_tx.send(lb_entry);
 
         self.transfer_hero(req).await?;
 
@@ -299,8 +326,8 @@ impl Game {
 
         drop(area);
 
-        self.handle_leaderboard_entry(add_entry);
-        self.handle_leaderboard_entry(remove_entry);
+        let _ = self.leaderboard_tx.send(add_entry);
+        let _ = self.leaderboard_tx.send(remove_entry);
 
         let (render, pos) = target_area
             .world
@@ -364,19 +391,6 @@ impl Game {
 
     fn try_get_map(&self, map_id: &str) -> Option<&MapTemplate> {
         self.maps.iter().find(|m| m.id == map_id)
-    }
-
-    fn handle_leaderboard_entry(&mut self, entry: LeaderboardUpdatePacket) {
-        let _ = self.leaderboard_tx.send(entry.clone());
-
-        match entry.update {
-            LeaderboardUpdate::Add { .. } => {
-                self.leaderboard_state.add(entry);
-            }
-            LeaderboardUpdate::Remove => {
-                self.leaderboard_state.remove(entry.get_hash());
-            }
-        }
     }
 }
 

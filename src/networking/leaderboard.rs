@@ -1,7 +1,7 @@
 use hecs::Entity;
 use std::hash::{DefaultHasher, Hash, Hasher};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct LeaderboardEntry {
     player_name: String,
     map_name: String,
@@ -38,17 +38,19 @@ impl LeaderboardEntry {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct LeaderboardUpdatePacket {
     entity: Entity,
     area_full_id: String,
+    pub downed: bool,
     pub update: LeaderboardUpdate,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum LeaderboardUpdate {
     Add(LeaderboardEntry),
     Remove,
+    SetDowned,
 }
 
 impl LeaderboardUpdatePacket {
@@ -63,6 +65,7 @@ impl LeaderboardUpdatePacket {
         Self {
             entity,
             area_full_id,
+            downed: false,
             update: LeaderboardUpdate::Add(LeaderboardEntry::new(
                 player_name,
                 map_name,
@@ -76,7 +79,17 @@ impl LeaderboardUpdatePacket {
         Self {
             entity,
             area_full_id,
+            downed: false,
             update: LeaderboardUpdate::Remove,
+        }
+    }
+
+    pub fn set_downed(entity: Entity, area_full_id: String, downed: bool) -> Self {
+        Self {
+            entity,
+            area_full_id,
+            downed,
+            update: LeaderboardUpdate::SetDowned,
         }
     }
 
@@ -92,19 +105,21 @@ impl LeaderboardUpdatePacket {
     pub fn to_bytes_no_header(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
 
-        let is_add = match &self.update {
-            LeaderboardUpdate::Add { .. } => true,
-            LeaderboardUpdate::Remove => false,
+        let downed = self.downed;
+
+        let mode = match &self.update {
+            LeaderboardUpdate::Remove => 0,
+            LeaderboardUpdate::Add { .. } => 1,
+            LeaderboardUpdate::SetDowned => 2,
         };
 
-        bytes.push(is_add as u8); // 1 byte
+        let header = (mode << 1) | (downed as u8);
+
+        bytes.push(header as u8); // 1 byte
         bytes.extend_from_slice(&self.get_hash().to_le_bytes()); // 8 bytes
 
-        match &self.update {
-            LeaderboardUpdate::Add(entry) => {
-                bytes.extend_from_slice(&entry.to_bytes());
-            }
-            LeaderboardUpdate::Remove => {}
+        if let LeaderboardUpdate::Add(entry) = &self.update {
+            bytes.extend_from_slice(&entry.to_bytes());
         }
 
         bytes
@@ -138,6 +153,15 @@ impl LeaderboardState {
 
     pub fn remove(&mut self, hash: u64) {
         self.entries.retain(|e| e.get_hash() != hash);
+    }
+
+    pub fn set_downed(&mut self, hash: u64, downed: bool) {
+        for entry in &mut self.entries {
+            if entry.get_hash() == hash {
+                entry.downed = downed;
+            }
+        }
+        println!("Entries: {:#?}", self.entries);
     }
 
     pub fn is_empty(&self) -> bool {
