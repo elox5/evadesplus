@@ -136,7 +136,7 @@ impl WebTransportServer {
                 }
                 chat_broadcast = chat_rx.recv() => {
                     let chat_broadcast = chat_broadcast?;
-                    Self::handle_chat_broadcast(chat_broadcast, &connection).await?;
+                    Self::handle_chat_broadcast(chat_broadcast, &connection, id).await?;
                 }
             }
         }
@@ -169,7 +169,7 @@ impl WebTransportServer {
                 let mut game = game.lock().await;
                 let leaderboard_state = game.leaderboard_state.clone();
 
-                let player_arcswap = game.spawn_hero(name, connection.clone()).await;
+                let player_arcswap = game.spawn_hero(id, name, connection.clone()).await;
                 *player = Some(player_arcswap.clone());
 
                 let area = player_arcswap.load().area.clone();
@@ -212,6 +212,7 @@ impl WebTransportServer {
                             text.to_owned(),
                             name.clone(),
                             ChatMessageType::Normal,
+                            None,
                         );
 
                         let _ = chat_tx.send(request);
@@ -298,7 +299,17 @@ impl WebTransportServer {
         Ok(())
     }
 
-    async fn handle_chat_broadcast(request: ChatRequest, connection: &Connection) -> Result<()> {
+    async fn handle_chat_broadcast(
+        request: ChatRequest,
+        connection: &Connection,
+        id: u64,
+    ) -> Result<()> {
+        if let Some(ref filter) = request.recipient_filter {
+            if !filter.contains(&id) {
+                return Ok(());
+            }
+        }
+
         let mut update_stream = connection.open_uni().await?.await?;
 
         update_stream.write_all(&request.to_bytes()).await?;

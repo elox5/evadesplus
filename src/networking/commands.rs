@@ -87,6 +87,7 @@ pub async fn handle_command(command_name: &str, req: CommandRequest) -> Option<C
         ),
         String::new(),
         ChatMessageType::CommandResponse,
+        Some(vec![req.player.load().id]),
     ))
 }
 
@@ -102,7 +103,7 @@ impl CommandRequest {
     }
 }
 
-async fn help(_req: CommandRequest) -> Option<ChatRequest> {
+async fn help(req: CommandRequest) -> Option<ChatRequest> {
     let mut messages = Vec::new();
 
     for command in COMMANDS.iter() {
@@ -122,6 +123,7 @@ async fn help(_req: CommandRequest) -> Option<ChatRequest> {
         help_message,
         String::new(),
         ChatMessageType::CommandResponse,
+        Some(vec![req.player.load().id]),
     ))
 }
 
@@ -136,6 +138,7 @@ async fn reset(req: CommandRequest) -> Option<ChatRequest> {
             ),
             String::new(),
             ChatMessageType::ServerError,
+            Some(vec![req.player.load().id]),
         )
     })
 }
@@ -145,6 +148,7 @@ async fn repeat(req: CommandRequest) -> Option<ChatRequest> {
         req.args.join(" "),
         String::new(),
         ChatMessageType::CommandResponse,
+        Some(vec![req.player.load().id]),
     ))
 }
 

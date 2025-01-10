@@ -211,7 +211,12 @@ impl Game {
         area.try_lock().unwrap().loop_handle = Some(handle.abort_handle());
     }
 
-    pub async fn spawn_hero(&mut self, name: &str, connection: Connection) -> Arc<ArcSwap<Player>> {
+    pub async fn spawn_hero(
+        &mut self,
+        id: u64,
+        name: &str,
+        connection: Connection,
+    ) -> Arc<ArcSwap<Player>> {
         let start_area_id = self.start_area_id.clone();
 
         let area_arc = self
@@ -222,7 +227,7 @@ impl Game {
         let entity = area.spawn_player(name, connection);
         println!("Spawning hero (entity {})", entity.id());
 
-        let player = Player::new(entity, area_arc.clone(), name.to_owned());
+        let player = Player::new(id, entity, area_arc.clone(), name.to_owned());
         let player = Arc::new(ArcSwap::new(Arc::new(player)));
 
         self.players.push(player.clone());
@@ -317,7 +322,12 @@ impl Game {
 
         let target_pos = req.target_pos.unwrap_or(target_area.spawn_pos);
 
-        let new_player = Player::new(entity, target_area_arc.clone(), player.name.clone());
+        let new_player = Player::new(
+            player.id,
+            entity,
+            target_area_arc.clone(),
+            player.name.clone(),
+        );
         player_arcswap.store(Arc::new(new_player));
 
         if should_close {
@@ -395,14 +405,20 @@ impl Game {
 }
 
 pub struct Player {
+    pub id: u64,
     pub entity: Entity,
     pub area: Arc<Mutex<Area>>,
     pub name: String,
 }
 
 impl Player {
-    pub fn new(entity: Entity, area: Arc<Mutex<Area>>, name: String) -> Self {
-        Self { entity, area, name }
+    pub fn new(id: u64, entity: Entity, area: Arc<Mutex<Area>>, name: String) -> Self {
+        Self {
+            id,
+            entity,
+            area,
+            name,
+        }
     }
 }
 

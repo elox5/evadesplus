@@ -3,14 +3,21 @@ pub struct ChatRequest {
     pub message: String,
     pub name: String,
     pub message_type: ChatMessageType,
+    pub recipient_filter: Option<Vec<u64>>,
 }
 
 impl ChatRequest {
-    pub fn new(message: String, name: String, message_type: ChatMessageType) -> Self {
+    pub fn new(
+        message: String,
+        name: String,
+        message_type: ChatMessageType,
+        recipient_filter: Option<Vec<u64>>,
+    ) -> Self {
         Self {
             message,
             name,
             message_type,
+            recipient_filter,
         }
     }
 
