@@ -22,7 +22,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        target_id: "tt:0"
+        destination: !Id "tt:0"
         target_pos:
           x: 50
           y: 7.5 
@@ -31,7 +31,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        target_id: "lm:1"
+        destination: Next
         target_pos:
           x: 5
           y: 7.5 
@@ -59,7 +59,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        target_id: "lm:0"
+        destination: Previous
         target_pos:
           x: 95
           y: 7.5 
@@ -68,7 +68,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        target_id: "lm:2"
+        destination: Next
         target_pos:
           x: 5
           y: 7.5 
@@ -96,7 +96,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        target_id: "lm:1"
+        destination: Previous
         target_pos:
           x: 95
           y: 7.5 
@@ -105,7 +105,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        target_id: "lm:3"
+        destination: Next
         target_pos:
           x: 5
           y: 7.5
@@ -133,7 +133,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        target_id: "lm:2"
+        destination: Previous
         target_pos:
           x: 95
           y: 7.5 
@@ -142,7 +142,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        target_id: "lm:4"
+        destination: Next
         target_pos:
           x: 5
           y: 7.5 
@@ -170,7 +170,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        target_id: "lm:3"
+        destination: Previous
         target_pos:
           x: 95
           y: 7.5 
@@ -179,7 +179,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        target_id: "lm:5"
+        destination: Next
         target_pos:
           x: 5
           y: 7.5 
@@ -207,7 +207,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        target_id: "lm:4"
+        destination: Previous
         target_pos:
           x: 95
           y: 7.5 
@@ -216,7 +216,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        target_id: "lm:6"
+        destination: Next
         target_pos:
           x: 5
           y: 7.5 
@@ -248,7 +248,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        target_id: "lm:5"
+        destination: Previous
         target_pos:
           x: 95
           y: 7.5 
@@ -257,7 +257,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        target_id: "lm:7"
+        destination: Next
         target_pos:
           x: 5
           y: 7.5 
@@ -289,7 +289,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        target_id: "lm:6"
+        destination: Previous
         target_pos:
           x: 95
           y: 7.5 
@@ -298,7 +298,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        target_id: "lm:8"
+        destination: Next
         target_pos:
           x: 5
           y: 7.5 
@@ -330,7 +330,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        target_id: "lm:7"
+        destination: Previous
         target_pos:
           x: 95
           y: 7.5 
@@ -339,7 +339,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        target_id: "lm:9"
+        destination: Next
         target_pos:
           x: 5
           y: 7.5 
@@ -371,7 +371,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        target_id: "lm:8"
+        destination: Previous 
         target_pos:
           x: 95
           y: 7.5 
@@ -380,7 +380,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        target_id: "lm:10"
+        destination: Next
         target_pos:
           x: 5
           y: 7.5 
@@ -412,7 +412,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        target_id: "lm:9"
+        destination: Previous 
         target_pos:
           x: 95
           y: 7.5 
@@ -421,7 +421,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        target_id: "tt:1"
+        destination: !Id "tt:1"
         target_pos:
           x: 5
           y: 7.5 

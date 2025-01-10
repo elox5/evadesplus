@@ -34,11 +34,19 @@ impl MapData {
                 let portals = data.portals.unwrap_or_default();
                 let portals = portals
                     .into_iter()
-                    .map(|data| Portal {
-                        rect: data.rect,
-                        color: data.color.into(),
-                        target_id: data.target_id,
-                        target_pos: data.target_pos,
+                    .map(|data| {
+                        let target_id = match data.destination {
+                            PortalDestination::Id(id) => id,
+                            PortalDestination::Previous => format!("{}:{}", self.id, order - 1),
+                            PortalDestination::Next => format!("{}:{}", self.id, order + 1),
+                        };
+
+                        Portal {
+                            rect: data.rect,
+                            color: data.color.into(),
+                            target_id,
+                            target_pos: data.target_pos,
+                        }
                     })
                     .collect::<Vec<_>>();
 
@@ -118,6 +126,13 @@ pub struct PortalData {
     pub rect: Rect,
     #[serde_inline_default("#ffff0033".to_owned())]
     pub color: String,
-    pub target_id: String,
+    pub destination: PortalDestination,
     pub target_pos: Vec2,
+}
+
+#[derive(Deserialize)]
+pub enum PortalDestination {
+    Id(String),
+    Previous,
+    Next,
 }
