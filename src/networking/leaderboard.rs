@@ -161,7 +161,6 @@ impl LeaderboardState {
                 entry.downed = downed;
             }
         }
-        println!("Entries: {:#?}", self.entries);
     }
 
     pub fn is_empty(&self) -> bool {
