@@ -32,7 +32,7 @@ pub struct WebTransportServer {
 impl WebTransportServer {
     pub fn new(
         identity: Identity,
-        game: Arc<Mutex<Game>>,
+        game_arc: Arc<Mutex<Game>>,
         local_ip: Ipv4Addr,
         port: u16,
     ) -> Result<Self> {
@@ -44,11 +44,14 @@ impl WebTransportServer {
 
         let endpoint = Endpoint::server(config)?;
 
-        let (chat_tx, chat_rx) = broadcast::channel(16);
+        let game = game_arc.try_lock().unwrap();
+        let chat_tx = game.chat_tx.clone();
+        let chat_rx = game.chat_rx.resubscribe();
+        drop(game);
 
         Ok(Self {
             endpoint,
-            game,
+            game: game_arc,
             chat_tx,
             chat_rx,
         })

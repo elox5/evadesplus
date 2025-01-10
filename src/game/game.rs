@@ -6,7 +6,10 @@ use super::{
     templates::MapTemplate,
 };
 use crate::{
-    networking::leaderboard::{LeaderboardState, LeaderboardUpdate, LeaderboardUpdatePacket},
+    networking::{
+        chat::ChatRequest,
+        leaderboard::{LeaderboardState, LeaderboardUpdate, LeaderboardUpdatePacket},
+    },
     physics::vec2::Vec2,
 };
 use anyhow::Result;
@@ -47,6 +50,9 @@ pub struct Game {
     leaderboard_tx: broadcast::Sender<LeaderboardUpdatePacket>,
     pub leaderboard_rx: broadcast::Receiver<LeaderboardUpdatePacket>,
 
+    pub chat_tx: broadcast::Sender<ChatRequest>,
+    pub chat_rx: broadcast::Receiver<ChatRequest>,
+
     frame_duration: Duration,
 }
 
@@ -54,6 +60,8 @@ impl Game {
     pub fn new(maps: Vec<MapData>, start_area_id: &str) -> Arc<Mutex<Self>> {
         let (transfer_tx, mut transfer_rx) = mpsc::channel::<TransferRequest>(8);
         let (leaderboard_tx, leaderboard_rx) = broadcast::channel(8);
+
+        let (chat_tx, chat_rx) = broadcast::channel(8);
 
         let mut lb_rx_clone = leaderboard_rx.resubscribe();
 
@@ -75,6 +83,8 @@ impl Game {
             leaderboard_state: LeaderboardState::new(),
             leaderboard_tx,
             leaderboard_rx,
+            chat_tx,
+            chat_rx,
             frame_duration,
         };
 
@@ -225,7 +235,6 @@ impl Game {
         let mut area = area_arc.lock().await;
 
         let entity = area.spawn_player(name, connection);
-        println!("Spawning hero (entity {})", entity.id());
 
         let player = Player::new(id, entity, area_arc.clone(), name.to_owned());
         let player = Arc::new(ArcSwap::new(Arc::new(player)));
@@ -242,12 +251,22 @@ impl Game {
         );
         let _ = self.leaderboard_tx.send(add_entry);
 
+        println!("Spawning hero '{}' (entity {})", name, entity.id());
+
+        let chat_broadcast = ChatRequest::new(
+            format!("{} joined the game", name),
+            String::new(),
+            crate::networking::chat::ChatMessageType::ServerAnnouncement,
+            None,
+        );
+        let _ = self.chat_tx.send(chat_broadcast);
+
         player
     }
 
     pub async fn despawn_hero(&mut self, player: &Arc<ArcSwap<Player>>) {
         if let Some(player_index) = self.players.iter().position(|p| Arc::ptr_eq(p, player)) {
-            println!("Despawning hero {}", player.load().name);
+            let name = player.load().name.clone();
 
             let player = self.players.swap_remove(player_index);
             let player = player.load();
@@ -257,6 +276,16 @@ impl Game {
 
             let remove_entry = LeaderboardUpdatePacket::remove(player.entity, area.full_id.clone());
             let _ = self.leaderboard_tx.send(remove_entry);
+
+            println!("Despawning hero '{}'", name);
+
+            let chat_broadcast = ChatRequest::new(
+                format!("{} left the game", name),
+                String::new(),
+                crate::networking::chat::ChatMessageType::ServerAnnouncement,
+                None,
+            );
+            let _ = self.chat_tx.send(chat_broadcast);
 
             if should_close {
                 self.close_area(&area.full_id);
