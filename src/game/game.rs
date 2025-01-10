@@ -46,12 +46,21 @@ pub struct Game {
 
     leaderboard_tx: broadcast::Sender<LeaderboardUpdatePacket>,
     pub leaderboard_rx: broadcast::Receiver<LeaderboardUpdatePacket>,
+
+    frame_duration: Duration,
 }
 
 impl Game {
     pub fn new(maps: Vec<MapData>, start_area_id: &str) -> Arc<Mutex<Self>> {
         let (transfer_tx, mut transfer_rx) = mpsc::channel::<TransferRequest>(8);
         let (leaderboard_tx, leaderboard_rx) = broadcast::channel(8);
+
+        let framerate: f32 = dotenvy::var("SIMULATION_FRAMERATE")
+            .expect(".env SIMULATION_FRAMERATE must be set")
+            .parse()
+            .expect("Invalid framerate");
+
+        let frame_duration = Duration::from_secs_f32(1.0 / framerate);
 
         let game = Game {
             maps: maps.into_iter().map(|m| m.to_template()).collect(),
@@ -64,6 +73,7 @@ impl Game {
             leaderboard_state: LeaderboardState::new(),
             leaderboard_tx,
             leaderboard_rx,
+            frame_duration,
         };
 
         let arc = Arc::new(Mutex::new(game));
@@ -95,7 +105,7 @@ impl Game {
 
         let area = Area::from_template(template, self.transfer_tx.clone());
         let area = Arc::new(Mutex::new(area));
-        Self::start_update_loop(area.clone());
+        Self::start_update_loop(area.clone(), self.frame_duration);
         self.areas.push(area.clone());
         self.area_lookup.insert(id.to_owned(), area.clone());
 
@@ -153,13 +163,13 @@ impl Game {
         system_send_render_packet(area);
     }
 
-    fn start_update_loop(area: Arc<Mutex<Area>>) {
+    fn start_update_loop(area: Arc<Mutex<Area>>, frame_duration: Duration) {
         let area_clone = area.clone();
 
         let handle = tokio::spawn(async move {
             let mut last_time = Instant::now();
 
-            let mut interval = interval(Duration::from_millis(16));
+            let mut interval = interval(frame_duration);
 
             loop {
                 {
