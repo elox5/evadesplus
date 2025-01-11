@@ -1,4 +1,4 @@
-import { renderSettings, setupCanvas, renderArea, renderFrame } from "./rendering.js";
+import { setupCanvas, renderArea, renderFrame } from "./rendering.js";
 import { setupInput } from "./input.js";
 import { connect, establishUniConnection, establishInputConnection, establishRenderConnection } from "./networking.js";
 import { reportBandwidth, reportFrameStart } from "./metrics.js";
