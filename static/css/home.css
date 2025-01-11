@@ -1,0 +1,16 @@
+#connection-panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+#name-input {
+    padding: 5px;
+}
+
+#connect-button {
+    padding: 5px;
+    width: 100%;
+}
