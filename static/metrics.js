@@ -56,11 +56,11 @@ export function reportFrameStart() {
         frameTimeQueue.shift();
     }
 
-    let fps = frameTimeQueue.length / (performance.now() - frameTimeQueue[0]) * metricSettings.fpsReportWindow;
+    let fps = frameTimeQueue.length / (performance.now() - frameTimeQueue[0]) * 1000;
 
     fpsMeter.textContent = fps.toFixed(0);
 
-    setMeterColor(fpsMeter, metricSettings.fpsColorLevels, true);
+    setMeterColor(fpsMeter, fps, metricSettings.fpsColorLevels, true);
 }
 
 export function startPing() {
@@ -71,12 +71,12 @@ export function reportPing() {
     const pingTime = performance.now() - pingStartTime;
     pingMeter.textContent = pingTime.toFixed(2);
 
-    setMeterColor(pingMeter, metricSettings.pingColorLevels, false);
+    setMeterColor(pingMeter, pingTime, metricSettings.pingColorLevels, false);
 }
 
-function setMeterColor(meter, colorLevels, lower) {
+function setMeterColor(meter, value, colorLevels, lower) {
     for (const [threshold, color] of colorLevels) {
-        if ((lower && meter < threshold) || (!lower && meter > threshold)) {
+        if ((lower && value < threshold) || (!lower && value > threshold)) {
             meter.style.color = color;
             break;
         }
@@ -101,5 +101,5 @@ export function reportBandwidth(bandwidth) {
         sum += bandwidth;
     }
 
-    bandwidthMeter.textContent = (sum / timeDelta * metricSettings.bandwidthReportWindow / 1000).toFixed(0);
+    bandwidthMeter.textContent = (sum / timeDelta).toFixed(0);
 }
