@@ -39,8 +39,20 @@ async function handleConnection() {
             callback: handleAreaUpdate,
         },
         {
-            header: "LBUP",
-            callback: handleLeaderboardUpdate,
+            header: "LBAD",
+            callback: handleLeaderboardAdd,
+        },
+        {
+            header: "LBRM",
+            callback: handleLeaderboardRemove,
+        },
+        {
+            header: "LBTR",
+            callback: handleLeaderboardTransfer,
+        },
+        {
+            header: "LBSD",
+            callback: handleLeaderboardSetDowned,
         },
         {
             header: "LBST",
@@ -216,40 +228,20 @@ function handleRenderUpdate(data) {
     }
 }
 
-function handleLeaderboardUpdate(data) {
-    const downed = data[0] & 1;
-
-    const mode = data[0] >> 1;
-
-    const isAdd = mode === 1;
-    const isSetDowned = mode === 2;
-
-    const hashBytes = data.slice(1, 9);
+function handleLeaderboardAdd(data) {
+    const hashBytes = data.slice(0, 8);
     const hash = new BigUint64Array(hashBytes.buffer)[0];
 
-    console.log(data);
-    console.log(`Hash: ${hash}`);
-    console.log(`Downed: ${downed}`);
-    console.log(`Mode: ${mode}`);
-
-    if (isAdd) {
-        handleLeaderboardAdd(hash, downed, data.slice(9));
-    } else if (isSetDowned) {
-        handleLeaderboardSetDowned(hash, downed);
-    } else {
-        handleLeaderboardRemove(hash);
-    }
-}
-
-function handleLeaderboardAdd(hash, downed, data) {
-    const areaOrderBytes = data.slice(0, 2);
+    const areaOrderBytes = data.slice(8, 10);
     const areaOrder = new Uint16Array(areaOrderBytes.buffer)[0];
 
-    const playerNameLength = data[2];
-    const areaNameLength = data[3];
-    const mapNameLength = data[4];
+    const downed = data[10] === 1;
 
-    let idx = 5;
+    const playerNameLength = data[11];
+    const areaNameLength = data[12];
+    const mapNameLength = data[13];
+
+    let idx = 14;
 
     const decoder = new TextDecoder("utf-8");
 
@@ -264,11 +256,44 @@ function handleLeaderboardAdd(hash, downed, data) {
     leaderboard.add(hash, areaOrder, playerName, areaName, mapName, downed);
 }
 
-function handleLeaderboardRemove(hash) {
+function handleLeaderboardRemove(data) {
+    const hashBytes = data.slice(0, 8);
+    const hash = new BigUint64Array(hashBytes.buffer)[0];
+
     leaderboard.remove(hash);
 }
 
-function handleLeaderboardSetDowned(hash, downed) {
+function handleLeaderboardTransfer(data) {
+    const hashBytes = data.slice(0, 8);
+    const hash = new BigUint64Array(hashBytes.buffer)[0];
+
+    const oldHashBytes = data.slice(8, 16);
+    const oldHash = new BigUint64Array(oldHashBytes.buffer)[0];
+
+    const areaOrderBytes = data.slice(16, 18);
+    const areaOrder = new Uint16Array(areaOrderBytes.buffer)[0];
+
+    const areaNameLength = data[18];
+    const mapNameLength = data[19];
+
+    let idx = 20;
+
+    const decoder = new TextDecoder("utf-8");
+
+    const areaName = decoder.decode(data.slice(idx, idx + areaNameLength));
+    idx += areaNameLength;
+
+    const mapName = decoder.decode(data.slice(idx, idx + mapNameLength));
+
+    leaderboard.transfer(hash, oldHash, areaOrder, areaName, mapName);
+}
+
+function handleLeaderboardSetDowned(data) {
+    const hashBytes = data.slice(0, 8);
+    const hash = new BigUint64Array(hashBytes.buffer)[0];
+
+    const downed = data[8] === 1;
+
     leaderboard.setDowned(hash, downed);
 }
 
@@ -278,9 +303,32 @@ function handleLeaderboardStateUpdate(data) {
     let idx = 1;
 
     for (let i = 0; i < entryCount; i++) {
-        const length = data[idx];
-        handleLeaderboardUpdate(data.slice(idx + 1, idx + 1 + length));
-        idx += length;
+        const hashBytes = data.slice(idx, idx + 8);
+        const hash = new BigUint64Array(hashBytes.buffer)[0];
+
+        const areaOrderBytes = data.slice(idx + 8, idx + 10);
+        const areaOrder = new Uint16Array(areaOrderBytes.buffer)[0];
+
+        const downed = data[idx + 10] === 1;
+
+        const playerNameLength = data[idx + 11];
+        const areaNameLength = data[idx + 12];
+        const mapNameLength = data[idx + 13];
+
+        idx += 14;
+
+        const decoder = new TextDecoder("utf-8");
+
+        const playerName = decoder.decode(data.slice(idx, idx + playerNameLength));
+        idx += playerNameLength;
+
+        const areaName = decoder.decode(data.slice(idx, idx + areaNameLength));
+        idx += areaNameLength;
+
+        const mapName = decoder.decode(data.slice(idx, idx + mapNameLength));
+        idx += mapNameLength;
+
+        leaderboard.add(hash, areaOrder, playerName, areaName, mapName, downed);
     }
 }
 

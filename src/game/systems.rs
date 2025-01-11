@@ -8,7 +8,7 @@ use super::{
 use crate::{
     game::components::{Direction, Position, Speed, Velocity},
     networking::{
-        leaderboard::LeaderboardUpdatePacket,
+        leaderboard::LeaderboardUpdate,
         rendering::{RenderNode, RenderPacket},
     },
 };
@@ -210,7 +210,7 @@ pub fn system_enemy_collision(area: &mut Area) {
 
         let _ = area
             .leaderboard_tx
-            .send(LeaderboardUpdatePacket::set_downed(
+            .send(LeaderboardUpdate::set_downed(
                 entity,
                 area.full_id.clone(),
                 true,
@@ -246,7 +246,7 @@ pub fn system_hero_collision(area: &mut Area) {
         if result.is_ok() {
             let _ = area
                 .leaderboard_tx
-                .send(LeaderboardUpdatePacket::set_downed(
+                .send(LeaderboardUpdate::set_downed(
                     entity,
                     area.full_id.clone(),
                     false,

@@ -7,7 +7,7 @@ use super::{
     templates::{AreaTemplate, EnemyGroup},
 };
 use crate::{
-    networking::{leaderboard::LeaderboardUpdatePacket, rendering::RenderPacket},
+    networking::{leaderboard::LeaderboardUpdate, rendering::RenderPacket},
     physics::{rect::Rect, vec2::Vec2},
 };
 use hecs::{Entity, TakenEntity, World};
@@ -47,14 +47,14 @@ pub struct Area {
     pub loop_handle: Option<AbortHandle>,
 
     pub transfer_tx: mpsc::Sender<TransferRequest>,
-    pub leaderboard_tx: broadcast::Sender<LeaderboardUpdatePacket>,
+    pub leaderboard_tx: broadcast::Sender<LeaderboardUpdate>,
 }
 
 impl Area {
     pub fn from_template(
         template: &AreaTemplate,
         transfer_tx: mpsc::Sender<TransferRequest>,
-        leaderboard_tx: broadcast::Sender<LeaderboardUpdatePacket>,
+        leaderboard_tx: broadcast::Sender<LeaderboardUpdate>,
     ) -> Self {
         let mut area = Self {
             order: template.order,

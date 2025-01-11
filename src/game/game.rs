@@ -8,7 +8,7 @@ use super::{
 use crate::{
     networking::{
         chat::ChatRequest,
-        leaderboard::{LeaderboardState, LeaderboardUpdate, LeaderboardUpdatePacket},
+        leaderboard::{LeaderboardState, LeaderboardUpdate},
     },
     physics::vec2::Vec2,
 };
@@ -46,8 +46,8 @@ pub struct Game {
 
     pub leaderboard_state: LeaderboardState,
 
-    leaderboard_tx: broadcast::Sender<LeaderboardUpdatePacket>,
-    pub leaderboard_rx: broadcast::Receiver<LeaderboardUpdatePacket>,
+    leaderboard_tx: broadcast::Sender<LeaderboardUpdate>,
+    pub leaderboard_rx: broadcast::Receiver<LeaderboardUpdate>,
 
     pub chat_tx: broadcast::Sender<ChatRequest>,
     pub chat_rx: broadcast::Receiver<ChatRequest>,
@@ -99,21 +99,10 @@ impl Game {
         });
 
         tokio::spawn(async move {
-            while let Ok(entry) = lb_rx_clone.recv().await {
+            while let Ok(update) = lb_rx_clone.recv().await {
                 let mut game = lb_arc.lock().await;
 
-                match entry.update {
-                    LeaderboardUpdate::Add { .. } => {
-                        game.leaderboard_state.add(entry);
-                    }
-                    LeaderboardUpdate::Remove => {
-                        game.leaderboard_state.remove(entry.get_hash());
-                    }
-                    LeaderboardUpdate::SetDowned => {
-                        game.leaderboard_state
-                            .set_downed(entry.get_hash(), entry.downed);
-                    }
-                }
+                game.leaderboard_state.update(update);
             }
         });
 
@@ -143,7 +132,7 @@ impl Game {
         self.areas.insert(id.to_owned(), area.clone());
 
         println!(
-            "Area {} opened. Area lookup: {:?}",
+            "Area {} opened. Loaded areas: {:?}",
             id,
             self.areas.keys().collect::<Vec<_>>()
         );
@@ -162,7 +151,7 @@ impl Game {
         self.areas.remove(id);
 
         println!(
-            "Area {} closed. Area lookup: {:?}",
+            "Area {} closed. Loaded areas: {:?}",
             id,
             self.areas.keys().collect::<Vec<_>>()
         );
@@ -234,15 +223,15 @@ impl Game {
 
         self.players.push(player.clone());
 
-        let add_entry = LeaderboardUpdatePacket::add(
+        let _ = self.leaderboard_tx.send(LeaderboardUpdate::add(
             entity,
             area.full_id.clone(),
             name.to_owned(),
-            area.map_name.clone(),
-            area.area_name.clone(),
+            false,
             area.order,
-        );
-        let _ = self.leaderboard_tx.send(add_entry);
+            area.area_name.clone(),
+            area.map_name.clone(),
+        ));
 
         println!("Spawning hero '{}' (entity {})", name, entity.id());
 
@@ -267,8 +256,10 @@ impl Game {
             let mut area = player.area.lock().await;
             let (_, should_close) = area.despawn_player(player.entity);
 
-            let remove_entry = LeaderboardUpdatePacket::remove(player.entity, area.full_id.clone());
-            let _ = self.leaderboard_tx.send(remove_entry);
+            let _ = self.leaderboard_tx.send(LeaderboardUpdate::remove(
+                player.entity,
+                area.full_id.clone(),
+            ));
 
             println!("Despawning hero '{}'", name);
 
@@ -294,8 +285,11 @@ impl Game {
 
         let req = TransferRequest::new(entity, current_area_id.clone(), start_area_id, None);
 
-        let lb_entry = LeaderboardUpdatePacket::set_downed(entity, current_area_id, false);
-        let _ = self.leaderboard_tx.send(lb_entry);
+        let _ = self.leaderboard_tx.send(LeaderboardUpdate::set_downed(
+            entity,
+            current_area_id,
+            false,
+        ));
 
         self.transfer_hero(req).await?;
 
@@ -327,20 +321,19 @@ impl Game {
 
         let (mut area, mut target_area) = join!(player.area.lock(), target_area_arc.lock());
 
-        let remove_entry = LeaderboardUpdatePacket::remove(req.entity, area.full_id.clone());
-
         let (taken_entity, should_close) = area.despawn_player(req.entity);
         let entity = taken_entity?;
         let entity = target_area.world.spawn(entity);
 
-        let add_entry = LeaderboardUpdatePacket::add(
+        let _ = self.leaderboard_tx.send(LeaderboardUpdate::transfer(
             entity,
-            target_area.full_id.clone(),
-            player.name.clone(),
-            target_area.map_name.clone(),
-            target_area.area_name.clone(),
+            req.entity,
+            area.full_id.clone(),
             target_area.order,
-        );
+            target_area.full_id.clone(),
+            target_area.area_name.clone(),
+            target_area.map_name.clone(),
+        ));
 
         let target_pos = req.target_pos.unwrap_or(target_area.spawn_pos);
 
@@ -357,9 +350,6 @@ impl Game {
         }
 
         drop(area);
-
-        let _ = self.leaderboard_tx.send(add_entry);
-        let _ = self.leaderboard_tx.send(remove_entry);
 
         let (render, pos) = target_area
             .world

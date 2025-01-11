@@ -1,7 +1,7 @@
 use super::{
     chat::{ChatMessageType, ChatRequest},
     commands::{handle_command, CommandRequest},
-    leaderboard::LeaderboardUpdatePacket,
+    leaderboard::LeaderboardUpdate,
 };
 use crate::{
     game::game::{Game, Player},
@@ -291,7 +291,7 @@ impl WebTransportServer {
     }
 
     async fn handle_leaderboard_update(
-        update: LeaderboardUpdatePacket,
+        update: LeaderboardUpdate,
         connection: &Connection,
     ) -> Result<()> {
         let mut update_stream = connection.open_uni().await?.await?;

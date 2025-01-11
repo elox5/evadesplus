@@ -27,6 +27,26 @@ class Leaderboard {
         }
     }
 
+    transfer(newHash, oldHash, areaOrder, areaName, mapName) {
+        for (const map of Object.values(this.maps)) {
+            let oldEntryIndex = map.entries.findIndex(entry => entry.hash === oldHash);
+
+            if (oldEntryIndex === -1) {
+                continue;
+            }
+
+            let oldEntry = map.entries[oldEntryIndex];
+            map.remove(oldHash);
+
+            this.add(newHash, areaOrder, oldEntry.playerName, areaName, mapName, oldEntry.downed);
+
+            if (map.entries.length === 0) {
+                this.element.removeChild(map.element);
+                delete this.maps[map.name];
+            }
+        }
+    }
+
     setDowned(hash, downed) {
         for (const map of Object.values(this.maps)) {
             map.setDowned(hash, downed);
@@ -88,6 +108,7 @@ class Entry {
         this.areaOrder = areaOrder;
         this.playerName = playerName;
         this.areaName = areaName;
+        this.downed = downed;
 
         this.element = document.createElement("div");
         this.element.classList.add("leaderboard-entry");
