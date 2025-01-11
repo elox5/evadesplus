@@ -121,6 +121,8 @@ main {
     display: flex;
     justify-content: space-between;
     gap: 10px;
+
+    text-shadow: 2px 2px 4px black;
 }
 
 #chat {
