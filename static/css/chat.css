@@ -50,6 +50,11 @@
     white-space: pre-wrap;
 }
 
+.chat-entry.special {
+    padding: 5px;
+    font-size: 0.9em;
+}
+
 .chat-entry.whisper {
     background-color: #7733ff77;
 }
@@ -59,6 +64,10 @@
 }
 
 .chat-entry.server-announcement {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
     background-color: #ffbb0077;
 }
 

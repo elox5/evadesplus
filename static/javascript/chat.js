@@ -57,10 +57,10 @@ class Chat {
         entry.innerHTML = entry.innerHTML.replace(/\*([^*]*)\*/g, "<strong>$1</strong>");
 
         if (messageType === 0) entry.classList.add("normal");
-        if (messageType === 1) entry.classList.add("whisper");
-        if (messageType === 2) entry.classList.add("command-response");
-        if (messageType === 3) entry.classList.add("server-announcement");
-        if (messageType === 4) entry.classList.add("server-error");
+        if (messageType === 1) entry.classList.add("special", "whisper");
+        if (messageType === 2) entry.classList.add("special", "command-response");
+        if (messageType === 3) entry.classList.add("special", "server-announcement");
+        if (messageType === 4) entry.classList.add("special", "server-error");
 
         this.list.appendChild(entry);
 
