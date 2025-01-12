@@ -1,4 +1,5 @@
 import { chat } from "./chat.js";
+import { sendChatMessage } from "./networking.js";
 import { renderSettings } from "./rendering.js";
 
 const canvasContainer = document.querySelector("#canvas-container");
@@ -91,6 +92,8 @@ export function setupInput() {
         } else if ((e.key === "Enter" || e.code === "Slash") && !chat.focused()) {
             chat.focus();
             return;
+        } else if (e.key == "Escape" && !chat.focused()) {
+            sendChatMessage("/reset", "");
         } else {
             return;
         }
