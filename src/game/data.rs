@@ -4,7 +4,6 @@ use super::{
 };
 use crate::physics::{rect::Rect, vec2::Vec2};
 use serde::Deserialize;
-use serde_inline_default::serde_inline_default;
 
 #[derive(Deserialize)]
 pub struct MapData {
@@ -43,7 +42,7 @@ impl MapData {
 
                         Portal {
                             rect: data.rect,
-                            color: data.color.into(),
+                            color: data.color.unwrap_or("#ffff0033".to_owned()).into(),
                             target_id,
                             target_pos: data.target_pos,
                         }
@@ -61,6 +60,9 @@ impl MapData {
                     })
                     .collect::<Vec<_>>();
 
+                let width = data.width.unwrap_or(100.0);
+                let height = data.height.unwrap_or(15.0);
+
                 AreaTemplate {
                     order: order as u16,
                     area_id,
@@ -68,11 +70,11 @@ impl MapData {
                     area_name: name,
                     map_name: self.name.clone(),
                     background_color,
-                    width: data.width,
-                    height: data.height,
+                    width,
+                    height,
                     spawn_pos: data
                         .spawn_pos
-                        .unwrap_or_else(|| Vec2::new(5.0, data.height / 2.0)),
+                        .unwrap_or_else(|| Vec2::new(5.0, height / 2.0)),
                     portals,
                     inner_walls: data.inner_walls.unwrap_or_default(),
                     safe_zones: data.safe_zones.unwrap_or_default(),
@@ -90,18 +92,14 @@ impl MapData {
     }
 }
 
-#[serde_inline_default]
 #[derive(Deserialize)]
 pub struct AreaData {
     pub id: Option<String>,
     pub name: Option<String>,
     pub background_color: Option<String>,
 
-    #[serde_inline_default(100.0)]
-    pub width: f32,
-
-    #[serde_inline_default(15.0)]
-    pub height: f32,
+    pub width: Option<f32>,
+    pub height: Option<f32>,
 
     pub spawn_pos: Option<Vec2>,
 
@@ -120,12 +118,10 @@ pub struct EnemyGroupData {
     pub size: f32,
 }
 
-#[serde_inline_default]
 #[derive(Deserialize)]
 pub struct PortalData {
     pub rect: Rect,
-    #[serde_inline_default("#ffff0033".to_owned())]
-    pub color: String,
+    pub color: Option<String>,
     pub destination: PortalDestination,
     pub target_pos: Vec2,
 }
