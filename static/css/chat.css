@@ -46,6 +46,8 @@
     word-break: break-word;
 
     flex-shrink: 0;
+
+    white-space: pre-wrap;
 }
 
 .chat-entry.whisper {

@@ -46,15 +46,15 @@ class Chat {
 
         const showUsername = messageType === 0 || messageType === 1;
 
-        message = message.replace(/\n/g, "<br>");
-        console.log(message);
-
+        message = message.replace(/\n/g, "\r\n");
 
         if (showUsername) {
-            entry.innerHTML = `<b>${name}</b>: ${message}`;
-        } else {
-            entry.innerHTML = message;
+            message = `${name}: ${message}`;
         }
+
+        entry.textContent = message;
+
+        entry.innerHTML = entry.innerHTML.replace(/\*([^*]*)\*/g, "<strong>$1</strong>");
 
         if (messageType === 0) entry.classList.add("normal");
         if (messageType === 1) entry.classList.add("whisper");

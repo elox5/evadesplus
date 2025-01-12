@@ -89,7 +89,7 @@ pub async fn handle_command(command_name: &str, req: CommandRequest) -> Option<C
 
     Some(ChatRequest::new(
         format!(
-            "Unknown command: <b>/{command_name}</b>. For a list of available commands, use <b>/help</b>."
+            "Unknown command: */{command_name}*. For a list of available commands, use */help*."
         ),
         String::new(),
         ChatMessageType::CommandResponse,
@@ -113,7 +113,7 @@ async fn help(req: CommandRequest) -> Option<ChatRequest> {
     let mut messages = Vec::new();
 
     for command in COMMANDS.iter() {
-        let mut msg = format!("<b>/{}</b> - {}", command.name, command.help_description);
+        let mut msg = format!("*/{}* - {}", command.name, command.help_description);
 
         if let Some(aliases) = &command.aliases {
             let aliases = aliases
@@ -144,9 +144,7 @@ async fn reset(req: CommandRequest) -> Option<ChatRequest> {
 
     result.err().map(|err| {
         ChatRequest::new(
-            format!(
-                "A server error has occurred. Please report it to the developers: <b>{err:?}</b>"
-            ),
+            format!("A server error has occurred. Please report it to the developers: *{err:?}*"),
             String::new(),
             ChatMessageType::ServerError,
             Some(vec![req.player.load().id]),
