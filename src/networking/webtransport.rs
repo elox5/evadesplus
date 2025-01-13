@@ -166,9 +166,9 @@ async fn handle_uni_stream(
             let mut game = game.lock().await;
             let leaderboard_state = game.leaderboard_state.clone();
 
-            let player = game.spawn_hero(id, name, connection.clone()).await;
+            game.spawn_hero(id, name, connection.clone()).await;
 
-            let area = player.load().area.clone();
+            let area = game.get_player(id)?.area.clone();
 
             let definition = area.lock().await.definition_packet();
 

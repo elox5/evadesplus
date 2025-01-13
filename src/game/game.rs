@@ -32,7 +32,7 @@ pub struct Game {
 
     areas: HashMap<String, Arc<Mutex<Area>>>,
 
-    players: HashMap<u64, Arc<ArcSwap<Player>>>,
+    players: HashMap<u64, ArcSwap<Player>>,
 
     start_area_id: String,
 
@@ -198,12 +198,7 @@ impl Game {
         area.try_lock().unwrap().loop_handle = Some(handle.abort_handle());
     }
 
-    pub async fn spawn_hero(
-        &mut self,
-        id: u64,
-        name: &str,
-        connection: Connection,
-    ) -> Arc<ArcSwap<Player>> {
+    pub async fn spawn_hero(&mut self, id: u64, name: &str, connection: Connection) {
         let start_area_id = self.start_area_id.clone();
 
         let area_arc = self
@@ -220,9 +215,8 @@ impl Game {
             area: area_arc.clone(),
             name: name.to_owned(),
         };
-        let player = Arc::new(ArcSwap::new(Arc::new(player)));
 
-        self.players.insert(id, player.clone());
+        self.players.insert(id, ArcSwap::new(Arc::new(player)));
 
         let _ = self.leaderboard_tx.send(LeaderboardUpdate::add(
             id,
@@ -236,8 +230,6 @@ impl Game {
         println!("Spawning hero '{}' (entity {})", name, entity.id());
 
         self.send_server_announcement(format!("{} joined the game", name));
-
-        player
     }
 
     pub async fn despawn_hero(&mut self, player_id: u64) -> Result<()> {
@@ -378,12 +370,11 @@ impl Game {
         Ok(())
     }
 
-    pub fn get_player_arcswap(&self, player_id: u64) -> Result<Arc<ArcSwap<Player>>> {
+    pub fn get_player_arcswap(&self, player_id: u64) -> Result<&ArcSwap<Player>> {
         let player = self
             .players
             .get(&player_id)
-            .ok_or(anyhow!("Player #{player_id} not found"))?
-            .clone();
+            .ok_or(anyhow!("Player #{player_id} not found"))?;
 
         Ok(player)
     }
