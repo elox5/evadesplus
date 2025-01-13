@@ -24,12 +24,6 @@ static COMMANDS: LazyLock<Vec<Command>> = LazyLock::new(|| {
             Box::new(reset),
         ),
         Command::new(
-            "repeat",
-            None,
-            "Repeats the input to the command.",
-            Box::new(repeat),
-        ),
-        Command::new(
             "whisper",
             Some(vec!["w", "pm"]),
             "Sends a private message to another player.",
@@ -145,10 +139,6 @@ async fn reset(req: CommandRequest) -> Result<Option<ChatRequest>> {
     game.reset_hero(&req.player).await?;
 
     Ok(None)
-}
-
-async fn repeat(req: CommandRequest) -> Result<Option<ChatRequest>> {
-    response(req.args.join(" "), req.player.load().id)
 }
 
 async fn whisper(req: CommandRequest) -> Result<Option<ChatRequest>> {
