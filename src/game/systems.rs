@@ -1,7 +1,7 @@
 use super::{
     area::Area,
     components::{
-        BounceOffBounds, Bounded, Color, Downed, Enemy, Hero, Named, RenderReceiver, Size,
+        BounceOffBounds, Bounded, Color, Downed, Enemy, Hero, Named, PlayerId, RenderReceiver, Size,
     },
     game::TransferRequest,
 };
@@ -208,13 +208,11 @@ pub fn system_enemy_collision(area: &mut Area) {
     for entity in to_down {
         let _ = area.world.insert_one(entity, Downed);
 
-        let _ = area
-            .leaderboard_tx
-            .send(LeaderboardUpdate::set_downed(
-                entity,
-                area.full_id.clone(),
-                true,
-            ));
+        let _ = area.leaderboard_tx.send(LeaderboardUpdate::set_downed(
+            entity,
+            area.full_id.clone(),
+            true,
+        ));
     }
 }
 
@@ -244,13 +242,11 @@ pub fn system_hero_collision(area: &mut Area) {
         let result = area.world.remove_one::<Downed>(entity);
 
         if result.is_ok() {
-            let _ = area
-                .leaderboard_tx
-                .send(LeaderboardUpdate::set_downed(
-                    entity,
-                    area.full_id.clone(),
-                    false,
-                ));
+            let _ = area.leaderboard_tx.send(LeaderboardUpdate::set_downed(
+                entity,
+                area.full_id.clone(),
+                false,
+            ));
         }
     }
 }
@@ -305,18 +301,17 @@ pub fn system_send_render_packet(area: &mut Area) {
 }
 
 pub async fn system_portals(area: &mut Area) {
-    for (entity, (pos, size)) in area
+    for (_, (pos, size, player_id)) in area
         .world
-        .query_mut::<With<(&mut Position, &Size), &Hero>>()
+        .query_mut::<With<(&mut Position, &Size, &PlayerId), &Hero>>()
     {
         for portal in &area.portals {
             if portal.rect.contains_circle(pos.0, size.0 / 2.0) {
-                let req = TransferRequest::new(
-                    entity,
-                    area.full_id.clone(),
-                    portal.target_id.clone(),
-                    Some(portal.target_pos),
-                );
+                let req = TransferRequest {
+                    player_id: player_id.0,
+                    target_area_id: portal.target_id.clone(),
+                    target_pos: Some(portal.target_pos),
+                };
 
                 let _ = area.transfer_tx.send(req).await;
             }

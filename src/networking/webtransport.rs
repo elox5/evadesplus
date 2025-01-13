@@ -128,10 +128,10 @@ impl WebTransportServer {
                 }
                 dgram = connection.receive_datagram() => {
                     let dgram = dgram?;
-                    Self::handle_datagram(dgram, &game, &player).await;
+                    Self::handle_datagram(dgram, &game, id).await;
                 }
                 connection_result = connection.closed() => {
-                    return Self::handle_connection_closed(connection_result, &game, &player, id).await;
+                    return Self::handle_connection_closed(connection_result, &game, id).await;
                 }
                 leaderboard_update = lb_rx.recv() => {
                     let leaderboard_update = leaderboard_update?;
@@ -201,7 +201,11 @@ impl WebTransportServer {
                         let command = splits[0];
                         let args = splits[1..].iter().map(|s| s.to_string()).collect();
 
-                        let req = CommandRequest::new(args, game.clone(), player.clone());
+                        let req = CommandRequest {
+                            args,
+                            game: game.clone(),
+                            player_id: id,
+                        };
 
                         let response = handle_command(command, req).await;
 
@@ -265,37 +269,27 @@ impl WebTransportServer {
         Ok(())
     }
 
-    async fn handle_datagram(
-        datagram: Datagram,
-        game: &Arc<Mutex<Game>>,
-        player: &Option<Arc<ArcSwap<Player>>>,
-    ) {
-        if let Some(player) = player {
-            let payload = datagram.payload();
+    async fn handle_datagram(datagram: Datagram, game: &Arc<Mutex<Game>>, id: u64) {
+        let payload = datagram.payload();
 
-            let x = f32::from_le_bytes([payload[0], payload[1], payload[2], payload[3]]);
-            let y = f32::from_le_bytes([payload[4], payload[5], payload[6], payload[7]]);
+        let x = f32::from_le_bytes([payload[0], payload[1], payload[2], payload[3]]);
+        let y = f32::from_le_bytes([payload[4], payload[5], payload[6], payload[7]]);
 
-            // println!("Received input '({x:.2}, {y:.2})' from client {id}");
+        // println!("Received input '({x:.2}, {y:.2})' from client {id}");
 
-            let mut game = game.lock().await;
-            game.update_player_input(player.load().entity, Vec2::new(x, y))
-                .await;
-        }
+        let mut game = game.lock().await;
+        let _ = game.update_player_input(id, Vec2::new(x, y)).await;
     }
 
     async fn handle_connection_closed(
         connection_result: ConnectionError,
         game: &Arc<Mutex<Game>>,
-        player: &Option<Arc<ArcSwap<Player>>>,
         id: u64,
     ) -> Result<ConnectionError> {
         println!("Connection from client {id} closed");
 
-        if let Some(player) = player {
-            let mut game = game.lock().await;
-            game.despawn_hero(player).await;
-        }
+        let mut game = game.lock().await;
+        let _ = game.despawn_hero(id).await;
 
         Ok(connection_result)
     }

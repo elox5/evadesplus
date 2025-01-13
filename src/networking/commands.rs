@@ -1,7 +1,6 @@
 use super::chat::{ChatMessageType, ChatRequest};
-use crate::game::game::{Game, Player};
+use crate::game::game::Game;
 use anyhow::Result;
-use arc_swap::ArcSwap;
 use std::{
     future::Future,
     pin::Pin,
@@ -89,20 +88,14 @@ pub async fn handle_command(
         format!(
             "Unknown command: */{command_name}*. For a list of available commands, use */help*."
         ),
-        req.player.load().id,
+        req.player_id,
     )
 }
 
 pub struct CommandRequest {
-    args: Vec<String>,
-    game: Arc<Mutex<Game>>,
-    player: Arc<ArcSwap<Player>>,
-}
-
-impl CommandRequest {
-    pub fn new(args: Vec<String>, game: Arc<Mutex<Game>>, player: Arc<ArcSwap<Player>>) -> Self {
-        Self { args, game, player }
-    }
+    pub args: Vec<String>,
+    pub game: Arc<Mutex<Game>>,
+    pub player_id: u64,
 }
 
 async fn help(req: CommandRequest) -> Result<Option<ChatRequest>> {
@@ -130,13 +123,13 @@ async fn help(req: CommandRequest) -> Result<Option<ChatRequest>> {
         help_message,
         String::new(),
         ChatMessageType::CommandResponse,
-        Some(vec![req.player.load().id]),
+        Some(vec![req.player_id]),
     )))
 }
 
 async fn reset(req: CommandRequest) -> Result<Option<ChatRequest>> {
     let mut game = req.game.lock().await;
-    game.reset_hero(&req.player).await?;
+    game.reset_hero(req.player_id).await?;
 
     Ok(None)
 }
@@ -146,32 +139,30 @@ async fn whisper(req: CommandRequest) -> Result<Option<ChatRequest>> {
 
     let game = req.game.lock().await;
 
-    let recipient = if let Some(recipient) = game.get_player_by_name(&recipient_name) {
-        recipient
-    } else {
-        return response(
-            format!("Player '{}' not found.", recipient_name),
-            req.player.load().id,
-        );
+    let recipient = match game.get_player_by_name(&recipient_name) {
+        Ok(recipient) => recipient,
+        Err(err) => {
+            return response(err.to_string(), req.player_id);
+        }
     };
-
-    let player = req.player.load();
 
     let message = req.args[1..].join(" ");
 
     if message.is_empty() {
-        return response("Whisper message cannot be empty.".to_owned(), player.id);
+        return response("Whisper message cannot be empty.".to_owned(), req.player_id);
     }
 
-    if recipient.id == player.id {
-        return response("You cannot whisper to yourself.".to_owned(), player.id);
+    if recipient.id == req.player_id {
+        return response("You cannot whisper to yourself.".to_owned(), req.player_id);
     }
+
+    let player = game.get_player(req.player_id)?;
 
     Ok(Some(ChatRequest::new(
         message,
         format!("{} -> {}", player.name, recipient_name),
         ChatMessageType::Whisper,
-        Some(vec![player.id, recipient.id]),
+        Some(vec![req.player_id, recipient.id]),
     )))
 }
 

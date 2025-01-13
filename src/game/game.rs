@@ -12,15 +12,10 @@ use crate::{
     },
     physics::vec2::Vec2,
 };
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use arc_swap::{ArcSwap, Guard};
 use hecs::Entity;
-use std::{
-    collections::HashMap,
-    hash::{DefaultHasher, Hash, Hasher},
-    sync::Arc,
-    time::Duration,
-};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 use tokio::{
     join,
     sync::{
@@ -37,7 +32,7 @@ pub struct Game {
 
     areas: HashMap<String, Arc<Mutex<Area>>>,
 
-    players: Vec<Arc<ArcSwap<Player>>>,
+    players: HashMap<u64, Arc<ArcSwap<Player>>>,
 
     start_area_id: String,
 
@@ -74,7 +69,7 @@ impl Game {
         let game = Game {
             maps: maps.into_iter().map(|m| m.to_template()).collect(),
             areas: HashMap::new(),
-            players: Vec::new(),
+            players: HashMap::new(),
             start_area_id: start_area_id.to_owned(),
             transfer_tx: transfer_tx.clone(),
             transfer_queue: Vec::new(),
@@ -216,12 +211,18 @@ impl Game {
             .unwrap_or_else(|_| panic!("Start area '{start_area_id}' not found"));
         let mut area = area_arc.lock().await;
 
-        let entity = area.spawn_player(name, connection);
+        let entity = area.spawn_player(id, name, connection);
 
-        let player = Player::new(id, entity, area_arc.clone(), name.to_owned());
+        let player = Player {
+            id,
+            entity,
+            area_id: area.full_id.clone(),
+            area: area_arc.clone(),
+            name: name.to_owned(),
+        };
         let player = Arc::new(ArcSwap::new(Arc::new(player)));
 
-        self.players.push(player.clone());
+        self.players.insert(player.load().id, player.clone());
 
         let _ = self.leaderboard_tx.send(LeaderboardUpdate::add(
             entity,
@@ -240,48 +241,45 @@ impl Game {
         player
     }
 
-    pub async fn despawn_hero(&mut self, player: &Arc<ArcSwap<Player>>) {
-        if let Some(player_index) = self.players.iter().position(|p| Arc::ptr_eq(p, player)) {
-            let name = player.load().name.clone();
+    pub async fn despawn_hero(&mut self, player_id: u64) -> Result<()> {
+        let player = self.get_player(player_id)?;
 
-            let player = self.players.swap_remove(player_index);
-            let player = player.load();
+        let mut area = player.area.lock().await;
+        let (_, should_close) = area.despawn_player(player.entity);
 
-            let mut area = player.area.lock().await;
-            let (_, should_close) = area.despawn_player(player.entity);
+        let _ = self.leaderboard_tx.send(LeaderboardUpdate::remove(
+            player.entity,
+            area.full_id.clone(),
+        ));
 
-            let _ = self.leaderboard_tx.send(LeaderboardUpdate::remove(
-                player.entity,
-                area.full_id.clone(),
-            ));
+        println!("Despawning hero '{}'", player.name);
 
-            println!("Despawning hero '{}'", name);
+        self.send_server_announcement(format!("{} left the game", player.name));
 
-            self.send_server_announcement(format!("{} left the game", name));
-
-            if should_close {
-                self.close_area(&area.full_id);
-            }
+        if should_close {
+            self.close_area(&area.full_id);
         }
+
+        Ok(())
     }
 
-    pub async fn reset_hero(&mut self, player: &Arc<ArcSwap<Player>>) -> Result<()> {
-        let start_area_id = self.start_area_id.clone();
-
-        let entity = player.load().entity;
-        let current_area_id = player.load().area.lock().await.full_id.clone();
-
-        let req = TransferRequest::new(entity, current_area_id.clone(), start_area_id, None);
-
-        let _ = self.leaderboard_tx.send(LeaderboardUpdate::set_downed(
-            entity,
-            current_area_id,
-            false,
-        ));
+    pub async fn reset_hero(&mut self, player_id: u64) -> Result<()> {
+        let req = TransferRequest {
+            player_id,
+            target_area_id: self.start_area_id.clone(),
+            target_pos: None,
+        };
 
         self.transfer_hero(req).await?;
 
-        let player = player.load();
+        let player = self.get_player(player_id)?;
+
+        let _ = self.leaderboard_tx.send(LeaderboardUpdate::set_downed(
+            player.entity,
+            player.area_id.clone(),
+            false,
+        ));
+
         let mut area = player.area.lock().await;
 
         let _ = area.world.remove_one::<Downed>(player.entity);
@@ -290,32 +288,27 @@ impl Game {
     }
 
     pub async fn transfer_hero(&mut self, req: TransferRequest) -> Result<()> {
-        if !self.transfer_queue.contains(&req.hash) {
-            self.transfer_queue.push(req.hash);
+        if !self.transfer_queue.contains(&req.player_id) {
+            self.transfer_queue.push(req.player_id);
         }
 
-        if req.target_area_id == req.current_area_id {
+        let player = self.get_player(req.player_id)?;
+
+        if req.target_area_id == player.area_id {
             return self.move_hero_across_area(req).await;
         }
 
         let target_area_arc = self.get_or_create_area(&req.target_area_id)?;
 
-        let player_arcswap = self
-            .players
-            .iter_mut()
-            .find(|p| p.load().entity == req.entity)
-            .unwrap();
-        let player = player_arcswap.load();
-
         let (mut area, mut target_area) = join!(player.area.lock(), target_area_arc.lock());
 
-        let (taken_entity, should_close) = area.despawn_player(req.entity);
+        let (taken_entity, should_close) = area.despawn_player(player.entity);
         let entity = taken_entity?;
         let entity = target_area.world.spawn(entity);
 
         let _ = self.leaderboard_tx.send(LeaderboardUpdate::transfer(
             entity,
-            req.entity,
+            player.entity,
             area.full_id.clone(),
             target_area.order,
             target_area.full_id.clone(),
@@ -325,12 +318,15 @@ impl Game {
 
         let target_pos = req.target_pos.unwrap_or(target_area.spawn_pos);
 
-        let new_player = Player::new(
-            player.id,
+        let new_player = Player {
+            id: player.id,
             entity,
-            target_area_arc.clone(),
-            player.name.clone(),
-        );
+            area_id: target_area.full_id.clone(),
+            area: target_area_arc.clone(),
+            name: player.name.clone(),
+        };
+
+        let player_arcswap = self.get_player_arcswap(req.player_id)?;
         player_arcswap.store(Arc::new(new_player));
 
         if should_close {
@@ -349,7 +345,7 @@ impl Game {
         self.transfer_queue.swap_remove(
             self.transfer_queue
                 .iter()
-                .position(|&hash| hash == req.hash)
+                .position(|&hash| hash == req.player_id)
                 .unwrap(),
         );
 
@@ -365,42 +361,59 @@ impl Game {
     }
 
     pub async fn move_hero_across_area(&mut self, req: TransferRequest) -> Result<()> {
-        let area = self.get_or_create_area(&req.current_area_id)?;
+        let player = self.get_player(req.player_id)?;
+
+        let area = self.get_or_create_area(&player.area_id)?;
 
         let mut area = area.lock().await;
 
         let area_spawn_pos = area.spawn_pos;
 
-        let pos = area.world.query_one_mut::<&mut Position>(req.entity)?;
+        let pos = area.world.query_one_mut::<&mut Position>(player.entity)?;
 
-        pos.0 = req.target_pos.unwrap_or_else(|| area_spawn_pos);
+        pos.0 = req.target_pos.unwrap_or(area_spawn_pos);
 
         Ok(())
     }
 
-    pub async fn update_player_input(&mut self, entity: Entity, input: Vec2) {
-        if let Some(player) = self.get_player(entity) {
-            let mut area = player.area.lock().await;
-            area.update_player_input(entity, input);
-        }
+    pub async fn update_player_input(&mut self, player_id: u64, input: Vec2) -> Result<()> {
+        let player = self.get_player(player_id)?;
+
+        let mut area = player.area.lock().await;
+        area.update_player_input(player.entity, input);
+
+        Ok(())
     }
 
-    pub fn get_player(&self, entity: Entity) -> Option<Guard<Arc<Player>>> {
+    pub fn get_player_arcswap(&self, player_id: u64) -> Result<Arc<ArcSwap<Player>>> {
+        let player = self
+            .players
+            .get(&player_id)
+            .ok_or(anyhow!("Player #{player_id} not found"))?
+            .clone();
+
+        Ok(player)
+    }
+
+    pub fn get_player(&self, player_id: u64) -> Result<Guard<Arc<Player>>> {
+        let player = self.get_player_arcswap(player_id)?.load();
+
+        Ok(player)
+    }
+
+    pub fn get_player_by_name(&self, name: &str) -> Result<Guard<Arc<Player>>> {
         self.players
-            .iter()
-            .map(|p| p.load())
-            .find(|p| p.entity == entity)
-    }
+            .values()
+            .find_map(|player| {
+                let player = player.load();
 
-    pub fn get_player_by_id(&self, id: u64) -> Option<Guard<Arc<Player>>> {
-        self.players.iter().map(|p| p.load()).find(|p| p.id == id)
-    }
-
-    pub fn get_player_by_name(&self, name: &str) -> Option<Guard<Arc<Player>>> {
-        self.players
-            .iter()
-            .map(|p| p.load())
-            .find(|p| p.name == name)
+                if player.name == name {
+                    Some(player)
+                } else {
+                    None
+                }
+            })
+            .ok_or(anyhow!("Player '{name}' not found"))
     }
 
     fn split_id(id: &str) -> Option<(&str, &str)> {
@@ -428,48 +441,14 @@ impl Game {
 pub struct Player {
     pub id: u64,
     pub entity: Entity,
+    pub area_id: String,
     pub area: Arc<Mutex<Area>>,
     pub name: String,
 }
 
-impl Player {
-    pub fn new(id: u64, entity: Entity, area: Arc<Mutex<Area>>, name: String) -> Self {
-        Self {
-            id,
-            entity,
-            area,
-            name,
-        }
-    }
-}
-
 #[derive(Clone, Debug)]
 pub struct TransferRequest {
-    pub entity: Entity,
-    pub current_area_id: String,
+    pub player_id: u64,
     pub target_area_id: String,
     pub target_pos: Option<Vec2>,
-    hash: u64,
-}
-
-impl TransferRequest {
-    pub fn new(
-        entity: Entity,
-        current_area_id: String,
-        target_area_id: String,
-        target_pos: Option<Vec2>,
-    ) -> Self {
-        let mut hasher = DefaultHasher::new();
-        entity.id().hash(&mut hasher);
-        current_area_id.hash(&mut hasher);
-        target_area_id.hash(&mut hasher);
-
-        Self {
-            entity,
-            current_area_id,
-            target_area_id,
-            target_pos,
-            hash: hasher.finish(),
-        }
-    }
 }

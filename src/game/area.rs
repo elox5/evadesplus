@@ -1,7 +1,7 @@
 use super::{
     components::{
-        BounceOffBounds, Bounded, Color, Direction, Enemy, Hero, Named, Position, RenderReceiver,
-        Size, Speed, Velocity,
+        BounceOffBounds, Bounded, Color, Direction, Enemy, Hero, Named, PlayerId, Position,
+        RenderReceiver, Size, Speed, Velocity,
     },
     game::TransferRequest,
     templates::{AreaTemplate, EnemyGroup},
@@ -131,7 +131,7 @@ impl Area {
         self.world.spawn_batch(enemies);
     }
 
-    pub fn spawn_player(&mut self, name: &str, connection: Connection) -> Entity {
+    pub fn spawn_player(&mut self, id: u64, name: &str, connection: Connection) -> Entity {
         self.world.spawn((
             Position(self.spawn_pos),
             Velocity(Vec2::ZERO),
@@ -141,6 +141,7 @@ impl Area {
             Color::rgb(rand::random(), rand::random(), rand::random()),
             Named(name.to_owned()),
             RenderReceiver { connection },
+            PlayerId(id),
             Hero,
             Bounded,
         ))
