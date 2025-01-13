@@ -87,9 +87,11 @@ impl WebTransportServer {
         chat_rx: broadcast::Receiver<ChatRequest>,
         id: u64,
     ) {
-        let result = Self::handle_session_impl(session, game, chat_tx, chat_rx, id).await;
+        let result = Self::handle_session_impl(session, game.clone(), chat_tx, chat_rx, id).await;
 
         println!("Session {id} closed with result: {result:?}");
+
+        Self::finalize_connection(&game, id).await;
     }
 
     async fn handle_session_impl(
@@ -125,7 +127,7 @@ impl WebTransportServer {
                     handle_datagram(dgram, &game, id).await;
                 }
                 connection_result = connection.closed() => {
-                    return handle_connection_closed(connection_result, &game, id).await;
+                    return Ok(connection_result);
                 }
                 leaderboard_update = lb_rx.recv() => {
                     let leaderboard_update = leaderboard_update?;
@@ -137,6 +139,11 @@ impl WebTransportServer {
                 }
             }
         }
+    }
+
+    async fn finalize_connection(game: &Arc<Mutex<Game>>, id: u64) {
+        let mut game = game.lock().await;
+        let _ = game.despawn_hero(id).await;
     }
 }
 
@@ -273,19 +280,6 @@ async fn handle_datagram(datagram: Datagram, game: &Arc<Mutex<Game>>, id: u64) {
 
     let mut game = game.lock().await;
     let _ = game.update_player_input(id, Vec2::new(x, y)).await;
-}
-
-async fn handle_connection_closed(
-    connection_result: ConnectionError,
-    game: &Arc<Mutex<Game>>,
-    id: u64,
-) -> Result<ConnectionError> {
-    println!("Connection from client {id} closed");
-
-    let mut game = game.lock().await;
-    let _ = game.despawn_hero(id).await;
-
-    Ok(connection_result)
 }
 
 async fn handle_leaderboard_update(
