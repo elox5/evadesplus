@@ -53,8 +53,10 @@ class Chat {
     }
 
     tryExecuteCommand(command) {
+        const SERVER_ID = 18_446_744_073_709_551_615;
+
         if (this.commandList === null) {
-            this.receiveMessage("The command list cache has not been initialized yet. Please wait a few seconds...", "", 2);
+            this.receiveMessage("The command list cache has not been initialized yet. Please wait a few seconds...", SERVER_ID, "", 2);
             return true;
         }
 
@@ -65,7 +67,7 @@ class Chat {
         let commandName = command.split(" ")[0].trim();
 
         if (!this.isValidCommand(commandName)) {
-            this.receiveMessage(`Unknown command: */${commandName}*. For a list of available commands, use */help*.`, "", 2);
+            this.receiveMessage(`Unknown command: */${commandName}*. For a list of available commands, use */help*.`, SERVER_ID, "", 2);
             return true;
         }
         else if (commandName === "help") {
@@ -90,7 +92,7 @@ class Chat {
 
             const helpMessage = messages.join("\n\n");
 
-            this.receiveMessage(helpMessage, "", 2);
+            this.receiveMessage(helpMessage, SERVER_ID, "", 2);
 
             return true;
         }
