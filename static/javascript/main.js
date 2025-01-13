@@ -335,17 +335,19 @@ function handleChatBroadcast(data) {
     const decoder = new TextDecoder("utf-8");
 
     const messageType = data[0];
-    const nameLength = data[1];
-    const messageLength = data[2];
+    const senderId = new BigUint64Array(data.slice(1, 9).buffer)[0];
 
-    let idx = 3;
+    const nameLength = data[9];
+    const messageLength = data[10];
+
+    let idx = 11;
 
     const name = decoder.decode(data.slice(idx, idx + nameLength));
     idx += nameLength;
 
     const message = decoder.decode(data.slice(idx, idx + messageLength));
 
-    chat.receiveMessage(message, name, messageType);
+    chat.receiveMessage(message, senderId, name, messageType);
 }
 
 function handleCommandList(data) {

@@ -415,6 +415,7 @@ impl Game {
         let chat_broadcast = ChatRequest::new(
             message,
             String::new(),
+            u64::MAX,
             ChatMessageType::ServerAnnouncement,
             None,
         );

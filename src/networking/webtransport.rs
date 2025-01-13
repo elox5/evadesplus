@@ -219,6 +219,7 @@ async fn handle_uni_stream(
                         Err(err) => Some(ChatRequest::new(
                             format!("A server error has occurred. Please report it to the developers: *{err:?}*"),
                             String::new(),
+                            id,
                             ChatMessageType::ServerError,
                             Some(vec![id]),
                         )),
@@ -232,7 +233,7 @@ async fn handle_uni_stream(
                 let name = game.get_player(id)?.name.clone();
 
                 let request =
-                    ChatRequest::new(text.to_owned(), name, ChatMessageType::Normal, None);
+                    ChatRequest::new(text.to_owned(), name, id, ChatMessageType::Normal, None);
 
                 let _ = chat_tx.send(request);
             }

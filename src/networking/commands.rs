@@ -150,10 +150,12 @@ async fn reset(req: CommandRequest) -> Result<Option<ChatRequest>> {
 }
 
 async fn whisper(req: CommandRequest) -> Result<Option<ChatRequest>> {
+    let sender_id = req.player_id;
+
     let recipient_name = match req.args.get(0) {
         Some(name) => name,
         None => {
-            return response("You must specify a target player".to_owned(), req.player_id);
+            return response("You must specify a target player".to_owned(), sender_id);
         }
     };
 
@@ -162,27 +164,28 @@ async fn whisper(req: CommandRequest) -> Result<Option<ChatRequest>> {
     let recipient = match game.get_player_by_name(&recipient_name) {
         Ok(recipient) => recipient,
         Err(err) => {
-            return response(err.to_string(), req.player_id);
+            return response(err.to_string(), sender_id);
         }
     };
 
     let message = req.args[1..].join(" ");
 
     if message.is_empty() {
-        return response("Whisper message cannot be empty.".to_owned(), req.player_id);
+        return response("Whisper message cannot be empty.".to_owned(), sender_id);
     }
 
-    if recipient.id == req.player_id {
-        return response("You cannot whisper to yourself.".to_owned(), req.player_id);
+    if recipient.id == sender_id {
+        return response("You cannot whisper to yourself.".to_owned(), sender_id);
     }
 
-    let player = game.get_player(req.player_id)?;
+    let player = game.get_player(sender_id)?;
 
     Ok(Some(ChatRequest::new(
         message,
         format!("{} -> {}", player.name, recipient_name),
+        sender_id,
         ChatMessageType::Whisper,
-        Some(vec![req.player_id, recipient.id]),
+        Some(vec![sender_id, recipient.id]),
     )))
 }
 
@@ -192,6 +195,7 @@ fn response(message: String, recipient_id: u64) -> Result<Option<ChatRequest>> {
     Ok(Some(ChatRequest::new(
         message,
         String::new(),
+        u64::MAX,
         ChatMessageType::CommandResponse,
         Some(vec![recipient_id]),
     )))

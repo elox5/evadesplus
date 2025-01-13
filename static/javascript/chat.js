@@ -98,7 +98,7 @@ class Chat {
         return false;
     }
 
-    receiveMessage(message, name, messageType) {
+    receiveMessage(message, senderId, name, messageType) {
         const atBottom = Math.abs(this.list.scrollHeight - this.list.clientHeight - this.list.scrollTop) < 1
 
         const entry = document.createElement("div");
@@ -122,7 +122,20 @@ class Chat {
         if (messageType === 3) entry.classList.add("special", "server-announcement");
         if (messageType === 4) entry.classList.add("special", "server-error");
 
+        entry.onmousedown = (e) => {
+            if (e.button === 2) {
+                navigator.clipboard.writeText(`@${senderId}`);
+                e.preventDefault();
+            }
+        }
+        entry.oncontextmenu = (e) => { e.preventDefault(); }
+
         this.list.appendChild(entry);
+
+        this.messages.push({
+            senderId: senderId,
+            element: entry,
+        });
 
         if (atBottom) {
             this.list.scrollTo(0, this.list.scrollHeight);
