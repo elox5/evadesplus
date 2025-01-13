@@ -93,7 +93,7 @@ export function setupInput() {
             chat.focus();
             return;
         } else if (e.key == "Escape" && !chat.focused()) {
-            sendChatMessage("/reset", "");
+            sendChatMessage("/reset");
         } else {
             return;
         }

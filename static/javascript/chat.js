@@ -11,22 +11,18 @@ class Chat {
         const sendButton = document.getElementById("chat-send-button");
 
         sendButton.onclick = () => {
-            this.sendMessage(this.input.value, this.username);
+            this.sendMessage(this.input.value);
         };
 
         this.input.onkeydown = (e) => {
             if (e.key === "Enter") {
-                this.sendMessage(this.input.value, this.username);
+                this.sendMessage(this.input.value);
                 e.stopPropagation();
             }
         };
     }
 
-    setUsername(username) {
-        this.username = username;
-    }
-
-    sendMessage(message, name) {
+    sendMessage(message) {
         this.input.blur();
 
         message = message.trim();
@@ -34,7 +30,7 @@ class Chat {
             return;
         }
 
-        sendChatMessage(message, name);
+        sendChatMessage(message);
         this.input.value = "";
     }
 

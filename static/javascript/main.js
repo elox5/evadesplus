@@ -28,8 +28,6 @@ async function handleConnection() {
 
     connectButton.disabled = true;
 
-    chat.setUsername(name);
-
     await connect(name);
     establishInputConnection();
     establishRenderConnection(handleRenderUpdate);

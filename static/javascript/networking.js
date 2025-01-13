@@ -79,7 +79,7 @@ async function initializePingMeter() {
     }, metricSettings.pingFrequency);
 }
 
-export async function sendChatMessage(message, name) {
+export async function sendChatMessage(message) {
     const stream = await transport.createUnidirectionalStream();
     const writer = stream.getWriter();
 
