@@ -152,8 +152,8 @@ async fn reset(req: CommandRequest) -> Result<Option<ChatRequest>> {
 async fn whisper(req: CommandRequest) -> Result<Option<ChatRequest>> {
     let sender_id = req.player_id;
 
-    let recipient_name = match req.args.get(0) {
-        Some(name) => name,
+    let recipient_text = match req.args.get(0) {
+        Some(text) => text,
         None => {
             return response("You must specify a target player".to_owned(), sender_id);
         }
@@ -161,7 +161,22 @@ async fn whisper(req: CommandRequest) -> Result<Option<ChatRequest>> {
 
     let game = req.game.lock().await;
 
-    let recipient = match game.get_player_by_name(&recipient_name) {
+    let maybe_recipient = if recipient_text.starts_with('@') {
+        let recipient_id = recipient_text[1..].parse::<u64>();
+
+        if let Ok(id) = recipient_id {
+            game.get_player(id)
+        } else {
+            return response(
+                format!("{recipient_text} is not a valid player ID"),
+                sender_id,
+            );
+        }
+    } else {
+        game.get_player_by_name(recipient_text)
+    };
+
+    let recipient = match maybe_recipient {
         Ok(recipient) => recipient,
         Err(err) => {
             return response(err.to_string(), sender_id);
@@ -182,7 +197,7 @@ async fn whisper(req: CommandRequest) -> Result<Option<ChatRequest>> {
 
     Ok(Some(ChatRequest::new(
         message,
-        format!("{} -> {}", player.name, recipient_name),
+        format!("{} -> {}", player.name, recipient.name),
         sender_id,
         ChatMessageType::Whisper,
         Some(vec![sender_id, recipient.id]),

@@ -374,7 +374,7 @@ impl Game {
         let player = self
             .players
             .get(&player_id)
-            .ok_or(anyhow!("Player #{player_id} not found"))?;
+            .ok_or(anyhow!("Player with ID @{player_id} not found"))?;
 
         Ok(player)
     }
