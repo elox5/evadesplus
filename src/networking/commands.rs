@@ -25,7 +25,7 @@ static COMMANDS: LazyLock<Vec<Command>> = LazyLock::new(|| {
         ),
         Command::new(
             "whisper",
-            Some(vec!["w", "pm"]),
+            Some(vec!["w", "pm", "msg", "message"]),
             "Sends a private message to another player.",
             Box::new(whisper),
         ),
