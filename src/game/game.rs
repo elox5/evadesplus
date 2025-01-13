@@ -7,7 +7,7 @@ use super::{
 };
 use crate::{
     networking::{
-        chat::ChatRequest,
+        chat::{ChatMessageType, ChatRequest},
         leaderboard::{LeaderboardState, LeaderboardUpdate},
     },
     physics::vec2::Vec2,
@@ -235,13 +235,7 @@ impl Game {
 
         println!("Spawning hero '{}' (entity {})", name, entity.id());
 
-        let chat_broadcast = ChatRequest::new(
-            format!("{} joined the game", name),
-            String::new(),
-            crate::networking::chat::ChatMessageType::ServerAnnouncement,
-            None,
-        );
-        let _ = self.chat_tx.send(chat_broadcast);
+        self.send_server_announcement(format!("{} joined the game", name));
 
         player
     }
@@ -263,13 +257,7 @@ impl Game {
 
             println!("Despawning hero '{}'", name);
 
-            let chat_broadcast = ChatRequest::new(
-                format!("{} left the game", name),
-                String::new(),
-                crate::networking::chat::ChatMessageType::ServerAnnouncement,
-                None,
-            );
-            let _ = self.chat_tx.send(chat_broadcast);
+            self.send_server_announcement(format!("{} left the game", name));
 
             if should_close {
                 self.close_area(&area.full_id);
@@ -424,6 +412,16 @@ impl Game {
 
     fn try_get_map(&self, map_id: &str) -> Option<&MapTemplate> {
         self.maps.iter().find(|m| m.id == map_id)
+    }
+
+    fn send_server_announcement(&self, message: String) {
+        let chat_broadcast = ChatRequest::new(
+            message,
+            String::new(),
+            ChatMessageType::ServerAnnouncement,
+            None,
+        );
+        let _ = self.chat_tx.send(chat_broadcast);
     }
 }
 
