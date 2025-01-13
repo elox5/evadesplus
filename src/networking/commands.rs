@@ -1,5 +1,6 @@
 use super::chat::{ChatMessageType, ChatRequest};
 use crate::game::game::Game;
+use anyhow::anyhow;
 use anyhow::Result;
 use std::{
     future::Future,
@@ -31,10 +32,37 @@ static COMMANDS: LazyLock<Vec<Command>> = LazyLock::new(|| {
     ]
 });
 
+pub fn get_command_list_binary() -> Vec<u8> {
+    let mut bytes = Vec::new();
+
+    bytes.extend_from_slice(b"CMDL"); // 4 bytes
+    bytes.push(COMMANDS.len() as u8); // 1 byte
+
+    for command in COMMANDS.iter() {
+        bytes.push(command.name.len() as u8); // 1 byte
+        bytes.extend_from_slice(command.name.as_bytes()); // name.len() bytes
+
+        bytes.extend_from_slice(&(command.description.len() as u16).to_le_bytes()); // 2 bytes
+        bytes.extend_from_slice(command.description.as_bytes()); // help_description.len() bytes
+
+        if let Some(aliases) = &command.aliases {
+            bytes.push(aliases.len() as u8); // 1 byte
+            for alias in aliases {
+                bytes.push(alias.len() as u8); // 1 byte
+                bytes.extend_from_slice(alias.as_bytes()); // alias.len() bytes
+            }
+        } else {
+            bytes.push(0); // 1 byte
+        }
+    }
+
+    bytes
+}
+
 struct Command {
     name: String,
     aliases: Option<Vec<String>>,
-    help_description: String,
+    description: String,
     function: Box<dyn AsyncFn>,
 }
 
@@ -48,7 +76,7 @@ impl Command {
         Self {
             name: name.to_owned(),
             aliases: aliases.map(|a| a.iter().map(|s| (*s).to_owned()).collect()),
-            help_description: help_description.to_owned(),
+            description: help_description.to_owned(),
             function,
         }
     }
@@ -84,12 +112,9 @@ pub async fn handle_command(
         }
     }
 
-    response(
-        format!(
-            "Unknown command: */{command_name}*. For a list of available commands, use */help*."
-        ),
-        req.player_id,
-    )
+    Err(anyhow!(
+        "Unknown command: /{command_name}. This should've been handled on the client, but it has somehow reached the server."
+    ))
 }
 
 pub struct CommandRequest {
@@ -98,33 +123,10 @@ pub struct CommandRequest {
     pub player_id: u64,
 }
 
-async fn help(req: CommandRequest) -> Result<Option<ChatRequest>> {
-    let mut messages = Vec::new();
-
-    for command in COMMANDS.iter() {
-        let mut msg = format!("*/{}* - {}", command.name, command.help_description);
-
-        if let Some(aliases) = &command.aliases {
-            let aliases = aliases
-                .iter()
-                .map(|a| format!("/{}", a))
-                .collect::<Vec<_>>();
-
-            msg.push_str("\nAliases: ");
-            msg.push_str(&aliases.join(", "));
-        }
-
-        messages.push(msg);
-    }
-
-    let help_message = messages.join("\n\n");
-
-    Ok(Some(ChatRequest::new(
-        help_message,
-        String::new(),
-        ChatMessageType::CommandResponse,
-        Some(vec![req.player_id]),
-    )))
+async fn help(_req: CommandRequest) -> Result<Option<ChatRequest>> {
+    Err(anyhow!(
+        "The /help command should have been handled on the client."
+    ))
 }
 
 async fn reset(req: CommandRequest) -> Result<Option<ChatRequest>> {
@@ -135,7 +137,12 @@ async fn reset(req: CommandRequest) -> Result<Option<ChatRequest>> {
 }
 
 async fn whisper(req: CommandRequest) -> Result<Option<ChatRequest>> {
-    let recipient_name = req.args[0].clone();
+    let recipient_name = match req.args.get(0) {
+        Some(name) => name,
+        None => {
+            return response("You must specify a target player".to_owned(), req.player_id);
+        }
+    };
 
     let game = req.game.lock().await;
 

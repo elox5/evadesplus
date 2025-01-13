@@ -60,6 +60,10 @@ async function handleConnection() {
             header: "CHBR",
             callback: handleChatBroadcast
         },
+        {
+            header: "CMDL",
+            callback: handleCommandList
+        },
     ]);
     setupInput();
 
@@ -342,4 +346,51 @@ function handleChatBroadcast(data) {
     const message = decoder.decode(data.slice(idx, idx + messageLength));
 
     chat.receiveMessage(message, name, messageType);
+}
+
+function handleCommandList(data) {
+    const decoder = new TextDecoder("utf-8");
+
+    const commandCount = data[0];
+
+    let idx = 1;
+
+    const commands = [];
+
+    for (let i = 0; i < commandCount; i++) {
+        const nameLength = data[idx];
+        idx++;
+
+        const name = decoder.decode(data.slice(idx, idx + nameLength));
+        idx += nameLength;
+
+        const descriptionLength = new Uint16Array(data.slice(idx, idx + 2).buffer)[0];
+        idx += 2;
+
+        const description = decoder.decode(data.slice(idx, idx + descriptionLength));
+        idx += descriptionLength;
+
+        const aliasCount = data[idx];
+        idx++;
+
+        const aliases = [];
+
+        for (let j = 0; j < aliasCount; j++) {
+            const aliasLength = data[idx];
+            idx++;
+
+            const alias = decoder.decode(data.slice(idx, idx + aliasLength));
+            idx += aliasLength;
+
+            aliases.push(alias);
+        }
+
+        commands.push({
+            name: name,
+            description: description,
+            aliases: aliases,
+        });
+    }
+
+    chat.commandList = commands;
 }
