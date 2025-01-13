@@ -8,9 +8,6 @@ class Leaderboard {
 
 
     add(playerId, playerName, areaOrder, areaName, mapName, downed) {
-        console.log("add", playerId);
-
-
         if (!this.maps[mapName]) {
             this.maps[mapName] = new Map(mapName);
             this.element.appendChild(this.maps[mapName].element);
@@ -31,8 +28,6 @@ class Leaderboard {
     }
 
     transfer(playerId, areaOrder, areaName, mapName) {
-        console.log("transfer", playerId);
-
         for (const map of Object.values(this.maps)) {
             let oldEntryIndex = map.entries.findIndex(entry => entry.playerId === playerId);
 
