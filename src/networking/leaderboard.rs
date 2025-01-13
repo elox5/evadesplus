@@ -1,9 +1,6 @@
-use hecs::Entity;
-use std::hash::{DefaultHasher, Hash, Hasher};
-
 #[derive(Clone, Debug)]
 pub struct LeaderboardUpdate {
-    hash: u64,
+    player_id: u64,
     pub mode: LeaderboardUpdateMode,
 }
 
@@ -18,7 +15,6 @@ pub enum LeaderboardUpdateMode {
     },
     Remove,
     Transfer {
-        old_hash: u64,
         area_order: u16,
         area_name: String,
         map_name: String,
@@ -28,8 +24,7 @@ pub enum LeaderboardUpdateMode {
 
 impl LeaderboardUpdate {
     pub fn add(
-        entity: Entity,
-        area_full_id: String,
+        player_id: u64,
         player_name: String,
         downed: bool,
         area_order: u16,
@@ -37,7 +32,7 @@ impl LeaderboardUpdate {
         map_name: String,
     ) -> Self {
         Self {
-            hash: Self::get_hash(&entity, &area_full_id),
+            player_id,
             mode: LeaderboardUpdateMode::Add {
                 player_name,
                 downed,
@@ -48,36 +43,32 @@ impl LeaderboardUpdate {
         }
     }
 
-    pub fn remove(entity: Entity, area_full_id: String) -> Self {
+    pub fn remove(player_id: u64) -> Self {
         Self {
-            hash: Self::get_hash(&entity, &area_full_id),
+            player_id,
             mode: LeaderboardUpdateMode::Remove,
         }
     }
 
     pub fn transfer(
-        entity: Entity,
-        old_entity: Entity,
-        old_area_full_id: String,
-        new_area_order: u16,
-        new_area_full_id: String,
-        new_area_name: String,
-        new_map_name: String,
+        player_id: u64,
+        target_area_order: u16,
+        target_area_name: String,
+        target_map_name: String,
     ) -> Self {
         Self {
-            hash: Self::get_hash(&entity, &new_area_full_id),
+            player_id,
             mode: LeaderboardUpdateMode::Transfer {
-                old_hash: Self::get_hash(&old_entity, &old_area_full_id),
-                area_order: new_area_order,
-                area_name: new_area_name,
-                map_name: new_map_name,
+                area_order: target_area_order,
+                area_name: target_area_name,
+                map_name: target_map_name,
             },
         }
     }
 
-    pub fn set_downed(entity: Entity, area_full_id: String, downed: bool) -> Self {
+    pub fn set_downed(player_id: u64, downed: bool) -> Self {
         Self {
-            hash: Self::get_hash(&entity, &area_full_id),
+            player_id,
             mode: LeaderboardUpdateMode::SetDowned(downed),
         }
     }
@@ -93,7 +84,7 @@ impl LeaderboardUpdate {
         };
 
         bytes.extend_from_slice(header.as_bytes()); // 4 bytes
-        bytes.extend_from_slice(&self.hash.to_le_bytes()); // 8 bytes
+        bytes.extend_from_slice(&self.player_id.to_le_bytes()); // 8 bytes
 
         match &self.mode {
             LeaderboardUpdateMode::Add {
@@ -114,12 +105,10 @@ impl LeaderboardUpdate {
             }
             LeaderboardUpdateMode::Remove => {}
             LeaderboardUpdateMode::Transfer {
-                old_hash,
                 area_order,
                 area_name,
                 map_name,
             } => {
-                bytes.extend_from_slice(&old_hash.to_le_bytes()); // 8 bytes
                 bytes.extend_from_slice(&area_order.to_le_bytes()); // 2 bytes
                 bytes.push(area_name.len().to_le_bytes()[0]); // 1 byte
                 bytes.push(map_name.len().to_le_bytes()[0]); // 1 byte
@@ -133,20 +122,11 @@ impl LeaderboardUpdate {
 
         bytes
     }
-
-    fn get_hash(entity: &Entity, area_full_id: &str) -> u64 {
-        let mut hasher = DefaultHasher::new();
-
-        entity.id().hash(&mut hasher);
-        area_full_id.hash(&mut hasher);
-
-        hasher.finish()
-    }
 }
 
 #[derive(Clone)]
 struct LeaderboardStateEntry {
-    hash: u64,
+    player_id: u64,
     player_name: String,
     downed: bool,
     area_order: u16,
@@ -158,7 +138,7 @@ impl LeaderboardStateEntry {
     fn to_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
 
-        bytes.extend_from_slice(&self.hash.to_le_bytes()); // 8 bytes
+        bytes.extend_from_slice(&self.player_id.to_le_bytes()); // 8 bytes
         bytes.extend_from_slice(&self.area_order.to_le_bytes()); // 2 bytes
         bytes.push(self.downed as u8); // 1 byte
         bytes.push(self.player_name.len() as u8); // 1 byte
@@ -193,7 +173,7 @@ impl LeaderboardState {
                 area_name,
                 map_name,
             } => self.add(LeaderboardStateEntry {
-                hash: update.hash,
+                player_id: update.player_id,
                 player_name,
                 downed,
                 area_order,
@@ -201,13 +181,12 @@ impl LeaderboardState {
                 map_name,
             }),
             LeaderboardUpdateMode::Transfer {
-                old_hash,
                 area_order,
                 area_name,
                 map_name,
-            } => self.transfer(old_hash, update.hash, area_order, area_name, map_name),
-            LeaderboardUpdateMode::Remove => self.remove(update.hash),
-            LeaderboardUpdateMode::SetDowned(downed) => self.set_downed(update.hash, downed),
+            } => self.transfer(update.player_id, area_order, area_name, map_name),
+            LeaderboardUpdateMode::Remove => self.remove(update.player_id),
+            LeaderboardUpdateMode::SetDowned(downed) => self.set_downed(update.player_id, downed),
         }
     }
 
@@ -215,30 +194,27 @@ impl LeaderboardState {
         self.entries.push(entry);
     }
 
-    fn remove(&mut self, hash: u64) {
-        let index = self.entries.iter().position(|e| e.hash == hash).unwrap();
+    fn remove(&mut self, player_id: u64) {
+        let index = self
+            .entries
+            .iter()
+            .position(|e| e.player_id == player_id)
+            .unwrap();
 
         self.entries.swap_remove(index);
     }
 
-    fn transfer(
-        &mut self,
-        old_hash: u64,
-        new_hash: u64,
-        area_order: u16,
-        area_name: String,
-        map_name: String,
-    ) {
+    fn transfer(&mut self, player_id: u64, area_order: u16, area_name: String, map_name: String) {
         let old_entry_index = self
             .entries
             .iter()
-            .position(|e| e.hash == old_hash)
+            .position(|e| e.player_id == player_id)
             .unwrap();
 
         let old_entry = self.entries.swap_remove(old_entry_index);
 
         self.add(LeaderboardStateEntry {
-            hash: new_hash,
+            player_id,
             player_name: old_entry.player_name,
             downed: old_entry.downed,
             area_order,
@@ -247,9 +223,9 @@ impl LeaderboardState {
         });
     }
 
-    fn set_downed(&mut self, hash: u64, downed: bool) {
+    fn set_downed(&mut self, player_id: u64, downed: bool) {
         for entry in &mut self.entries {
-            if entry.hash == hash {
+            if entry.player_id == player_id {
                 entry.downed = downed;
             }
         }

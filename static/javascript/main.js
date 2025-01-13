@@ -229,8 +229,8 @@ function handleRenderUpdate(data) {
 }
 
 function handleLeaderboardAdd(data) {
-    const hashBytes = data.slice(0, 8);
-    const hash = new BigUint64Array(hashBytes.buffer)[0];
+    const playerIdBytes = data.slice(0, 8);
+    const playerId = new BigUint64Array(playerIdBytes.buffer)[0];
 
     const areaOrderBytes = data.slice(8, 10);
     const areaOrder = new Uint16Array(areaOrderBytes.buffer)[0];
@@ -253,30 +253,27 @@ function handleLeaderboardAdd(data) {
 
     const mapName = decoder.decode(data.slice(idx, idx + mapNameLength));
 
-    leaderboard.add(hash, areaOrder, playerName, areaName, mapName, downed);
+    leaderboard.add(playerId, playerName, areaOrder, areaName, mapName, downed);
 }
 
 function handleLeaderboardRemove(data) {
-    const hashBytes = data.slice(0, 8);
-    const hash = new BigUint64Array(hashBytes.buffer)[0];
+    const playerIdBytes = data.slice(0, 8);
+    const playerId = new BigUint64Array(playerIdBytes.buffer)[0];
 
-    leaderboard.remove(hash);
+    leaderboard.remove(playerId);
 }
 
 function handleLeaderboardTransfer(data) {
-    const hashBytes = data.slice(0, 8);
-    const hash = new BigUint64Array(hashBytes.buffer)[0];
+    const playerIdBytes = data.slice(0, 8);
+    const playerId = new BigUint64Array(playerIdBytes.buffer)[0];
 
-    const oldHashBytes = data.slice(8, 16);
-    const oldHash = new BigUint64Array(oldHashBytes.buffer)[0];
-
-    const areaOrderBytes = data.slice(16, 18);
+    const areaOrderBytes = data.slice(8, 10);
     const areaOrder = new Uint16Array(areaOrderBytes.buffer)[0];
 
-    const areaNameLength = data[18];
-    const mapNameLength = data[19];
+    const areaNameLength = data[10];
+    const mapNameLength = data[11];
 
-    let idx = 20;
+    let idx = 12;
 
     const decoder = new TextDecoder("utf-8");
 
@@ -285,16 +282,16 @@ function handleLeaderboardTransfer(data) {
 
     const mapName = decoder.decode(data.slice(idx, idx + mapNameLength));
 
-    leaderboard.transfer(hash, oldHash, areaOrder, areaName, mapName);
+    leaderboard.transfer(playerId, areaOrder, areaName, mapName);
 }
 
 function handleLeaderboardSetDowned(data) {
-    const hashBytes = data.slice(0, 8);
-    const hash = new BigUint64Array(hashBytes.buffer)[0];
+    const playerIdBytes = data.slice(0, 8);
+    const playerId = new BigUint64Array(playerIdBytes.buffer)[0];
 
     const downed = data[8] === 1;
 
-    leaderboard.setDowned(hash, downed);
+    leaderboard.setDowned(playerId, downed);
 }
 
 function handleLeaderboardStateUpdate(data) {
@@ -303,8 +300,8 @@ function handleLeaderboardStateUpdate(data) {
     let idx = 1;
 
     for (let i = 0; i < entryCount; i++) {
-        const hashBytes = data.slice(idx, idx + 8);
-        const hash = new BigUint64Array(hashBytes.buffer)[0];
+        const playerIdBytes = data.slice(idx, idx + 8);
+        const playerId = new BigUint64Array(playerIdBytes.buffer)[0];
 
         const areaOrderBytes = data.slice(idx + 8, idx + 10);
         const areaOrder = new Uint16Array(areaOrderBytes.buffer)[0];
@@ -328,7 +325,7 @@ function handleLeaderboardStateUpdate(data) {
         const mapName = decoder.decode(data.slice(idx, idx + mapNameLength));
         idx += mapNameLength;
 
-        leaderboard.add(hash, areaOrder, playerName, areaName, mapName, downed);
+        leaderboard.add(playerId, playerName, areaOrder, areaName, mapName, downed);
     }
 }
 

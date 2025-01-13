@@ -222,11 +222,10 @@ impl Game {
         };
         let player = Arc::new(ArcSwap::new(Arc::new(player)));
 
-        self.players.insert(player.load().id, player.clone());
+        self.players.insert(id, player.clone());
 
         let _ = self.leaderboard_tx.send(LeaderboardUpdate::add(
-            entity,
-            area.full_id.clone(),
+            id,
             name.to_owned(),
             false,
             area.order,
@@ -247,10 +246,9 @@ impl Game {
         let mut area = player.area.lock().await;
         let (_, should_close) = area.despawn_player(player.entity);
 
-        let _ = self.leaderboard_tx.send(LeaderboardUpdate::remove(
-            player.entity,
-            area.full_id.clone(),
-        ));
+        let _ = self
+            .leaderboard_tx
+            .send(LeaderboardUpdate::remove(player_id));
 
         println!("Despawning hero '{}'", player.name);
 
@@ -274,11 +272,9 @@ impl Game {
 
         let player = self.get_player(player_id)?;
 
-        let _ = self.leaderboard_tx.send(LeaderboardUpdate::set_downed(
-            player.entity,
-            player.area_id.clone(),
-            false,
-        ));
+        let _ = self
+            .leaderboard_tx
+            .send(LeaderboardUpdate::set_downed(player_id, false));
 
         let mut area = player.area.lock().await;
 
@@ -307,11 +303,8 @@ impl Game {
         let entity = target_area.world.spawn(entity);
 
         let _ = self.leaderboard_tx.send(LeaderboardUpdate::transfer(
-            entity,
-            player.entity,
-            area.full_id.clone(),
+            req.player_id,
             target_area.order,
-            target_area.full_id.clone(),
             target_area.area_name.clone(),
             target_area.map_name.clone(),
         ));

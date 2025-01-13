@@ -7,18 +7,21 @@ class Leaderboard {
     }
 
 
-    add(hash, areaOrder, playerName, areaName, mapName, downed) {
+    add(playerId, playerName, areaOrder, areaName, mapName, downed) {
+        console.log("add", playerId);
+
+
         if (!this.maps[mapName]) {
             this.maps[mapName] = new Map(mapName);
             this.element.appendChild(this.maps[mapName].element);
         }
 
-        this.maps[mapName].add(hash, areaOrder, playerName, areaName, downed);
+        this.maps[mapName].add(playerId, playerName, areaOrder, areaName, downed);
     }
 
-    remove(hash) {
+    remove(playerId) {
         for (const map of Object.values(this.maps)) {
-            map.remove(hash);
+            map.remove(playerId);
 
             if (map.entries.length === 0) {
                 this.element.removeChild(map.element);
@@ -27,18 +30,20 @@ class Leaderboard {
         }
     }
 
-    transfer(newHash, oldHash, areaOrder, areaName, mapName) {
+    transfer(playerId, areaOrder, areaName, mapName) {
+        console.log("transfer", playerId);
+
         for (const map of Object.values(this.maps)) {
-            let oldEntryIndex = map.entries.findIndex(entry => entry.hash === oldHash);
+            let oldEntryIndex = map.entries.findIndex(entry => entry.playerId === playerId);
 
             if (oldEntryIndex === -1) {
                 continue;
             }
 
             let oldEntry = map.entries[oldEntryIndex];
-            map.remove(oldHash);
+            map.remove(playerId);
 
-            this.add(newHash, areaOrder, oldEntry.playerName, areaName, mapName, oldEntry.downed);
+            this.add(playerId, oldEntry.playerName, areaOrder, areaName, mapName, oldEntry.downed);
 
             if (map.entries.length === 0) {
                 this.element.removeChild(map.element);
@@ -47,9 +52,9 @@ class Leaderboard {
         }
     }
 
-    setDowned(hash, downed) {
+    setDowned(playerId, downed) {
         for (const map of Object.values(this.maps)) {
-            map.setDowned(hash, downed);
+            map.setDowned(playerId, downed);
         }
     }
 }
@@ -73,22 +78,22 @@ class Map {
         this.entries = [];
     }
 
-    add(hash, areaOrder, playerName, areaName, downed) {
-        this.entries.push(new Entry(hash, areaOrder, playerName, areaName, downed));
+    add(playerId, playerName, areaOrder, areaName, downed) {
+        this.entries.push(new Entry(playerId, playerName, areaOrder, areaName, downed));
         this.entries.sort((a, b) => b.area - a.area);
 
         this.updateList();
     }
 
-    remove(hash) {
-        this.entries = this.entries.filter(entry => entry.hash !== hash);
+    remove(playerId) {
+        this.entries = this.entries.filter(entry => entry.playerId !== playerId);
 
         this.updateList();
     }
 
-    setDowned(hash, downed) {
+    setDowned(playerId, downed) {
         for (const entry of this.entries) {
-            if (entry.hash === hash) {
+            if (entry.playerId === playerId) {
                 entry.element.classList.toggle("downed", downed);
             }
         }
@@ -103,8 +108,8 @@ class Map {
 }
 
 class Entry {
-    constructor(hash, areaOrder, playerName, areaName, downed) {
-        this.hash = hash;
+    constructor(playerId, playerName, areaOrder, areaName, downed) {
+        this.playerId = playerId;
         this.areaOrder = areaOrder;
         this.playerName = playerName;
         this.areaName = areaName;

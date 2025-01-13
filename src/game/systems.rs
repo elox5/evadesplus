@@ -180,9 +180,9 @@ pub fn system_safe_zone_collision(area: &mut Area) {
 pub fn system_enemy_collision(area: &mut Area) {
     let mut to_down = Vec::new();
 
-    for (entity, (hero_pos, hero_size)) in area
+    for (entity, (hero_pos, hero_size, player_id)) in area
         .world
-        .query::<Without<With<(&Position, &Size), &Hero>, &Downed>>()
+        .query::<Without<With<(&Position, &Size, &PlayerId), &Hero>, &Downed>>()
         .iter()
     {
         let hero_pos = hero_pos.0;
@@ -200,19 +200,17 @@ pub fn system_enemy_collision(area: &mut Area) {
             let radius_sum = (hero_size + enemy_size) * 0.5;
 
             if distance_sq < radius_sum * radius_sum {
-                to_down.push(entity);
+                to_down.push((entity, player_id.0));
             }
         }
     }
 
-    for entity in to_down {
+    for (entity, player_id) in to_down {
         let _ = area.world.insert_one(entity, Downed);
 
-        let _ = area.leaderboard_tx.send(LeaderboardUpdate::set_downed(
-            entity,
-            area.full_id.clone(),
-            true,
-        ));
+        let _ = area
+            .leaderboard_tx
+            .send(LeaderboardUpdate::set_downed(player_id, true));
     }
 }
 
@@ -224,29 +222,27 @@ pub fn system_hero_collision(area: &mut Area) {
         .query::<Without<With<(&Position, &Size), &Hero>, &Downed>>()
         .iter()
     {
-        for (entity, (pos_2, size_2)) in area
+        for (entity, (pos_2, size_2, player_id)) in area
             .world
-            .query::<With<(&Position, &Size), (&Hero, &Downed)>>()
+            .query::<With<(&Position, &Size, &PlayerId), (&Hero, &Downed)>>()
             .iter()
         {
             let distance_sq = (pos_1.0 - pos_2.0).magnitude_sq();
             let radius_sum = (size_1.0 + size_2.0) * 0.5;
 
             if distance_sq < radius_sum * radius_sum {
-                to_revive.push(entity);
+                to_revive.push((entity, player_id.0));
             }
         }
     }
 
-    for entity in to_revive {
+    for (entity, player_id) in to_revive {
         let result = area.world.remove_one::<Downed>(entity);
 
         if result.is_ok() {
-            let _ = area.leaderboard_tx.send(LeaderboardUpdate::set_downed(
-                entity,
-                area.full_id.clone(),
-                false,
-            ));
+            let _ = area
+                .leaderboard_tx
+                .send(LeaderboardUpdate::set_downed(player_id, false));
         }
     }
 }
