@@ -3,12 +3,8 @@ use super::{
     commands::{handle_command, CommandRequest},
     leaderboard::LeaderboardUpdate,
 };
-use crate::{
-    game::game::{Game, Player},
-    physics::vec2::Vec2,
-};
+use crate::{game::game::Game, physics::vec2::Vec2};
 use anyhow::Result;
-use arc_swap::ArcSwap;
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::Arc,
@@ -111,15 +107,13 @@ impl WebTransportServer {
 
         println!("Accepted connection from client {id}. Awaiting streams...");
 
-        let mut player: Option<Arc<ArcSwap<Player>>> = None;
-
         let mut lb_rx = game.lock().await.leaderboard_rx.resubscribe();
 
         loop {
             tokio::select! {
                 stream = connection.accept_uni() => {
                     let stream = stream?;
-                    Self::handle_uni_stream(stream, &mut buffer, &connection, &game, id, &mut player, &chat_tx).await?;
+                    Self::handle_uni_stream(stream, &mut buffer, &connection, &game, id, &chat_tx).await?;
                 }
                 streams = connection.accept_bi() => {
                     let streams = streams?;
@@ -151,7 +145,6 @@ impl WebTransportServer {
         connection: &Connection,
         game: &Arc<Mutex<Game>>,
         id: u64,
-        player: &mut Option<Arc<ArcSwap<Player>>>,
         chat_tx: &broadcast::Sender<ChatRequest>,
     ) -> Result<()> {
         let bytes_read = match stream.read(buffer).await? {
@@ -172,10 +165,9 @@ impl WebTransportServer {
                 let mut game = game.lock().await;
                 let leaderboard_state = game.leaderboard_state.clone();
 
-                let player_arcswap = game.spawn_hero(id, name, connection.clone()).await;
-                *player = Some(player_arcswap.clone());
+                let player = game.spawn_hero(id, name, connection.clone()).await;
 
-                let area = player_arcswap.load().area.clone();
+                let area = player.load().area.clone();
 
                 let definition = area.lock().await.definition_packet();
 
@@ -192,48 +184,43 @@ impl WebTransportServer {
                 def_stream.finish().await?;
             }
             b"CHAT" => {
-                if let Some(player) = &player {
-                    let text = std::str::from_utf8(data)?;
+                let text = std::str::from_utf8(data)?;
 
-                    if text.starts_with("/") {
-                        let text = &text[1..];
-                        let splits = text.split(" ").collect::<Vec<&str>>();
-                        let command = splits[0];
-                        let args = splits[1..].iter().map(|s| s.to_string()).collect();
+                if text.starts_with("/") {
+                    let text = &text[1..];
+                    let splits = text.split(" ").collect::<Vec<&str>>();
+                    let command = splits[0];
+                    let args = splits[1..].iter().map(|s| s.to_string()).collect();
 
-                        let req = CommandRequest {
-                            args,
-                            game: game.clone(),
-                            player_id: id,
-                        };
+                    let req = CommandRequest {
+                        args,
+                        game: game.clone(),
+                        player_id: id,
+                    };
 
-                        let response = handle_command(command, req).await;
+                    let response = handle_command(command, req).await;
 
-                        let message = match response {
+                    let message = match response {
                             Ok(response) => response,
                             Err(err) => Some(ChatRequest::new(
                                 format!("A server error has occurred. Please report it to the developers: *{err:?}*"),
                                 String::new(),
                                 ChatMessageType::ServerError,
-                                Some(vec![player.load().id]),
+                                Some(vec![id]),
                             )),
                         };
 
-                        if let Some(message) = message {
-                            let _ = chat_tx.send(message);
-                        }
-                    } else {
-                        let name = player.load().name.clone();
-
-                        let request = ChatRequest::new(
-                            text.to_owned(),
-                            name.clone(),
-                            ChatMessageType::Normal,
-                            None,
-                        );
-
-                        let _ = chat_tx.send(request);
+                    if let Some(message) = message {
+                        let _ = chat_tx.send(message);
                     }
+                } else {
+                    let game = game.lock().await;
+                    let name = game.get_player(id)?.name.clone();
+
+                    let request =
+                        ChatRequest::new(text.to_owned(), name, ChatMessageType::Normal, None);
+
+                    let _ = chat_tx.send(request);
                 }
             }
             _ => {
