@@ -163,6 +163,10 @@ async fn whisper(req: CommandRequest) -> Result<Option<ChatRequest>> {
         return response("Whisper message cannot be empty.".to_owned(), player.id);
     }
 
+    if recipient.id == player.id {
+        return response("You cannot whisper to yourself.".to_owned(), player.id);
+    }
+
     Ok(Some(ChatRequest::new(
         message,
         format!("{} -> {}", player.name, recipient_name),
