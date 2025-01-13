@@ -1,5 +1,6 @@
 use super::chat::{ChatMessageType, ChatRequest};
 use crate::game::game::{Game, Player};
+use anyhow::Result;
 use arc_swap::ArcSwap;
 use std::{
     future::Future,
@@ -75,26 +76,27 @@ impl Command {
         false
     }
 
-    pub async fn execute(&self, req: CommandRequest) -> Option<ChatRequest> {
+    pub async fn execute(&self, req: CommandRequest) -> Result<Option<ChatRequest>> {
         self.function.call(req).await
     }
 }
 
-pub async fn handle_command(command_name: &str, req: CommandRequest) -> Option<ChatRequest> {
+pub async fn handle_command(
+    command_name: &str,
+    req: CommandRequest,
+) -> Result<Option<ChatRequest>> {
     for command in COMMANDS.iter() {
         if command.matches(command_name) {
             return command.execute(req).await;
         }
     }
 
-    Some(ChatRequest::new(
+    response(
         format!(
             "Unknown command: */{command_name}*. For a list of available commands, use */help*."
         ),
-        String::new(),
-        ChatMessageType::CommandResponse,
-        Some(vec![req.player.load().id]),
-    ))
+        req.player.load().id,
+    )
 }
 
 pub struct CommandRequest {
@@ -109,7 +111,7 @@ impl CommandRequest {
     }
 }
 
-async fn help(req: CommandRequest) -> Option<ChatRequest> {
+async fn help(req: CommandRequest) -> Result<Option<ChatRequest>> {
     let mut messages = Vec::new();
 
     for command in COMMANDS.iter() {
@@ -130,71 +132,64 @@ async fn help(req: CommandRequest) -> Option<ChatRequest> {
 
     let help_message = messages.join("\n\n");
 
-    Some(ChatRequest::new(
+    Ok(Some(ChatRequest::new(
         help_message,
         String::new(),
         ChatMessageType::CommandResponse,
         Some(vec![req.player.load().id]),
-    ))
+    )))
 }
 
-async fn reset(req: CommandRequest) -> Option<ChatRequest> {
+async fn reset(req: CommandRequest) -> Result<Option<ChatRequest>> {
     let mut game = req.game.lock().await;
-    let result = game.reset_hero(&req.player).await;
+    game.reset_hero(&req.player).await?;
 
-    result.err().map(|err| {
-        ChatRequest::new(
-            format!("A server error has occurred. Please report it to the developers: *{err:?}*"),
-            String::new(),
-            ChatMessageType::ServerError,
-            Some(vec![req.player.load().id]),
-        )
-    })
+    Ok(None)
 }
 
-async fn repeat(req: CommandRequest) -> Option<ChatRequest> {
-    Some(ChatRequest::new(
-        req.args.join(" "),
-        String::new(),
-        ChatMessageType::CommandResponse,
-        Some(vec![req.player.load().id]),
-    ))
+async fn repeat(req: CommandRequest) -> Result<Option<ChatRequest>> {
+    response(req.args.join(" "), req.player.load().id)
 }
 
-async fn whisper(req: CommandRequest) -> Option<ChatRequest> {
+async fn whisper(req: CommandRequest) -> Result<Option<ChatRequest>> {
     let recipient_name = req.args[0].clone();
 
     let game = req.game.lock().await;
-    let recipient = game.get_player_by_name(&recipient_name);
+
+    let recipient = if let Some(recipient) = game.get_player_by_name(&recipient_name) {
+        recipient
+    } else {
+        return response(
+            format!("Player '{}' not found.", recipient_name),
+            req.player.load().id,
+        );
+    };
 
     let player = req.player.load();
 
-    if let Some(recipient) = recipient {
-        let message = req.args[1..].join(" ");
+    let message = req.args[1..].join(" ");
 
-        if message.is_empty() {
-            return Some(ChatRequest::new(
-                "Whisper message cannot be empty.".to_owned(),
-                String::new(),
-                ChatMessageType::CommandResponse,
-                Some(vec![player.id]),
-            ));
-        }
-
-        return Some(ChatRequest::new(
-            message,
-            format!("{} -> {}", player.name, recipient_name),
-            ChatMessageType::Whisper,
-            Some(vec![recipient.id, player.id]),
-        ));
+    if message.is_empty() {
+        return response("Whisper message cannot be empty.".to_owned(), player.id);
     }
 
-    return Some(ChatRequest::new(
-        format!("Player '{recipient_name}' not found."),
+    Ok(Some(ChatRequest::new(
+        message,
+        format!("{} -> {}", player.name, recipient_name),
+        ChatMessageType::Whisper,
+        Some(vec![player.id, recipient.id]),
+    )))
+}
+
+//
+
+fn response(message: String, recipient_id: u64) -> Result<Option<ChatRequest>> {
+    Ok(Some(ChatRequest::new(
+        message,
         String::new(),
         ChatMessageType::CommandResponse,
-        Some(vec![player.id]),
-    ));
+        Some(vec![recipient_id]),
+    )))
 }
 
 // unholy magic
@@ -202,15 +197,15 @@ async fn whisper(req: CommandRequest) -> Option<ChatRequest> {
 type BoxFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + Sync>>;
 
 pub trait AsyncFn: Send + Sync {
-    fn call(&self, args: CommandRequest) -> BoxFuture<'static, Option<ChatRequest>>;
+    fn call(&self, args: CommandRequest) -> BoxFuture<'static, Result<Option<ChatRequest>>>;
 }
 
 impl<T, F> AsyncFn for T
 where
     T: Fn(CommandRequest) -> F + Send + Sync,
-    F: Future<Output = Option<ChatRequest>> + 'static + Send + Sync,
+    F: Future<Output = Result<Option<ChatRequest>>> + 'static + Send + Sync,
 {
-    fn call(&self, args: CommandRequest) -> BoxFuture<'static, Option<ChatRequest>> {
+    fn call(&self, args: CommandRequest) -> BoxFuture<'static, Result<Option<ChatRequest>>> {
         Box::pin(self(args))
     }
 }

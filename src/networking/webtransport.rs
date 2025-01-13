@@ -205,8 +205,18 @@ impl WebTransportServer {
 
                         let response = handle_command(command, req).await;
 
-                        if let Some(response) = response {
-                            let _ = chat_tx.send(response);
+                        let message = match response {
+                            Ok(response) => response,
+                            Err(err) => Some(ChatRequest::new(
+                                format!("A server error has occurred. Please report it to the developers: *{err:?}*"),
+                                String::new(),
+                                ChatMessageType::ServerError,
+                                Some(vec![player.load().id]),
+                            )),
+                        };
+
+                        if let Some(message) = message {
+                            let _ = chat_tx.send(message);
                         }
                     } else {
                         let name = player.load().name.clone();
