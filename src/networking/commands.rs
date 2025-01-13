@@ -15,18 +15,21 @@ static COMMANDS: LazyLock<Vec<Command>> = LazyLock::new(|| {
             "help",
             Some(vec!["h"]),
             "Displays this help message.",
+            None,
             Box::new(help),
         ),
         Command::new(
             "reset",
             Some(vec!["r"]),
             "Resets the player.",
+            None,
             Box::new(reset),
         ),
         Command::new(
             "whisper",
             Some(vec!["w", "pm", "msg", "message"]),
             "Sends a private message to another player.",
+            Some("/whisper <player> <message>"),
             Box::new(whisper),
         ),
     ]
@@ -44,6 +47,13 @@ pub fn get_command_list_binary() -> Vec<u8> {
 
         bytes.extend_from_slice(&(command.description.len() as u16).to_le_bytes()); // 2 bytes
         bytes.extend_from_slice(command.description.as_bytes()); // help_description.len() bytes
+
+        if let Some(usage) = &command.usage {
+            bytes.extend_from_slice(&(usage.len() as u16).to_le_bytes()); // 2 bytes
+            bytes.extend_from_slice(usage.as_bytes()); // usage.len() bytes
+        } else {
+            bytes.extend_from_slice(&(0u16).to_le_bytes()); // 2 bytes
+        }
 
         if let Some(aliases) = &command.aliases {
             bytes.push(aliases.len() as u8); // 1 byte
@@ -63,6 +73,7 @@ struct Command {
     name: String,
     aliases: Option<Vec<String>>,
     description: String,
+    usage: Option<String>,
     function: Box<dyn AsyncFn>,
 }
 
@@ -70,13 +81,15 @@ impl Command {
     pub fn new(
         name: &str,
         aliases: Option<Vec<&str>>,
-        help_description: &str,
+        description: &str,
+        usage: Option<&str>,
         function: Box<dyn AsyncFn>,
     ) -> Self {
         Self {
             name: name.to_owned(),
             aliases: aliases.map(|a| a.iter().map(|s| (*s).to_owned()).collect()),
-            description: help_description.to_owned(),
+            description: description.to_owned(),
+            usage: usage.map(|s| s.to_owned()),
             function,
         }
     }

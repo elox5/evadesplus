@@ -370,6 +370,15 @@ function handleCommandList(data) {
         const description = decoder.decode(data.slice(idx, idx + descriptionLength));
         idx += descriptionLength;
 
+        const usageLength = new Uint16Array(data.slice(idx, idx + 2).buffer)[0];
+        idx += 2;
+
+        let usage = null;
+        if (usageLength > 0) {
+            usage = decoder.decode(data.slice(idx, idx + usageLength));
+            idx += usageLength;
+        }
+
         const aliasCount = data[idx];
         idx++;
 
@@ -388,6 +397,7 @@ function handleCommandList(data) {
         commands.push({
             name: name,
             description: description,
+            usage: usage,
             aliases: aliases,
         });
     }

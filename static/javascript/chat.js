@@ -74,6 +74,10 @@ class Chat {
             for (command of this.commandList) {
                 let msg = `*/${command.name}* - ${command.description}`;
 
+                if (command.usage !== null) {
+                    msg += `\nUsage: ${command.usage}`;
+                }
+
                 if (command.aliases !== null) {
                     let aliases = command.aliases.map(alias => `/${alias}`);
 
