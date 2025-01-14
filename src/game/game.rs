@@ -7,6 +7,7 @@ use super::{
 };
 use crate::{
     env::get_env_var,
+    game::components::CrossingPortal,
     networking::{
         chat::{ChatMessageType, ChatRequest},
         leaderboard::{LeaderboardState, LeaderboardUpdate},
@@ -293,6 +294,8 @@ impl Game {
         let (taken_entity, should_close) = area.despawn_player(player.entity);
         let entity = taken_entity?;
         let entity = target_area.world.spawn(entity);
+
+        let _ = target_area.world.remove_one::<CrossingPortal>(entity);
 
         let _ = self.leaderboard_tx.send(LeaderboardUpdate::transfer(
             req.player_id,

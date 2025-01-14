@@ -1,7 +1,8 @@
 use super::{
     area::Area,
     components::{
-        BounceOffBounds, Bounded, Color, Downed, Enemy, Hero, Named, PlayerId, RenderReceiver, Size,
+        BounceOffBounds, Bounded, Color, CrossingPortal, Downed, Enemy, Hero, Named, PlayerId,
+        RenderReceiver, Size,
     },
     game::TransferRequest,
 };
@@ -182,7 +183,7 @@ pub fn system_enemy_collision(area: &mut Area) {
 
     for (entity, (hero_pos, hero_size, player_id)) in area
         .world
-        .query::<Without<With<(&Position, &Size, &PlayerId), &Hero>, &Downed>>()
+        .query::<Without<Without<With<(&Position, &Size, &PlayerId), &Hero>, &CrossingPortal>, &Downed>>()
         .iter()
     {
         let hero_pos = hero_pos.0;
@@ -297,7 +298,9 @@ pub fn system_send_render_packet(area: &mut Area) {
 }
 
 pub async fn system_portals(area: &mut Area) {
-    for (_, (pos, size, player_id)) in area
+    let mut to_cross = Vec::new();
+
+    for (entity, (pos, size, player_id)) in area
         .world
         .query_mut::<With<(&mut Position, &Size, &PlayerId), &Hero>>()
     {
@@ -309,8 +312,14 @@ pub async fn system_portals(area: &mut Area) {
                     target_pos: Some(portal.target_pos),
                 };
 
+                to_cross.push(entity);
+
                 let _ = area.transfer_tx.send(req).await;
             }
         }
+    }
+
+    for entity in to_cross {
+        let _ = area.world.insert_one(entity, CrossingPortal);
     }
 }

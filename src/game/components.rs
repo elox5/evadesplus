@@ -12,6 +12,8 @@ pub struct Downed;
 pub struct Bounded;
 pub struct BounceOffBounds;
 
+pub struct CrossingPortal;
+
 pub struct Named(pub String);
 
 pub struct RenderReceiver {
