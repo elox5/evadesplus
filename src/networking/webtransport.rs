@@ -230,7 +230,11 @@ async fn handle_uni_stream(
                     };
 
                 if let Some(message) = message {
-                    let _ = chat_tx.send(message);
+                    if message.recipient_filter == Some(vec![id]) {
+                        let _ = send_chat_message(message, connection).await;
+                    } else {
+                        let _ = chat_tx.send(message);
+                    }
                 }
             } else {
                 let game = game.lock().await;
@@ -310,10 +314,17 @@ async fn handle_chat_broadcast(
         }
     }
 
-    let mut update_stream = connection.open_uni().await?.await?;
+    send_chat_message(request, connection).await
+}
 
-    update_stream.write_all(&request.to_bytes()).await?;
-    update_stream.finish().await?;
+//
+
+async fn send_chat_message(request: ChatRequest, connection: &Connection) -> Result<()> {
+    let data = request.to_bytes();
+
+    let mut stream = connection.open_uni().await?.await?;
+    stream.write_all(&data).await?;
+    stream.finish().await?;
 
     Ok(())
 }
