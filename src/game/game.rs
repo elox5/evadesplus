@@ -250,6 +250,8 @@ impl Game {
             self.close_area(&area.full_id);
         }
 
+        self.players.remove(&player_id);
+
         Ok(())
     }
 
