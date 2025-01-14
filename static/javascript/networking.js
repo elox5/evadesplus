@@ -1,6 +1,7 @@
 import { chat } from "./chat.js";
 import { tryExecuteCommand } from "./commands.js";
 import { input } from "./input.js";
+import { currentPlayers } from "./leaderboard.js";
 import { metricSettings, startPing, reportPing } from "./metrics.js";
 
 export let transport;
@@ -82,7 +83,7 @@ async function initializePingMeter() {
 }
 
 export async function sendChatMessage(msg) {
-    if (chat.autoReply && chat.replyTarget !== null && !msg.startsWith("/")) {
+    if (chat.autoReply && chat.replyTarget !== null && currentPlayers.includes(chat.replyTarget) && !msg.startsWith("/")) {
         msg = `/reply ${msg}`;
     }
 

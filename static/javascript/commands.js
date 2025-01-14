@@ -1,5 +1,6 @@
 import { chat } from "./chat.js";
 import { lockMouseInput } from "./input.js";
+import { currentPlayers } from "./leaderboard.js";
 
 export const commandList = [];
 
@@ -63,6 +64,13 @@ export function tryExecuteCommand(message) {
     else if (matchesCommand(commandName, "reply")) {
         if (chat.replyTarget === null) {
             chat.receiveMessage("There's nobody to reply to.", SERVER_ID, "", 2);
+
+            response.executed = true;
+            return response;
+        }
+        if (!currentPlayers.includes(chat.replyTarget)) {
+            chat.receiveMessage("The target player is no longer available.", SERVER_ID, "", 2);
+
             response.executed = true;
             return response;
         }

@@ -14,6 +14,8 @@ class Leaderboard {
         }
 
         this.maps[mapName].add(playerId, playerName, areaOrder, areaName, downed);
+
+        currentPlayers.push(playerId);
     }
 
     remove(playerId) {
@@ -25,6 +27,8 @@ class Leaderboard {
                 delete this.maps[map.name];
             }
         }
+
+        currentPlayers.splice(currentPlayers.indexOf(playerId), 1);
     }
 
     transfer(playerId, areaOrder, areaName, mapName) {
@@ -130,3 +134,5 @@ class Entry {
 }
 
 export const leaderboard = new Leaderboard();
+
+export const currentPlayers = [];
