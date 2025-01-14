@@ -5,8 +5,6 @@ class Chat {
         this.messages = [];
         this.sentMessageTimeQueue = [];
 
-        this.messageElements = [];
-
         this.replyTarget = null;
         this.autoReply = false;
 
@@ -113,7 +111,6 @@ class Chat {
 
     clear() {
         this.messages = [];
-        this.messageElements = [];
 
         this.list.innerHTML = "";
     }
