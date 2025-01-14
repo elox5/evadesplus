@@ -136,14 +136,23 @@ export function setupInput() {
     canvasContainer.onmousedown = (e) => {
         mouseInputActive = !mouseInputActive;
         if (!mouseInputActive) {
-            mouseInput.y = 0;
             mouseInput.x = 0;
+            mouseInput.y = 0;
         }
         else {
             mouseInput = calculateMouseInput(e);
         }
         updateInput();
     };
+}
+
+export function lockMouseInput() {
+    mouseInputActive = false;
+
+    mouseInput.x = 0;
+    mouseInput.y = 0;
+
+    updateInput();
 }
 
 function calculateMouseInput(e) {

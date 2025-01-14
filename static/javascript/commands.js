@@ -1,4 +1,5 @@
 import { chat } from "./chat.js";
+import { lockMouseInput } from "./input.js";
 
 export const commandList = [];
 
@@ -74,6 +75,9 @@ export function tryExecuteCommand(message) {
         chat.receiveMessage(`Auto-reply is now ${chat.autoReply ? "enabled" : "disabled"}.`, SERVER_ID, "", 2);
 
         response.executed = true;
+    }
+    else if (matchesCommand(commandName, "reset")) {
+        lockMouseInput();
     }
 
     return response;

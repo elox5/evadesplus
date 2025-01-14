@@ -357,8 +357,6 @@ function handleCommandList(data) {
     const commandCount = data[0];
     chat.selfId = new BigUint64Array(data.slice(1, 9).buffer)[0];
 
-    console.log("Self ID: " + chat.selfId);
-
     let idx = 9;
 
     for (let i = 0; i < commandCount; i++) {
