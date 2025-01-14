@@ -10,6 +10,7 @@ pub struct MapData {
     pub id: String,
     pub name: String,
     pub background_color: String,
+    pub text_color: String,
 
     pub areas: Vec<AreaData>,
 }
@@ -28,7 +29,7 @@ impl MapData {
                     .unwrap_or(self.background_color.clone())
                     .into();
 
-                let name = data.name.unwrap_or(format!("Area {}", order + 1));
+                let name = data.name.unwrap_or_else(|| format!("Area {}", order + 1));
 
                 let portals = data.portals.unwrap_or_default();
                 let portals = portals
@@ -67,8 +68,7 @@ impl MapData {
                     order: order as u16,
                     area_id,
                     map_id: self.id.clone(),
-                    area_name: name,
-                    map_name: self.name.clone(),
+                    name,
                     background_color,
                     width,
                     height,
@@ -87,6 +87,7 @@ impl MapData {
             id: self.id,
             name: self.name,
             background_color: self.background_color.into(),
+            text_color: self.text_color.into(),
             areas,
         }
     }

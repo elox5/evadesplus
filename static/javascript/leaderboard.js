@@ -1,3 +1,4 @@
+import { cache } from "./main.js";
 
 class Leaderboard {
     constructor() {
@@ -7,13 +8,13 @@ class Leaderboard {
     }
 
 
-    add(playerId, playerName, areaOrder, areaName, mapName, downed) {
-        if (!this.maps[mapName]) {
-            this.maps[mapName] = new Map(mapName);
-            this.element.appendChild(this.maps[mapName].element);
+    add(playerId, playerName, areaOrder, areaName, mapId, downed) {
+        if (!this.maps[mapId]) {
+            this.maps[mapId] = new Map(mapId);
+            this.element.appendChild(this.maps[mapId].element);
         }
 
-        this.maps[mapName].add(playerId, playerName, areaOrder, areaName, downed);
+        this.maps[mapId].add(playerId, playerName, areaOrder, areaName, downed);
 
         currentPlayers.push(playerId);
     }
@@ -24,14 +25,16 @@ class Leaderboard {
 
             if (map.entries.length === 0) {
                 this.element.removeChild(map.element);
-                delete this.maps[map.name];
+                delete this.maps[map.id];
             }
         }
 
         currentPlayers.splice(currentPlayers.indexOf(playerId), 1);
     }
 
-    transfer(playerId, areaOrder, areaName, mapName) {
+    transfer(playerId, areaOrder, areaName, mapId) {
+        console.log("Transfer", playerId, areaOrder, areaName, mapId);
+
         for (const map of Object.values(this.maps)) {
             let oldEntryIndex = map.entries.findIndex(entry => entry.playerId === playerId);
 
@@ -42,11 +45,11 @@ class Leaderboard {
             let oldEntry = map.entries[oldEntryIndex];
             map.remove(playerId);
 
-            this.add(playerId, oldEntry.playerName, areaOrder, areaName, mapName, oldEntry.downed);
+            this.add(playerId, oldEntry.playerName, areaOrder, areaName, mapId, oldEntry.downed);
 
             if (map.entries.length === 0) {
                 this.element.removeChild(map.element);
-                delete this.maps[map.name];
+                delete this.maps[map.id];
             }
         }
     }
@@ -59,7 +62,11 @@ class Leaderboard {
 }
 
 class Map {
-    constructor(name) {
+    constructor(id) {
+        const name = cache.maps.find(map => map.id === id).name;
+
+        this.id = id;
+
         this.element = document.createElement("div");
         this.element.classList.add("leaderboard-map");
 
@@ -73,7 +80,6 @@ class Map {
         this.element.appendChild(header);
         this.element.appendChild(this.list);
 
-        this.name = name;
         this.entries = [];
     }
 

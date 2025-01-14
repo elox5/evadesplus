@@ -221,8 +221,8 @@ impl Game {
             name.to_owned(),
             false,
             area.order,
-            area.area_name.clone(),
-            area.map_name.clone(),
+            area.name.clone(),
+            area.map_id.clone(),
         ));
 
         println!("Spawning hero '{}' (entity {})", name, entity.id());
@@ -297,8 +297,8 @@ impl Game {
         let _ = self.leaderboard_tx.send(LeaderboardUpdate::transfer(
             req.player_id,
             target_area.order,
-            target_area.area_name.clone(),
-            target_area.map_name.clone(),
+            target_area.name.clone(),
+            target_area.map_id.clone(),
         ));
 
         let target_pos = req.target_pos.unwrap_or(target_area.spawn_pos);

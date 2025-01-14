@@ -4,15 +4,19 @@ import { connect, establishUniConnection, establishInputConnection, establishRen
 import { reportBandwidth, reportFrameStart } from "./metrics.js";
 import { leaderboard } from "./leaderboard.js";
 import { chat } from "./chat.js";
-import { commandList } from "./commands.js";
 
 const gameContainer = document.querySelector("#game-container");
 const connectionPanel = document.querySelector("#connection-panel");
 const nameInput = document.querySelector("#name-input");
 const connectButton = document.querySelector("#connect-button");
-const areaName = document.querySelector("#area-name");
+const areaNameHeading = document.querySelector("#area-name");
+
+export const cache = {};
 
 async function main() {
+    await initCache();
+
+    connectButton.disabled = false;
     connectButton.onclick = handleConnection;
 }
 window.onload = main;
@@ -61,10 +65,6 @@ async function handleConnection() {
             header: "CHBR",
             callback: handleChatBroadcast
         },
-        {
-            header: "CMDL",
-            callback: handleCommandList
-        },
     ]);
     setupInput();
 
@@ -72,6 +72,17 @@ async function handleConnection() {
     connectionPanel.classList.add("hidden");
 
     setupCanvas();
+}
+
+async function initCache() {
+    const json = await fetch("/cache").then((response) => response.json());
+
+    for (const [key, value] of Object.entries(json)) {
+        cache[key] = value;
+    }
+
+    console.log("Cache loaded");
+    console.log(cache);
 }
 
 function handleAreaUpdate(data) {
@@ -158,13 +169,23 @@ function handleAreaUpdate(data) {
         idx += 20;
     }
 
-    const nameLengthBytes = data.slice(idx, idx + 4);
-    const nameLength = new Uint32Array(nameLengthBytes.buffer)[0];
+    const areaNameLength = data[idx];
+    idx++;
 
-    const nameBytes = data.slice(idx + 4, idx + 4 + nameLength);
-    const name = new TextDecoder().decode(nameBytes);
+    const areaNameBytes = data.slice(idx, idx + areaNameLength);
+    const areaName = new TextDecoder().decode(areaNameBytes);
+    idx += areaNameLength;
 
-    areaName.innerHTML = name;
+    const mapIdLength = data[idx];
+    idx++;
+
+    const mapIdBytes = data.slice(idx, idx + mapIdLength);
+    const mapId = new TextDecoder().decode(mapIdBytes);
+
+    const mapName = cache.maps.find(m => m.id === mapId).name;
+    const name = `${mapName} - ${areaName}`;
+
+    areaNameHeading.innerHTML = name;
 
     renderArea(width, height, color, walls, safeZones, portals);
 }
@@ -242,7 +263,7 @@ function handleLeaderboardAdd(data) {
 
     const playerNameLength = data[11];
     const areaNameLength = data[12];
-    const mapNameLength = data[13];
+    const mapIdLength = data[13];
 
     let idx = 14;
 
@@ -254,9 +275,9 @@ function handleLeaderboardAdd(data) {
     const areaName = decoder.decode(data.slice(idx, idx + areaNameLength));
     idx += areaNameLength;
 
-    const mapName = decoder.decode(data.slice(idx, idx + mapNameLength));
+    const mapId = decoder.decode(data.slice(idx, idx + mapIdLength));
 
-    leaderboard.add(playerId, playerName, areaOrder, areaName, mapName, downed);
+    leaderboard.add(playerId, playerName, areaOrder, areaName, mapId, downed);
 }
 
 function handleLeaderboardRemove(data) {
@@ -274,7 +295,7 @@ function handleLeaderboardTransfer(data) {
     const areaOrder = new Uint16Array(areaOrderBytes.buffer)[0];
 
     const areaNameLength = data[10];
-    const mapNameLength = data[11];
+    const mapIdLength = data[11];
 
     let idx = 12;
 
@@ -283,9 +304,9 @@ function handleLeaderboardTransfer(data) {
     const areaName = decoder.decode(data.slice(idx, idx + areaNameLength));
     idx += areaNameLength;
 
-    const mapName = decoder.decode(data.slice(idx, idx + mapNameLength));
+    const mapId = decoder.decode(data.slice(idx, idx + mapIdLength));
 
-    leaderboard.transfer(playerId, areaOrder, areaName, mapName);
+    leaderboard.transfer(playerId, areaOrder, areaName, mapId);
 }
 
 function handleLeaderboardSetDowned(data) {
@@ -313,7 +334,7 @@ function handleLeaderboardStateUpdate(data) {
 
         const playerNameLength = data[idx + 11];
         const areaNameLength = data[idx + 12];
-        const mapNameLength = data[idx + 13];
+        const mapIdLength = data[idx + 13];
 
         idx += 14;
 
@@ -325,10 +346,10 @@ function handleLeaderboardStateUpdate(data) {
         const areaName = decoder.decode(data.slice(idx, idx + areaNameLength));
         idx += areaNameLength;
 
-        const mapName = decoder.decode(data.slice(idx, idx + mapNameLength));
-        idx += mapNameLength;
+        const mapId = decoder.decode(data.slice(idx, idx + mapIdLength));
+        idx += mapIdLength;
 
-        leaderboard.add(playerId, playerName, areaOrder, areaName, mapName, downed);
+        leaderboard.add(playerId, playerName, areaOrder, areaName, mapId, downed);
     }
 }
 
@@ -349,58 +370,4 @@ function handleChatBroadcast(data) {
     const message = decoder.decode(data.slice(idx, idx + messageLength));
 
     chat.receiveMessage(message, senderId, name, messageType);
-}
-
-function handleCommandList(data) {
-    const decoder = new TextDecoder("utf-8");
-
-    const commandCount = data[0];
-    chat.selfId = new BigUint64Array(data.slice(1, 9).buffer)[0];
-
-    let idx = 9;
-
-    for (let i = 0; i < commandCount; i++) {
-        const nameLength = data[idx];
-        idx++;
-
-        const name = decoder.decode(data.slice(idx, idx + nameLength));
-        idx += nameLength;
-
-        const descriptionLength = new Uint16Array(data.slice(idx, idx + 2).buffer)[0];
-        idx += 2;
-
-        const description = decoder.decode(data.slice(idx, idx + descriptionLength));
-        idx += descriptionLength;
-
-        const usageLength = new Uint16Array(data.slice(idx, idx + 2).buffer)[0];
-        idx += 2;
-
-        let usage = null;
-        if (usageLength > 0) {
-            usage = decoder.decode(data.slice(idx, idx + usageLength));
-            idx += usageLength;
-        }
-
-        const aliasCount = data[idx];
-        idx++;
-
-        const aliases = [];
-
-        for (let j = 0; j < aliasCount; j++) {
-            const aliasLength = data[idx];
-            idx++;
-
-            const alias = decoder.decode(data.slice(idx, idx + aliasLength));
-            idx += aliasLength;
-
-            aliases.push(alias);
-        }
-
-        commandList.push({
-            name: name,
-            description: description,
-            usage: usage,
-            aliases: aliases,
-        });
-    }
 }

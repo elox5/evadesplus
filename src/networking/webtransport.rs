@@ -3,7 +3,7 @@ use super::{
     commands::{handle_command, CommandRequest},
     leaderboard::LeaderboardUpdate,
 };
-use crate::{game::game::Game, networking::commands::get_command_list_binary, physics::vec2::Vec2};
+use crate::{game::game::Game, physics::vec2::Vec2};
 use anyhow::Result;
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
@@ -190,12 +190,6 @@ async fn handle_uni_stream(
             let mut def_stream = connection.open_uni().await?.await?;
             def_stream.write_all(&definition).await?;
             def_stream.finish().await?;
-
-            let mut command_list_stream = connection.open_uni().await?.await?;
-            command_list_stream
-                .write_all(&get_command_list_binary(id))
-                .await?;
-            command_list_stream.finish().await?;
         }
         b"CHAT" => {
             let text = std::str::from_utf8(data)?;

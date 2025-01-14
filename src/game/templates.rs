@@ -5,6 +5,7 @@ pub struct MapTemplate {
     pub id: String,
     pub name: String,
     pub background_color: Color,
+    pub text_color: Color,
 
     pub areas: Vec<AreaTemplate>,
 }
@@ -18,8 +19,7 @@ impl MapTemplate {
 pub struct AreaTemplate {
     pub order: u16,
 
-    pub area_name: String,
-    pub map_name: String,
+    pub name: String,
 
     pub area_id: String,
     pub map_id: String,

@@ -1,8 +1,7 @@
 import { chat } from "./chat.js";
 import { lockMouseInput } from "./input.js";
 import { currentPlayers } from "./leaderboard.js";
-
-export const commandList = [];
+import { cache } from "./main.js";
 
 export function tryExecuteCommand(message) {
     const response = {
@@ -10,7 +9,7 @@ export function tryExecuteCommand(message) {
         message: message,
     }
 
-    if (commandList === null) {
+    if (cache.commands === null) {
         chat.receiveMessage("The command list cache has not been initialized yet. Please wait a few seconds...", -1, "", 2);
 
         response.executed = true;
@@ -36,7 +35,7 @@ export function tryExecuteCommand(message) {
     else if (matchesCommand(commandName, "help")) {
         const messages = [];
 
-        for (let command of commandList) {
+        for (let command of cache.commands) {
             let msg = `*/${command.name}* - ${command.description}`;
 
             if (command.usage !== null) {
@@ -98,14 +97,14 @@ export function tryExecuteCommand(message) {
 
 function matchesCommand(name, command) {
     if (typeof (command) === "string") {
-        command = commandList.find(c => c.name === command);
+        command = cache.commands.find(c => c.name === command);
     }
 
     return command.name === name || (command.aliases !== null && command.aliases.some(alias => alias === name));
 }
 
 function isValidCommand(name) {
-    for (let command of commandList) {
+    for (let command of cache.commands) {
         if (matchesCommand(name, command)) {
             return true;
         }

@@ -1,6 +1,7 @@
 id: "tt"
 name: "Testing Territory"
 background_color: "#c8c8c8"
+text_color: "#ccffcc"
 areas:
   - enemy_groups:
       - color: "#64646455"

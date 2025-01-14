@@ -1,4 +1,5 @@
 use super::chat::{ChatMessageType, ChatRequest};
+use crate::cache::CommandCache;
 use crate::game::game::Game;
 use anyhow::anyhow;
 use anyhow::Result;
@@ -49,42 +50,6 @@ static COMMANDS: LazyLock<Vec<Command>> = LazyLock::new(|| {
         ),
     ]
 });
-
-pub fn get_command_list_binary(self_id: u64) -> Vec<u8> {
-    let mut bytes = Vec::new();
-
-    bytes.extend_from_slice(b"CMDL"); // 4 bytes
-    bytes.push(COMMANDS.len() as u8); // 1 byte
-
-    bytes.extend_from_slice(&self_id.to_le_bytes()); // 8 bytes
-
-    for command in COMMANDS.iter() {
-        bytes.push(command.name.len() as u8); // 1 byte
-        bytes.extend_from_slice(command.name.as_bytes()); // name.len() bytes
-
-        bytes.extend_from_slice(&(command.description.len() as u16).to_le_bytes()); // 2 bytes
-        bytes.extend_from_slice(command.description.as_bytes()); // help_description.len() bytes
-
-        if let Some(usage) = &command.usage {
-            bytes.extend_from_slice(&(usage.len() as u16).to_le_bytes()); // 2 bytes
-            bytes.extend_from_slice(usage.as_bytes()); // usage.len() bytes
-        } else {
-            bytes.extend_from_slice(&(0u16).to_le_bytes()); // 2 bytes
-        }
-
-        if let Some(aliases) = &command.aliases {
-            bytes.push(aliases.len() as u8); // 1 byte
-            for alias in aliases {
-                bytes.push(alias.len() as u8); // 1 byte
-                bytes.extend_from_slice(alias.as_bytes()); // alias.len() bytes
-            }
-        } else {
-            bytes.push(0); // 1 byte
-        }
-    }
-
-    bytes
-}
 
 struct Command {
     name: String,
@@ -232,6 +197,20 @@ fn response(message: String, recipient_id: u64) -> Result<Option<ChatRequest>> {
         ChatMessageType::CommandResponse,
         Some(vec![recipient_id]),
     )))
+}
+
+pub fn get_command_cache() -> Vec<CommandCache> {
+    COMMANDS
+        .iter()
+        .map(|c| {
+            CommandCache::new(
+                c.name.clone(),
+                c.description.clone(),
+                c.usage.clone(),
+                c.aliases.clone(),
+            )
+        })
+        .collect()
 }
 
 // unholy magic

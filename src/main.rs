@@ -1,6 +1,6 @@
 use anyhow::Result;
 use evadesplus::{
-    env::get_env_var, game::game::Game, networking::webtransport::WebTransportServer,
+    cache::Cache, env::get_env_var, game::game::Game, networking::webtransport::WebTransportServer,
     parsing::parse_map,
 };
 use warp::Filter;
@@ -31,6 +31,8 @@ async fn main() -> Result<()> {
         .map(|m| parse_map(&format!("{}/{}.yaml", map_path, m)).unwrap())
         .collect::<Vec<_>>();
 
+    let cache = Cache::new(&maps);
+
     let game = Game::new(maps, &start_area_id);
 
     let identity = Identity::self_signed([local_ip_string])?;
@@ -49,8 +51,12 @@ async fn main() -> Result<()> {
         let cert_digest = cert_digest.clone();
         async move { warp::reply::json(&cert_digest.fmt(Sha256DigestFmt::BytesArray)) }
     });
+    let cache_route = warp::path("cache").and(warp::get()).then(move || {
+        let cache = cache.clone();
+        async move { warp::reply::json(&cache) }
+    });
 
-    let routes = root_route.or(cert_route);
+    let routes = root_route.or(cert_route).or(cache_route);
     let addr = webtransport_server.local_addr();
 
     tokio::select! {

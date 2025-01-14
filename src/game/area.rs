@@ -20,9 +20,7 @@ use wtransport::Connection;
 pub struct Area {
     pub order: u16,
 
-    pub area_name: String,
-    pub map_name: String,
-    pub full_name: String,
+    pub name: String,
 
     pub area_id: String,
     pub map_id: String,
@@ -59,9 +57,7 @@ impl Area {
         let mut area = Self {
             order: template.order,
 
-            area_name: template.area_name.clone(),
-            map_name: template.map_name.clone(),
-            full_name: format!("{} - {}", template.map_name, template.area_name),
+            name: template.name.clone(),
 
             area_id: template.area_id.clone(),
             map_id: template.map_id.clone(),
@@ -193,8 +189,11 @@ impl Area {
             packet.extend_from_slice(&portal.color.to_bytes());
         }
 
-        packet.extend_from_slice(&self.full_name.len().to_le_bytes()[..4]);
-        packet.extend_from_slice(self.full_name.as_bytes());
+        packet.push(self.name.len() as u8);
+        packet.extend_from_slice(self.name.as_bytes());
+
+        packet.push(self.map_id.len() as u8);
+        packet.extend_from_slice(self.map_id.as_bytes());
 
         packet
     }
