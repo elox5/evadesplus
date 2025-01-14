@@ -8,6 +8,8 @@ class Chat {
         this.replyTarget = null;
         this.autoReply = false;
 
+        this.selfId = null;
+
         this.element = document.getElementById("chat");
         this.list = document.getElementById("chat-list");
         this.input = document.getElementById("chat-input");

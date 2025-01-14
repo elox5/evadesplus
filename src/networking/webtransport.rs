@@ -193,7 +193,7 @@ async fn handle_uni_stream(
 
             let mut command_list_stream = connection.open_uni().await?.await?;
             command_list_stream
-                .write_all(&get_command_list_binary())
+                .write_all(&get_command_list_binary(id))
                 .await?;
             command_list_stream.finish().await?;
         }

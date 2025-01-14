@@ -355,8 +355,12 @@ function handleCommandList(data) {
     const decoder = new TextDecoder("utf-8");
 
     const commandCount = data[0];
+    chat.selfId = new BigUint64Array(data.slice(1, 9).buffer)[0];
 
-    let idx = 1;
+    console.log("Self ID: " + chat.selfId);
+
+
+    let idx = 9;
 
     for (let i = 0; i < commandCount; i++) {
         const nameLength = data[idx];

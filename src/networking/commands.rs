@@ -42,11 +42,13 @@ static COMMANDS: LazyLock<Vec<Command>> = LazyLock::new(|| {
     ]
 });
 
-pub fn get_command_list_binary() -> Vec<u8> {
+pub fn get_command_list_binary(self_id: u64) -> Vec<u8> {
     let mut bytes = Vec::new();
 
     bytes.extend_from_slice(b"CMDL"); // 4 bytes
     bytes.push(COMMANDS.len() as u8); // 1 byte
+
+    bytes.extend_from_slice(&self_id.to_le_bytes()); // 8 bytes
 
     for command in COMMANDS.iter() {
         bytes.push(command.name.len() as u8); // 1 byte
