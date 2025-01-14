@@ -5,6 +5,9 @@ class Chat {
         this.messages = [];
         this.messageElements = [];
 
+        this.replyTarget = null;
+        this.autoReply = false;
+
         this.element = document.getElementById("chat");
         this.list = document.getElementById("chat-list");
         this.input = document.getElementById("chat-input");
@@ -57,6 +60,10 @@ class Chat {
         if (messageType === 2) entry.classList.add("special", "command-response");
         if (messageType === 3) entry.classList.add("special", "server-announcement");
         if (messageType === 4) entry.classList.add("special", "server-error");
+
+        if (messageType === 1) {
+            this.replyTarget = senderId;
+        }
 
         entry.onmousedown = (e) => {
             if (e.button === 2) {

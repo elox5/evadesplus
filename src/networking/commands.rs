@@ -32,6 +32,13 @@ static COMMANDS: LazyLock<Vec<Command>> = LazyLock::new(|| {
             Some("/whisper <player> <message>"),
             Box::new(whisper),
         ),
+        Command::new(
+            "reply",
+            Some(vec!["re"]),
+            "Sends a private message to the last player who whispered to you.",
+            Some("/reply <message>"),
+            Box::new(reply),
+        ),
     ]
 });
 
@@ -202,6 +209,12 @@ async fn whisper(req: CommandRequest) -> Result<Option<ChatRequest>> {
         ChatMessageType::Whisper,
         Some(vec![sender_id, recipient.id]),
     )))
+}
+
+async fn reply(_req: CommandRequest) -> Result<Option<ChatRequest>> {
+    Err(anyhow!(
+        "The /reply command should have been handled on the client."
+    ))
 }
 
 //

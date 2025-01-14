@@ -200,6 +200,8 @@ async fn handle_uni_stream(
         b"CHAT" => {
             let text = std::str::from_utf8(data)?;
 
+            println!("CHAT | [{id}] {text}");
+
             if text.starts_with("/") {
                 let text = &text[1..];
                 let splits = text.split(" ").collect::<Vec<&str>>();
@@ -211,6 +213,8 @@ async fn handle_uni_stream(
                     game: game.clone(),
                     player_id: id,
                 };
+
+                println!("executing command '{command}'");
 
                 let response = handle_command(command, req).await;
 

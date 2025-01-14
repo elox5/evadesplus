@@ -80,18 +80,20 @@ async function initializePingMeter() {
     }, metricSettings.pingFrequency);
 }
 
-export async function sendChatMessage(message) {
-    if (message.startsWith("/")) {
-        let executed = tryExecuteCommand(message);
+export async function sendChatMessage(msg) {
+    if (msg.startsWith("/")) {
+        let { executed, message } = tryExecuteCommand(msg);
 
         if (executed) return;
+
+        msg = message;
     }
 
     const stream = await transport.createUnidirectionalStream();
     const writer = stream.getWriter();
 
     const encoder = new TextEncoder();
-    await writer.write(encoder.encode(`CHAT${message}`));
+    await writer.write(encoder.encode(`CHAT${msg}`));
 
     await writer.close();
 }
