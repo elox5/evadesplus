@@ -4,8 +4,6 @@ import { currentPlayers } from "./leaderboard.js";
 
 export const commandList = [];
 
-const SERVER_ID = 1_000_000_000_000_000;
-
 export function tryExecuteCommand(message) {
     const response = {
         executed: false,
@@ -13,7 +11,7 @@ export function tryExecuteCommand(message) {
     }
 
     if (commandList === null) {
-        chat.receiveMessage("The command list cache has not been initialized yet. Please wait a few seconds...", SERVER_ID, "", 2);
+        chat.receiveMessage("The command list cache has not been initialized yet. Please wait a few seconds...", -1, "", 2);
 
         response.executed = true;
         return response;
@@ -31,7 +29,7 @@ export function tryExecuteCommand(message) {
     const args = split.slice(1);
 
     if (!isValidCommand(commandName)) {
-        chat.receiveMessage(`Unknown command: */${commandName}*. For a list of available commands, use */help*.`, SERVER_ID, "", 2);
+        chat.receiveMessage(`Unknown command: */${commandName}*. For a list of available commands, use */help*.`, -1, "", 2);
 
         response.executed = true;
     }
@@ -57,19 +55,19 @@ export function tryExecuteCommand(message) {
 
         const helpMessage = messages.join("\n\n");
 
-        chat.receiveMessage(helpMessage, SERVER_ID, "", 2);
+        chat.receiveMessage(helpMessage, -1, "", 2);
 
         response.executed = true;
     }
     else if (matchesCommand(commandName, "reply")) {
         if (chat.replyTarget === null) {
-            chat.receiveMessage("There's nobody to reply to.", SERVER_ID, "", 2);
+            chat.receiveMessage("There's nobody to reply to.", -1, "", 2);
 
             response.executed = true;
             return response;
         }
         if (!currentPlayers.includes(chat.replyTarget)) {
-            chat.receiveMessage("The target player is no longer available.", SERVER_ID, "", 2);
+            chat.receiveMessage("The target player is no longer available.", -1, "", 2);
 
             response.executed = true;
             return response;
@@ -80,7 +78,7 @@ export function tryExecuteCommand(message) {
     else if (matchesCommand(commandName, "togglereply")) {
         chat.autoReply = !chat.autoReply;
 
-        chat.receiveMessage(`Auto-reply is now ${chat.autoReply ? "enabled" : "disabled"}.`, SERVER_ID, "", 2);
+        chat.receiveMessage(`Auto-reply is now ${chat.autoReply ? "enabled" : "disabled"}.`, -1, "", 2);
 
         response.executed = true;
     }
@@ -90,7 +88,7 @@ export function tryExecuteCommand(message) {
     else if (matchesCommand(commandName, "clear")) {
         chat.clear();
 
-        chat.receiveMessage("Chat cleared.", SERVER_ID, "", 2);
+        chat.receiveMessage("Chat cleared.", -1, "", 2);
 
         response.executed = true;
     }

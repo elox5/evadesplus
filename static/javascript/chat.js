@@ -3,6 +3,8 @@ import { sendChatMessage } from "./networking.js";
 class Chat {
     constructor() {
         this.messages = [];
+        this.sentMessageTimeQueue = [];
+
         this.messageElements = [];
 
         this.replyTarget = null;
@@ -28,12 +30,26 @@ class Chat {
     }
 
     sendMessage(message) {
+        if (this.sentMessageTimeQueue.length === 10) {
+            const tenMessagesTime = Date.now() - this.sentMessageTimeQueue[0];
+
+            if (tenMessagesTime < 10000) {
+                this.receiveMessage(`Please wait ${(10 - tenMessagesTime / 1000).toFixed(1)} seconds before sending another message.`, -1, "", 2);
+                return;
+            }
+        }
+
         this.input.blur();
         this.input.value = "";
 
         message = message.trim();
         if (message.length === 0) {
             return;
+        }
+
+        this.sentMessageTimeQueue.push(Date.now());
+        if (this.sentMessageTimeQueue.length > 10) {
+            this.sentMessageTimeQueue.shift();
         }
 
         sendChatMessage(message);
