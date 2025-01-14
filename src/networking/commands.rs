@@ -18,6 +18,7 @@ static COMMANDS: LazyLock<Vec<Command>> = LazyLock::new(|| {
             None,
             None,
         ),
+        Command::new("clear", None, "Clears all chat messages.", None, None),
         Command::new(
             "reset",
             Some(vec!["r"]),

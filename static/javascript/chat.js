@@ -94,6 +94,13 @@ class Chat {
     focused() {
         return this.input === document.activeElement;
     }
+
+    clear() {
+        this.messages = [];
+        this.messageElements = [];
+
+        this.list.innerHTML = "";
+    }
 }
 
 export const chatSettings = {

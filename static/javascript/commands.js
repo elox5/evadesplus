@@ -79,6 +79,13 @@ export function tryExecuteCommand(message) {
     else if (matchesCommand(commandName, "reset")) {
         lockMouseInput();
     }
+    else if (matchesCommand(commandName, "clear")) {
+        chat.clear();
+
+        chat.receiveMessage("Chat cleared.", SERVER_ID, "", 2);
+
+        response.executed = true;
+    }
 
     return response;
 }
