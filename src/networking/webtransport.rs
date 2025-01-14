@@ -42,7 +42,7 @@ impl WebTransportServer {
 
         let game = game_arc.try_lock().unwrap();
         let chat_tx = game.chat_tx.clone();
-        let chat_rx = game.chat_rx.resubscribe();
+        let chat_rx = chat_tx.subscribe();
         drop(game);
 
         Ok(Self {

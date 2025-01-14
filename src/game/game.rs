@@ -45,7 +45,6 @@ pub struct Game {
     pub leaderboard_rx: broadcast::Receiver<LeaderboardUpdate>,
 
     pub chat_tx: broadcast::Sender<ChatRequest>,
-    pub chat_rx: broadcast::Receiver<ChatRequest>,
 
     frame_duration: Duration,
 }
@@ -55,7 +54,7 @@ impl Game {
         let (transfer_tx, mut transfer_rx) = mpsc::channel::<TransferRequest>(8);
         let (leaderboard_tx, leaderboard_rx) = broadcast::channel(8);
 
-        let (chat_tx, chat_rx) = broadcast::channel(8);
+        let (chat_tx, _) = broadcast::channel(8);
 
         let mut lb_rx_clone = leaderboard_rx.resubscribe();
 
@@ -77,7 +76,6 @@ impl Game {
             leaderboard_tx,
             leaderboard_rx,
             chat_tx,
-            chat_rx,
             frame_duration,
         };
 
