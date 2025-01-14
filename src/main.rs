@@ -1,6 +1,7 @@
 use anyhow::Result;
 use evadesplus::{
-    game::game::Game, networking::webtransport::WebTransportServer, parsing::parse_map,
+    env::get_env_var, game::game::Game, networking::webtransport::WebTransportServer,
+    parsing::parse_map,
 };
 use warp::Filter;
 use wtransport::{tls::Sha256DigestFmt, Identity};
@@ -9,20 +10,17 @@ use wtransport::{tls::Sha256DigestFmt, Identity};
 async fn main() -> Result<()> {
     dotenvy::dotenv()?;
 
-    let local_ip_string = dotenvy::var("LOCAL_IP").expect(".env LOCAL_IP must be set");
+    let local_ip_string = get_env_var("LOCAL_IP");
     let local_ip = local_ip_string.parse().expect("Invalid local ip");
 
-    let port = dotenvy::var("PORT")
-        .expect(".env PORT must be set")
-        .parse()
-        .expect("Invalid port");
+    let port = get_env_var("PORT").parse().expect("Invalid port");
 
-    let map_path = dotenvy::var("MAP_PATH").expect(".env MAP_PATH must be set");
+    let map_path = get_env_var("MAP_PATH");
 
-    let maps = dotenvy::var("MAPS").expect(".env MAPS must be set");
+    let maps = get_env_var("MAPS");
     let maps = maps.split(',').collect::<Vec<_>>();
 
-    let start_area_id = dotenvy::var("START_AREA_ID").expect(".env START_AREA_ID must be set");
+    let start_area_id = get_env_var("START_AREA_ID");
 
     if maps.len() == 0 {
         panic!(".env MAPS must contain at least one map");

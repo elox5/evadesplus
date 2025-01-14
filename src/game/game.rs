@@ -6,6 +6,7 @@ use super::{
     templates::MapTemplate,
 };
 use crate::{
+    env::get_env_var,
     networking::{
         chat::{ChatMessageType, ChatRequest},
         leaderboard::{LeaderboardState, LeaderboardUpdate},
@@ -58,8 +59,7 @@ impl Game {
 
         let mut lb_rx_clone = leaderboard_rx.resubscribe();
 
-        let framerate: f32 = dotenvy::var("SIMULATION_FRAMERATE")
-            .expect(".env SIMULATION_FRAMERATE must be set")
+        let framerate: f32 = get_env_var("SIMULATION_FRAMERATE")
             .parse()
             .expect("Invalid framerate");
 
