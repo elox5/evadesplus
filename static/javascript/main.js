@@ -182,10 +182,12 @@ function handleAreaUpdate(data) {
     const mapIdBytes = data.slice(idx, idx + mapIdLength);
     const mapId = new TextDecoder().decode(mapIdBytes);
 
-    const mapName = cache.maps.find(m => m.id === mapId).name;
-    const name = `${mapName} - ${areaName}`;
+    const map = cache.maps.find(m => m.id === mapId);
+
+    const name = `${map.name} - ${areaName}`;
 
     areaNameHeading.innerHTML = name;
+    areaNameHeading.style.color = map.text_color;
 
     renderArea(width, height, color, walls, safeZones, portals);
 }

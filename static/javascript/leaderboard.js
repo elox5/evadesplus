@@ -33,8 +33,6 @@ class Leaderboard {
     }
 
     transfer(playerId, areaOrder, areaName, mapId) {
-        console.log("Transfer", playerId, areaOrder, areaName, mapId);
-
         for (const map of Object.values(this.maps)) {
             let oldEntryIndex = map.entries.findIndex(entry => entry.playerId === playerId);
 
