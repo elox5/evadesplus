@@ -1,3 +1,4 @@
+import { chat } from "./chat.js";
 import { tryExecuteCommand } from "./commands.js";
 import { input } from "./input.js";
 import { metricSettings, startPing, reportPing } from "./metrics.js";
@@ -81,6 +82,10 @@ async function initializePingMeter() {
 }
 
 export async function sendChatMessage(msg) {
+    if (chat.autoReply && chat.replyTarget !== null && !msg.startsWith("/")) {
+        msg = `/reply ${msg}`;
+    }
+
     if (msg.startsWith("/")) {
         let { executed, message } = tryExecuteCommand(msg);
 

@@ -63,7 +63,7 @@ class Chat {
         if (messageType === 3) entry.classList.add("special", "server-announcement");
         if (messageType === 4) entry.classList.add("special", "server-error");
 
-        if (messageType === 1) {
+        if (messageType === 1 && senderId !== this.selfId) {
             this.replyTarget = senderId;
         }
 

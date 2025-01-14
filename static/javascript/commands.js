@@ -68,6 +68,13 @@ export function tryExecuteCommand(message) {
 
         response.message = `/whisper @${chat.replyTarget} ${args.join(" ")}`;
     }
+    else if (matchesCommand(commandName, "togglereply")) {
+        chat.autoReply = !chat.autoReply;
+
+        chat.receiveMessage(`Auto-reply is now ${chat.autoReply ? "enabled" : "disabled"}.`, SERVER_ID, "", 2);
+
+        response.executed = true;
+    }
 
     return response;
 }

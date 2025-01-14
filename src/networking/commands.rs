@@ -39,6 +39,13 @@ static COMMANDS: LazyLock<Vec<Command>> = LazyLock::new(|| {
             Some("/reply <message>"),
             Box::new(reply),
         ),
+        Command::new(
+            "togglereply",
+            Some(vec!["autoreply", "togglere", "tr", "togglew", "tw"]),
+            "Tries to automatically sends a private reply when sending a chat message.",
+            None,
+            Box::new(togglereply),
+        ),
     ]
 });
 
@@ -216,6 +223,12 @@ async fn whisper(req: CommandRequest) -> Result<Option<ChatRequest>> {
 async fn reply(_req: CommandRequest) -> Result<Option<ChatRequest>> {
     Err(anyhow!(
         "The /reply command should have been handled on the client."
+    ))
+}
+
+async fn togglereply(_req: CommandRequest) -> Result<Option<ChatRequest>> {
+    Err(anyhow!(
+        "The /togglereply command should have been handled on the client."
     ))
 }
 

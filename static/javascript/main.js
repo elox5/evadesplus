@@ -359,7 +359,6 @@ function handleCommandList(data) {
 
     console.log("Self ID: " + chat.selfId);
 
-
     let idx = 9;
 
     for (let i = 0; i < commandCount; i++) {
