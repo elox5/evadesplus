@@ -5,8 +5,6 @@ class Chat {
         this.messages = [];
         this.messageElements = [];
 
-        this.commandList = null;
-
         this.element = document.getElementById("chat");
         this.list = document.getElementById("chat-list");
         this.input = document.getElementById("chat-input");
@@ -24,16 +22,6 @@ class Chat {
         };
     }
 
-    isValidCommand(name) {
-        for (let command of this.commandList) {
-            if (command.name === name) return true;
-
-            if (command.aliases !== null) {
-                if (command.aliases.some(alias => alias === name)) return true;
-            }
-        }
-    }
-
     sendMessage(message) {
         this.input.blur();
         this.input.value = "";
@@ -43,61 +31,7 @@ class Chat {
             return;
         }
 
-        if (message.startsWith("/")) {
-            if (this.tryExecuteCommand(message.slice(1))) {
-                return;
-            }
-        }
-
         sendChatMessage(message);
-    }
-
-    tryExecuteCommand(command) {
-        const SERVER_ID = 18_446_744_073_709_551_615;
-
-        if (this.commandList === null) {
-            this.receiveMessage("The command list cache has not been initialized yet. Please wait a few seconds...", SERVER_ID, "", 2);
-            return true;
-        }
-
-        if (command.trim().length === 0) {
-            return true;
-        }
-
-        let commandName = command.split(" ")[0].trim();
-
-        if (!this.isValidCommand(commandName)) {
-            this.receiveMessage(`Unknown command: */${commandName}*. For a list of available commands, use */help*.`, SERVER_ID, "", 2);
-            return true;
-        }
-        else if (commandName === "help") {
-            const messages = [];
-
-            for (command of this.commandList) {
-                let msg = `*/${command.name}* - ${command.description}`;
-
-                if (command.usage !== null) {
-                    msg += `\nUsage: ${command.usage}`;
-                }
-
-                if (command.aliases !== null) {
-                    let aliases = command.aliases.map(alias => `/${alias}`);
-
-                    msg += "\nAliases: ";
-                    msg += aliases.join(", ");
-                }
-
-                messages.push(msg);
-            }
-
-            const helpMessage = messages.join("\n\n");
-
-            this.receiveMessage(helpMessage, SERVER_ID, "", 2);
-
-            return true;
-        }
-
-        return false;
     }
 
     receiveMessage(message, senderId, name, messageType) {

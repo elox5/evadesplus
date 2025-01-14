@@ -1,3 +1,4 @@
+import { tryExecuteCommand } from "./commands.js";
 import { input } from "./input.js";
 import { metricSettings, startPing, reportPing } from "./metrics.js";
 
@@ -80,6 +81,12 @@ async function initializePingMeter() {
 }
 
 export async function sendChatMessage(message) {
+    if (message.startsWith("/")) {
+        let executed = tryExecuteCommand(message);
+
+        if (executed) return;
+    }
+
     const stream = await transport.createUnidirectionalStream();
     const writer = stream.getWriter();
 

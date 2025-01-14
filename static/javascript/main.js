@@ -4,6 +4,7 @@ import { connect, establishUniConnection, establishInputConnection, establishRen
 import { reportBandwidth, reportFrameStart } from "./metrics.js";
 import { leaderboard } from "./leaderboard.js";
 import { chat } from "./chat.js";
+import { commandList } from "./commands.js";
 
 const gameContainer = document.querySelector("#game-container");
 const connectionPanel = document.querySelector("#connection-panel");
@@ -357,8 +358,6 @@ function handleCommandList(data) {
 
     let idx = 1;
 
-    const commands = [];
-
     for (let i = 0; i < commandCount; i++) {
         const nameLength = data[idx];
         idx++;
@@ -396,13 +395,11 @@ function handleCommandList(data) {
             aliases.push(alias);
         }
 
-        commands.push({
+        commandList.push({
             name: name,
             description: description,
             usage: usage,
             aliases: aliases,
         });
     }
-
-    chat.commandList = commands;
 }
