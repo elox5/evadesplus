@@ -16,35 +16,35 @@ static COMMANDS: LazyLock<Vec<Command>> = LazyLock::new(|| {
             Some(vec!["h"]),
             "Displays this help message.",
             None,
-            Box::new(help),
+            None,
         ),
         Command::new(
             "reset",
             Some(vec!["r"]),
             "Resets the player.",
             None,
-            Box::new(reset),
+            Some(Box::new(reset)),
         ),
         Command::new(
             "whisper",
             Some(vec!["w", "pm", "msg", "message"]),
             "Sends a private message to another player.",
             Some("/whisper <player> <message>"),
-            Box::new(whisper),
+            Some(Box::new(whisper)),
         ),
         Command::new(
             "reply",
             Some(vec!["re"]),
             "Sends a private message to the last player who whispered to you.",
             Some("/reply <message>"),
-            Box::new(reply),
+            None,
         ),
         Command::new(
             "togglereply",
             Some(vec!["autoreply", "togglere", "tr", "togglew", "tw"]),
             "Tries to automatically sends a private reply when sending a chat message.",
             None,
-            Box::new(togglereply),
+            None,
         ),
     ]
 });
@@ -90,7 +90,7 @@ struct Command {
     aliases: Option<Vec<String>>,
     description: String,
     usage: Option<String>,
-    function: Box<dyn AsyncFn>,
+    handler: Option<Box<dyn AsyncFn>>,
 }
 
 impl Command {
@@ -99,14 +99,14 @@ impl Command {
         aliases: Option<Vec<&str>>,
         description: &str,
         usage: Option<&str>,
-        function: Box<dyn AsyncFn>,
+        handler: Option<Box<dyn AsyncFn>>,
     ) -> Self {
         Self {
             name: name.to_owned(),
             aliases: aliases.map(|a| a.iter().map(|s| (*s).to_owned()).collect()),
             description: description.to_owned(),
             usage: usage.map(|s| s.to_owned()),
-            function,
+            handler,
         }
     }
 
@@ -127,7 +127,14 @@ impl Command {
     }
 
     pub async fn execute(&self, req: CommandRequest) -> Result<Option<ChatRequest>> {
-        self.function.call(req).await
+        if let Some(handler) = &self.handler {
+            handler.call(req).await
+        } else {
+            Err(anyhow!(
+                "The /{} command should have been handled on the client.",
+                self.name
+            ))
+        }
     }
 }
 
@@ -150,12 +157,6 @@ pub struct CommandRequest {
     pub args: Vec<String>,
     pub game: Arc<Mutex<Game>>,
     pub player_id: u64,
-}
-
-async fn help(_req: CommandRequest) -> Result<Option<ChatRequest>> {
-    Err(anyhow!(
-        "The /help command should have been handled on the client."
-    ))
 }
 
 async fn reset(req: CommandRequest) -> Result<Option<ChatRequest>> {
@@ -218,18 +219,6 @@ async fn whisper(req: CommandRequest) -> Result<Option<ChatRequest>> {
         ChatMessageType::Whisper,
         Some(vec![sender_id, recipient.id]),
     )))
-}
-
-async fn reply(_req: CommandRequest) -> Result<Option<ChatRequest>> {
-    Err(anyhow!(
-        "The /reply command should have been handled on the client."
-    ))
-}
-
-async fn togglereply(_req: CommandRequest) -> Result<Option<ChatRequest>> {
-    Err(anyhow!(
-        "The /togglereply command should have been handled on the client."
-    ))
 }
 
 //
