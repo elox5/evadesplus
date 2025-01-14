@@ -1,3 +1,5 @@
+import { currentPlayers } from "./leaderboard.js";
+import { cache } from "./main.js";
 import { sendChatMessage } from "./networking.js";
 
 class Chat {
@@ -63,13 +65,16 @@ class Chat {
 
         message = message.replace(/\n/g, "\r\n");
 
-        if (showUsername) {
-            message = `${name}: ${message}`;
-        }
-
         entry.textContent = message;
 
         entry.innerHTML = entry.innerHTML.replace(/\*([^*]*)\*/g, "<strong>$1</strong>");
+
+        if (showUsername) {
+            const mapId = currentPlayers.find(p => p.playerId === senderId).mapId;
+            const map = cache.maps.find(m => m.id === mapId);
+
+            entry.innerHTML = `<span style="color: ${map.text_color};">${name}</span>: ${entry.innerHTML}`;
+        }
 
         if (messageType === 0) entry.classList.add("normal");
         if (messageType === 1) entry.classList.add("special", "whisper");

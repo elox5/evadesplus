@@ -16,7 +16,10 @@ class Leaderboard {
 
         this.maps[mapId].add(playerId, playerName, areaOrder, areaName, downed);
 
-        currentPlayers.push(playerId);
+        currentPlayers.push({
+            playerId: playerId,
+            mapId: mapId
+        });
     }
 
     remove(playerId) {
@@ -29,7 +32,7 @@ class Leaderboard {
             }
         }
 
-        currentPlayers.splice(currentPlayers.indexOf(playerId), 1);
+        currentPlayers.splice(currentPlayers.findIndex(entry => entry.playerId === playerId), 1);
     }
 
     transfer(playerId, areaOrder, areaName, mapId) {
@@ -50,6 +53,8 @@ class Leaderboard {
                 delete this.maps[map.id];
             }
         }
+
+        currentPlayers.find(entry => entry.playerId === playerId).mapId = mapId;
     }
 
     setDowned(playerId, downed) {

@@ -65,7 +65,7 @@ export function tryExecuteCommand(message) {
             response.executed = true;
             return response;
         }
-        if (!currentPlayers.includes(chat.replyTarget)) {
+        if (!currentPlayers.some(p => p.playerId === chat.replyTarget)) {
             chat.receiveMessage("The target player is no longer available.", -1, "", 2);
 
             response.executed = true;

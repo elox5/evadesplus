@@ -83,7 +83,7 @@ async function initializePingMeter() {
 }
 
 export async function sendChatMessage(msg) {
-    if (chat.autoReply && chat.replyTarget !== null && currentPlayers.includes(chat.replyTarget) && !msg.startsWith("/")) {
+    if (chat.autoReply && chat.replyTarget !== null && currentPlayers.some(p => p.playerId === chat.replyTarget) && !msg.startsWith("/")) {
         msg = `/reply ${msg}`;
     }
 
