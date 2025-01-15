@@ -58,7 +58,10 @@ impl WebTransportServer {
     }
 
     pub async fn serve(self) -> Result<()> {
-        println!("WebTransport server listening on {}", &self.local_addr());
+        println!(
+            "WebTransport server listening on https://{}",
+            &self.local_addr()
+        );
 
         for id in 0.. {
             let incomming_session = self.endpoint.accept().await;

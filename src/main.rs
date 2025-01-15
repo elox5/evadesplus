@@ -3,6 +3,11 @@ use evadesplus::{
     cache::Cache, env::get_env_var, game::game::Game, networking::webtransport::WebTransportServer,
     parsing::parse_map,
 };
+use std::{
+    net::{IpAddr, SocketAddr},
+    str::FromStr,
+};
+use warp::hyper::Uri;
 use warp::Filter;
 use wtransport::{tls::Sha256DigestFmt, Identity};
 
@@ -13,7 +18,8 @@ async fn main() -> Result<()> {
     let local_ip_string = get_env_var("LOCAL_IP");
     let local_ip = local_ip_string.parse().expect("Invalid local ip");
 
-    let port = get_env_var("PORT").parse().expect("Invalid port");
+    let https_port = get_env_var("HTTPS_PORT").parse().expect("Invalid port");
+    let http_port: u16 = get_env_var("HTTP_PORT").parse().expect("Invalid port");
 
     let map_path = get_env_var("MAP_PATH");
 
@@ -35,7 +41,7 @@ async fn main() -> Result<()> {
 
     let game = Game::new(maps, &start_area_id);
 
-    let identity = Identity::self_signed([local_ip_string])?;
+    let identity = Identity::self_signed([&local_ip_string])?;
     let cert_digest = identity.certificate_chain().as_slice()[0].hash();
 
     let cert = identity.certificate_chain().as_slice()[0].clone();
@@ -44,7 +50,7 @@ async fn main() -> Result<()> {
     let key = identity.private_key().clone_key();
     let key = key.to_secret_pem();
 
-    let webtransport_server = WebTransportServer::new(identity, game, local_ip, port)?;
+    let webtransport_server = WebTransportServer::new(identity, game, local_ip, https_port)?;
 
     let root_route = warp::fs::dir("static");
     let cert_route = warp::path("cert").and(warp::get()).then(move || {
@@ -59,7 +65,17 @@ async fn main() -> Result<()> {
     let routes = root_route.or(cert_route).or(cache_route);
     let addr = webtransport_server.local_addr();
 
+    let http_redirect_uri =
+        Uri::from_str(&format!("https://{}:{}", &local_ip_string, &https_port))?;
+    println!("{}", http_redirect_uri);
+
+    let http_route = warp::any().map(move || warp::redirect(http_redirect_uri.clone()));
+    let http_addr = SocketAddr::new(IpAddr::V4(local_ip), http_port);
+
     tokio::select! {
+        _result = warp::serve(http_route).run(http_addr) => {
+            println!("HTTP server closed");
+        }
         _result = warp::serve(routes).tls().cert(cert).key(key).run(addr) => {
             println!("HTTPS server closed");
         }
