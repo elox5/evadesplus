@@ -67,7 +67,6 @@ async fn main() -> Result<()> {
 
     let http_redirect_uri =
         Uri::from_str(&format!("https://{}:{}", &local_ip_string, &https_port))?;
-    println!("{}", http_redirect_uri);
 
     let http_route = warp::any().map(move || warp::redirect(http_redirect_uri.clone()));
     let http_addr = SocketAddr::new(IpAddr::V4(local_ip), http_port);
