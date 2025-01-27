@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "clean": "rm -rf dist/scripts"
   },
   "devDependencies": {
     "typescript": "^5.7.3"
