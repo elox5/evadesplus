@@ -1,16 +1,17 @@
-import { chat } from "./chat.js";
-import { tryExecuteCommand } from "./commands.js";
+import { chat, chat_settings } from "./chat.js";
+import { try_execute_command } from "./commands.js";
 import { input } from "./input.js";
-import { currentPlayers } from "./leaderboard.js";
-import { metricSettings, startPing, reportPing } from "./metrics.js";
+import { cache } from "./main.js";
+import { metric_settings, start_ping, report_ping } from "./metrics.js";
+import { Vector2 } from "./types.js";
 
-export let transport;
+export let transport: WebTransport;
 
 export let networkSettings = {
-    inputUpdateRate: 1000 / 60,
+    input_update_rate: 1000 / 60,
 }
 
-export async function connect(name) {
+export async function connect(name: string) {
     const url = window.location.origin;
     let certificate = await get_certificate();
 
@@ -41,7 +42,7 @@ export async function connect(name) {
     await writer.write(encoder.encode(`NAME${name}`));
     await writer.close();
 
-    initializePingMeter();
+    initialize_ping_meter();
 
     console.log("Sent player data");
 }
@@ -55,14 +56,14 @@ async function get_certificate() {
 }
 
 
-let lastInput = {
+let lastInput: Vector2 = {
     x: 0,
-    y: 0
+    y: 0,
 }
 
-async function initializePingMeter() {
+async function initialize_ping_meter() {
     setInterval(async () => {
-        startPing();
+        start_ping();
         const stream = await transport.createBidirectionalStream();
 
         const readable = stream.readable;
@@ -71,24 +72,22 @@ async function initializePingMeter() {
         await writer.write(new TextEncoder().encode("ping"));
         await writer.close();
 
-        await readStream(readable, [
+        await read_stream(readable, [
             {
                 header: "pong",
-                callback: (data) => {
-                    reportPing(data);
-                }
+                callback: report_ping
             }
         ]);
-    }, metricSettings.pingFrequency);
+    }, metric_settings.ping_frequency);
 }
 
-export async function sendChatMessage(msg) {
-    if (chat.autoReply && chat.replyTarget !== null && currentPlayers.some(p => p.playerId === chat.replyTarget) && !msg.startsWith("/")) {
+export async function send_chat_message(msg: string) {
+    if (chat_settings.auto_reply && chat.reply_target !== undefined && cache.current_players.some(p => p.player_id === chat.reply_target) && !msg.startsWith("/")) {
         msg = `/reply ${msg}`;
     }
 
     if (msg.startsWith("/")) {
-        let { executed, message } = tryExecuteCommand(msg);
+        let { executed, message } = try_execute_command(msg);
 
         if (executed) return;
 
@@ -104,7 +103,7 @@ export async function sendChatMessage(msg) {
     await writer.close();
 }
 
-async function sendInput(writer, input) {
+async function sendInput(writer: WritableStreamDefaultWriter, input: Vector2) {
     if (lastInput.x === input.x && lastInput.y === input.y) {
         return;
     }
@@ -124,10 +123,10 @@ export function establishInputConnection() {
 
     setInterval(async () => {
         sendInput(writer, input);
-    }, networkSettings.inputUpdateRate);
+    }, networkSettings.input_update_rate);
 }
 
-export async function establishRenderConnection(callback) {
+export async function establish_render_connection(callback: (data: Uint8Array) => void) {
     const reader = transport.datagrams.readable.getReader();
     while (true) {
         const { value, done } = await reader.read();
@@ -140,7 +139,12 @@ export async function establishRenderConnection(callback) {
     }
 }
 
-export async function establishUniConnection(callbacks) {
+type StreamCallback = {
+    header: string,
+    callback: (data: Uint8Array) => void
+}
+
+export async function establish_uni_connection(callbacks: StreamCallback[]) {
     const reader = transport.incomingUnidirectionalStreams.getReader();
     while (true) {
         const { value, done } = await reader.read();
@@ -149,12 +153,13 @@ export async function establishUniConnection(callbacks) {
             break;
         }
 
-        readStream(value, callbacks);
+        read_stream(value, callbacks);
     }
 }
 
-async function readStream(stream, callbacks) {
+async function read_stream(stream: ReadableStream, callbacks: StreamCallback[]) {
     const reader = stream.getReader();
+
     while (true) {
         const { value, done } = await reader.read();
         const data = value;

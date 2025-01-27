@@ -1,28 +1,57 @@
-import { setupCanvas, renderArea, renderFrame } from "./rendering.js";
-import { setupInput } from "./input.js";
-import { connect, establishUniConnection, establishInputConnection, establishRenderConnection } from "./networking.js";
-import { reportBandwidth, reportFrameStart } from "./metrics.js";
+import { setup_canvas as setup_canvas, renderArea, render_frame } from "./rendering.js";
+import { setup_input as setup_input } from "./input.js";
+import { connect, establish_uni_connection as establish_uni_connection, establishInputConnection as establish_input_connection, establish_render_connection as establish_render_connection } from "./networking.js";
+import { report_bandwidth, reportFrameStart as report_frame_start } from "./metrics.js";
 import { leaderboard } from "./leaderboard.js";
 import { chat } from "./chat.js";
+import { Portal, Rect, RenderNode } from "./types.js";
 
-const gameContainer = document.querySelector("#game-container");
-const connectionPanel = document.querySelector("#connection-panel");
-const nameInput = document.querySelector("#name-input");
-const connectButton = document.querySelector("#connect-button");
-const areaNameHeading = document.querySelector("#area-name");
+const game_container = document.querySelector("#game-container") as HTMLDivElement;
+const connection_panel = document.querySelector("#connection-panel") as HTMLDivElement;
+const connect_button = document.querySelector("#connect-button") as HTMLButtonElement;
+const area_name_heading = document.querySelector("#area-name") as HTMLHeadingElement;
 
-export const cache = {};
+type MapData = {
+    id: string,
+    name: string,
+    text_color: string,
+}
+
+export type CommandData = {
+    name: string,
+    description: string,
+    usage: string,
+    aliases: string[],
+}
+
+type PlayerData = {
+    player_id: bigint,
+    map_id: string,
+};
+
+type Cache = {
+    maps: MapData[],
+    commands: CommandData[],
+    current_players: PlayerData[],
+}
+
+export const cache: Cache = {
+    maps: [],
+    commands: [],
+    current_players: [],
+};
 
 async function main() {
-    await initCache();
+    await init_cache();
 
-    connectButton.disabled = false;
-    connectButton.onclick = handleConnection;
+    connect_button.disabled = false;
+    connect_button.onclick = handle_connection;
 }
 window.onload = main;
 
-async function handleConnection() {
-    let name = nameInput.value.trim();
+async function handle_connection() {
+    const name_input = document.querySelector("#name-input") as HTMLInputElement;
+    const name = name_input.value.trim();
 
     console.log("Connecting...");
 
@@ -31,27 +60,27 @@ async function handleConnection() {
         return;
     }
 
-    connectButton.disabled = true;
+    connect_button.disabled = true;
 
     await connect(name);
-    establishInputConnection();
-    establishRenderConnection(handleRenderUpdate);
-    establishUniConnection([
+    establish_input_connection();
+    establish_render_connection(handle_render_update);
+    establish_uni_connection([
         {
             header: "ADEF",
-            callback: handleAreaUpdate,
+            callback: handle_area_update,
         },
         {
             header: "LBAD",
-            callback: handleLeaderboardAdd,
+            callback: handle_leaderboard_add,
         },
         {
             header: "LBRM",
-            callback: handleLeaderboardRemove,
+            callback: handle_leaderboard_remove,
         },
         {
             header: "LBTR",
-            callback: handleLeaderboardTransfer,
+            callback: handle_leaderboard_transfer,
         },
         {
             header: "LBSD",
@@ -59,33 +88,32 @@ async function handleConnection() {
         },
         {
             header: "LBST",
-            callback: handleLeaderboardStateUpdate,
+            callback: handle_leaderboard_state_update,
         },
         {
             header: "CHBR",
-            callback: handleChatBroadcast
+            callback: handle_chat_broadcast
         },
     ]);
-    setupInput();
+    setup_input();
 
-    gameContainer.classList.remove("hidden");
-    connectionPanel.classList.add("hidden");
+    game_container.classList.remove("hidden");
+    connection_panel.classList.add("hidden");
 
-    setupCanvas();
+    setup_canvas();
 }
 
-async function initCache() {
+async function init_cache() {
     const json = await fetch("/cache").then((response) => response.json());
 
-    for (const [key, value] of Object.entries(json)) {
-        cache[key] = value;
-    }
+    cache.maps = json["maps"];
+    cache.commands = json["commands"];
 
     console.log("Cache loaded");
     console.log(cache);
 }
 
-function handleAreaUpdate(data) {
+function handle_area_update(data: Uint8Array) {
     const widthBytes = data.slice(0, 4);
     const heightBytes = data.slice(4, 8);
 
@@ -110,9 +138,9 @@ function handleAreaUpdate(data) {
 
     let idx = 18;
 
-    const walls = [];
-    const safeZones = [];
-    const portals = [];
+    const walls: Rect[] = [];
+    const safeZones: Rect[] = [];
+    const portals: Portal[] = [];
 
     for (let i = 0; i < wallsLength; i++) {
         const xBytes = data.slice(idx, idx + 4);
@@ -184,18 +212,23 @@ function handleAreaUpdate(data) {
 
     const map = cache.maps.find(m => m.id === mapId);
 
+    if (!map) {
+        console.error(`Map '${mapId}' not found in cache`);
+        return;
+    }
+
     const name = `${map.name} - ${areaName}`;
 
-    areaNameHeading.innerHTML = name;
-    areaNameHeading.style.color = map.text_color;
+    area_name_heading.innerHTML = name;
+    area_name_heading.style.color = map.text_color;
 
     renderArea(width, height, color, walls, safeZones, portals);
 }
 
-const nodes = [];
+const nodes: RenderNode[] = [];
 
-function handleRenderUpdate(data) {
-    reportBandwidth(data.length);
+function handle_render_update(data: Uint8Array) {
+    report_bandwidth(data.length);
 
     const offsetXBytes = data.slice(0, 4);
     const offsetYBytes = data.slice(4, 8);
@@ -211,50 +244,59 @@ function handleRenderUpdate(data) {
     let idx = 13;
 
     for (let i = 0; i < length; i++) {
-        const xBytes = data.slice(idx, idx + 4);
-        const yBytes = data.slice(idx + 4, idx + 8);
-        const rBytes = data.slice(idx + 8, idx + 12);
-        const colorBytes = data.slice(idx + 12, idx + 16);
+        const x_bytes = data.slice(idx, idx + 4);
+        const y_bytes = data.slice(idx + 4, idx + 8);
+        const r_bytes = data.slice(idx + 8, idx + 12);
+        const color_bytes = data.slice(idx + 12, idx + 16);
         const flags = data[idx + 16];
-        const nameLength = data[idx + 17];
+        const name_length = data[idx + 17];
 
         idx += 18;
 
-        const node = {};
+        const x = new Float32Array(x_bytes.buffer)[0];
+        const y = new Float32Array(y_bytes.buffer)[0];
+        const radius = new Float32Array(r_bytes.buffer)[0];
 
-        node.x = new Float32Array(xBytes.buffer)[0];
-        node.y = new Float32Array(yBytes.buffer)[0];
-        node.radius = new Float32Array(rBytes.buffer)[0];
+        const r = color_bytes[0];
+        const g = color_bytes[1];
+        const b = color_bytes[2];
+        const a = color_bytes[3];
+        const color = `rgba(${r}, ${g}, ${b}, ${a / 255})`;
+        const has_outline = (flags & 1) === 1;
+        const is_hero = (flags & 2) === 2;
+        const downed = (flags & 4) === 4;
+        const own_hero = (flags & 8) === 8;
 
-        const r = colorBytes[0];
-        const g = colorBytes[1];
-        const b = colorBytes[2];
-        const a = colorBytes[3];
-        node.color = `rgba(${r}, ${g}, ${b}, ${a / 255})`;
-        node.hasBorder = (flags & 1) === 1;
-        node.isHero = (flags & 2) === 2;
-        node.downed = (flags & 4) === 4;
-        node.ownHero = (flags & 8) === 8;
+        const node: RenderNode = {
+            x,
+            y,
+            radius,
+            color,
+            has_outline,
+            is_hero,
+            downed,
+            own_hero,
+        };
 
-        if (nameLength > 0) {
+        if (name_length > 0) {
             const decoder = new TextDecoder("utf-8");
-            node.name = decoder.decode(data.slice(idx, idx + nameLength));
+            node.name = decoder.decode(data.slice(idx, idx + name_length));
 
-            idx += nameLength;
+            idx += name_length;
         }
 
         nodes.push(node);
     }
 
     if (render) {
-        reportFrameStart();
+        report_frame_start();
 
-        renderFrame({ x: offsetX, y: offsetY }, [], nodes);
+        render_frame({ x: offsetX, y: offsetY }, nodes);
         nodes.length = 0;
     }
 }
 
-function handleLeaderboardAdd(data) {
+function handle_leaderboard_add(data: Uint8Array) {
     const playerIdBytes = data.slice(0, 8);
     const playerId = new BigUint64Array(playerIdBytes.buffer)[0];
 
@@ -282,14 +324,14 @@ function handleLeaderboardAdd(data) {
     leaderboard.add(playerId, playerName, areaOrder, areaName, mapId, downed);
 }
 
-function handleLeaderboardRemove(data) {
+function handle_leaderboard_remove(data: Uint8Array) {
     const playerIdBytes = data.slice(0, 8);
     const playerId = new BigUint64Array(playerIdBytes.buffer)[0];
 
     leaderboard.remove(playerId);
 }
 
-function handleLeaderboardTransfer(data) {
+function handle_leaderboard_transfer(data: Uint8Array) {
     const playerIdBytes = data.slice(0, 8);
     const playerId = new BigUint64Array(playerIdBytes.buffer)[0];
 
@@ -311,16 +353,16 @@ function handleLeaderboardTransfer(data) {
     leaderboard.transfer(playerId, areaOrder, areaName, mapId);
 }
 
-function handleLeaderboardSetDowned(data) {
+function handleLeaderboardSetDowned(data: Uint8Array) {
     const playerIdBytes = data.slice(0, 8);
     const playerId = new BigUint64Array(playerIdBytes.buffer)[0];
 
     const downed = data[8] === 1;
 
-    leaderboard.setDowned(playerId, downed);
+    leaderboard.set_downed(playerId, downed);
 }
 
-function handleLeaderboardStateUpdate(data) {
+function handle_leaderboard_state_update(data: Uint8Array) {
     const entryCount = data[0];
 
     let idx = 1;
@@ -355,7 +397,7 @@ function handleLeaderboardStateUpdate(data) {
     }
 }
 
-function handleChatBroadcast(data) {
+function handle_chat_broadcast(data: Uint8Array) {
     const decoder = new TextDecoder("utf-8");
 
     const messageType = data[0];
@@ -371,5 +413,5 @@ function handleChatBroadcast(data) {
 
     const message = decoder.decode(data.slice(idx, idx + messageLength));
 
-    chat.receiveMessage(message, senderId, name, messageType);
+    chat.receive_message(message, senderId, name, messageType);
 }

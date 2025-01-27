@@ -4,3 +4,6 @@ Cargo.lock
 TODO
 
 .env
+
+/client/node_modules/
+/client/dist/scripts

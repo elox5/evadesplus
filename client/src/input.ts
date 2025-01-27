@@ -1,44 +1,45 @@
 import { chat } from "./chat.js";
-import { sendChatMessage } from "./networking.js";
-import { renderSettings } from "./rendering.js";
+import { send_chat_message } from "./networking.js";
+import { render_settings } from "./rendering.js";
+import { Vector2 } from "./types.js";
 
-const canvasContainer = document.querySelector("#canvas-container");
+const canvasContainer = document.querySelector("#canvas-container") as HTMLDivElement;
 
 export let input = {
     x: 0,
     y: 0,
 }
 
-export let inputSettings = {
+export let input_settings = {
     mouseInputRange: 4,
 }
 
-let keyboardPressed = {
+let keyboard_pressed = {
     up: false,
     down: false,
     left: false,
     right: false
 }
 
-let mouseInput = {
+let mouse_input: Vector2 = {
     x: 0,
     y: 0,
 }
 
-let mouseInputActive = false;
+let mouse_input_active = false;
 
 let sneaking = false;
 
-function updateInput() {
-    const keyboardInput = getKeyboardInput();
+function update_input() {
+    const keyboard_input = get_keyboard_input();
 
-    if (!mouseInputActive || keyboardInput.x !== 0 || keyboardInput.y !== 0) {
-        input.x = keyboardInput.x;
-        input.y = keyboardInput.y;
+    if (!mouse_input_active || keyboard_input.x !== 0 || keyboard_input.y !== 0) {
+        input.x = keyboard_input.x;
+        input.y = keyboard_input.y;
     }
-    else if (mouseInputActive) {
-        input.x = mouseInput.x;
-        input.y = mouseInput.y;
+    else if (mouse_input_active) {
+        input.x = mouse_input.x;
+        input.y = mouse_input.y;
     }
 
     if (sneaking) {
@@ -47,122 +48,122 @@ function updateInput() {
     }
 }
 
-function getKeyboardInput() {
+function get_keyboard_input() {
     let total = {
         x: 0,
         y: 0,
     }
 
-    if (keyboardPressed.up) {
+    if (keyboard_pressed.up) {
         total.y += 1;
     }
-    if (keyboardPressed.down) {
+    if (keyboard_pressed.down) {
         total.y -= 1;
     }
-    if (keyboardPressed.right) {
+    if (keyboard_pressed.right) {
         total.x += 1;
     }
-    if (keyboardPressed.left) {
+    if (keyboard_pressed.left) {
         total.x -= 1;
     }
 
     return normalize(total);
 }
 
-export function setupInput() {
+export function setup_input() {
     window.onkeydown = (e) => {
         if (chat.focused()) return;
 
         if (e.key === "Shift") {
             sneaking = true;
-            updateInput();
+            update_input();
         }
 
         if (e.key === "ArrowLeft" || e.code === "KeyA") {
-            keyboardPressed.left = true;
+            keyboard_pressed.left = true;
         }
         else if (e.key === "ArrowRight" || e.code === "KeyD") {
-            keyboardPressed.right = true;
+            keyboard_pressed.right = true;
         }
         else if (e.key === "ArrowUp" || e.code === "KeyW") {
-            keyboardPressed.up = true;
+            keyboard_pressed.up = true;
         }
         else if (e.key === "ArrowDown" || e.code === "KeyS") {
-            keyboardPressed.down = true;
+            keyboard_pressed.down = true;
         } else if ((e.key === "Enter" || e.code === "Slash") && !chat.focused()) {
             chat.focus();
             return;
         } else if (e.key == "Escape" && !chat.focused()) {
-            sendChatMessage("/reset");
+            send_chat_message("/reset");
         } else {
             return;
         }
 
-        updateInput();
+        update_input();
     };
 
     window.onkeyup = (e) => {
         if (e.key === "Shift") {
             sneaking = false;
-            updateInput();
+            update_input();
         }
 
         if (e.key === "ArrowLeft" || e.code === "KeyA") {
-            keyboardPressed.left = false;
+            keyboard_pressed.left = false;
         }
         else if (e.key === "ArrowRight" || e.code === "KeyD") {
-            keyboardPressed.right = false;
+            keyboard_pressed.right = false;
         }
         else if (e.key === "ArrowUp" || e.code === "KeyW") {
-            keyboardPressed.up = false;
+            keyboard_pressed.up = false;
         }
         else if (e.key === "ArrowDown" || e.code === "KeyS") {
-            keyboardPressed.down = false;
+            keyboard_pressed.down = false;
         } else {
             return;
         }
 
-        updateInput();
+        update_input();
     };
 
     window.onmousemove = (e) => {
-        if (!mouseInputActive) return;
+        if (!mouse_input_active) return;
 
-        mouseInput = calculateMouseInput(e);
+        mouse_input = calculate_mouse_input(e);
 
-        updateInput();
+        update_input();
     };
 
     canvasContainer.onmousedown = (e) => {
-        mouseInputActive = !mouseInputActive;
-        if (!mouseInputActive) {
-            mouseInput.x = 0;
-            mouseInput.y = 0;
+        mouse_input_active = !mouse_input_active;
+        if (!mouse_input_active) {
+            mouse_input.x = 0;
+            mouse_input.y = 0;
         }
         else {
-            mouseInput = calculateMouseInput(e);
+            mouse_input = calculate_mouse_input(e);
         }
-        updateInput();
+        update_input();
     };
 }
 
 export function lockMouseInput() {
-    mouseInputActive = false;
+    mouse_input_active = false;
 
-    mouseInput.x = 0;
-    mouseInput.y = 0;
+    mouse_input.x = 0;
+    mouse_input.y = 0;
 
-    updateInput();
+    update_input();
 }
 
-function calculateMouseInput(e) {
+function calculate_mouse_input(e: MouseEvent) {
     const centerX = window.innerWidth / 2;
     const centerY = window.innerHeight / 2;
-    const range = inputSettings.mouseInputRange;
+    const range = input_settings.mouseInputRange;
 
     let delta = {
-        x: (e.clientX - centerX) / renderSettings.tileSize / range,
-        y: (e.clientY - centerY) / renderSettings.tileSize / range,
+        x: (e.clientX - centerX) / render_settings.tile_size / range,
+        y: (e.clientY - centerY) / render_settings.tile_size / range,
     }
 
     const magnitude = Math.sqrt(delta.x * delta.x + delta.y * delta.y);
@@ -176,8 +177,8 @@ function calculateMouseInput(e) {
     return delta;
 }
 
-function normalize(v, magnitude = null) {
-    if (magnitude === null) {
+function normalize(v: Vector2, magnitude: number | undefined = undefined) {
+    if (magnitude === undefined) {
         magnitude = Math.sqrt(v.x * v.x + v.y * v.y);
     }
     if (magnitude === 0) {

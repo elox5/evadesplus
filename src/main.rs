@@ -29,6 +29,12 @@ async fn main() -> Result<()> {
         .parse()
         .expect("Invalid port");
 
+    let client_path = get_env_or_default("CLIENT_PATH", "client/dist");
+
+    if !std::path::Path::new(&client_path).is_dir() {
+        panic!("Client code has not been compiled.");
+    }
+
     let map_path = get_env_or_default("MAP_PATH", "maps");
 
     let maps = try_get_env_var("MAPS");
@@ -65,7 +71,7 @@ async fn main() -> Result<()> {
 
     let webtransport_server = WebTransportServer::new(identity, game, local_ip, https_port)?;
 
-    let root_route = warp::fs::dir("static");
+    let root_route = warp::fs::dir(client_path);
     let cert_route = warp::path("cert").and(warp::get()).then(move || {
         let cert_digest = cert_digest.clone();
         async move { warp::reply::json(&cert_digest.fmt(Sha256DigestFmt::BytesArray)) }

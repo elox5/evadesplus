@@ -21,10 +21,13 @@ This implementation is also completely open source, and aims to be modular and s
 
 ## Environment variable reference
 
-### Network data
+### Network info
 - `LOCAL_IP`: The IP to start the server on (default: `127.0.0.1`)
 - `HTTPS_PORT`: The port to serve the game on (default: `443`)
 - `HTTP_PORT`: The port for the HTTP redirect (default: `80`)
+
+### Client setup
+- `CLIENT_PATH`:  the path to the directory containing static client files (default: `client/dist`)
 
 ### Map data
 - `MAP_PATH`: The path to the directory containing map files (default: `maps`)
