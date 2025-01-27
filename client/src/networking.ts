@@ -1,3 +1,4 @@
+import { BinaryStream } from "./binary_stream.js";
 import { chat, chat_settings } from "./chat.js";
 import { try_execute_command } from "./commands.js";
 import { input } from "./input.js";
@@ -126,7 +127,12 @@ export function establishInputConnection() {
     }, networkSettings.input_update_rate);
 }
 
-export async function establish_render_connection(callback: (data: Uint8Array) => void) {
+type StreamCallback = {
+    header: string,
+    callback: (data: BinaryStream) => void
+}
+
+export async function establish_render_connection(callback: (stream: BinaryStream) => void) {
     const reader = transport.datagrams.readable.getReader();
     while (true) {
         const { value, done } = await reader.read();
@@ -135,13 +141,10 @@ export async function establish_render_connection(callback: (data: Uint8Array) =
             break;
         }
 
-        callback(value);
-    }
-}
+        const stream = new BinaryStream(value);
 
-type StreamCallback = {
-    header: string,
-    callback: (data: Uint8Array) => void
+        callback(stream);
+    }
 }
 
 export async function establish_uni_connection(callbacks: StreamCallback[]) {
@@ -168,11 +171,12 @@ async function read_stream(stream: ReadableStream, callbacks: StreamCallback[]) 
             break;
         }
 
-        const header = new TextDecoder().decode(data.slice(0, 4));
+        const stream = new BinaryStream(data);
+        const header = stream.read_string(4);
 
         for (const callback of callbacks) {
             if (callback.header === header) {
-                callback.callback(data.slice(4));
+                callback.callback(stream);
             }
         }
     }

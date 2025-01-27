@@ -1,6 +1,6 @@
-import { Rect, Vector2 } from "./types";
+import { Rect, Vector2 } from "./types.js";
 
-export class BinaryParser {
+export class BinaryStream {
     private data: Uint8Array;
     private index: number;
     private text_decoder: TextDecoder;
@@ -14,6 +14,10 @@ export class BinaryParser {
 
     set_text_decoder(decoder: TextDecoder) {
         this.text_decoder = decoder;
+    }
+
+    length(): number {
+        return this.data.length;
     }
 
     read_u8(): number {
@@ -76,9 +80,9 @@ export class BinaryParser {
         return value;
     }
 
-    read_bytes(length: number): Uint8Array {
-        const bytes = this.data.slice(this.index, this.index + length);
-        this.index += length;
+    read_bytes(count: number): Uint8Array {
+        const bytes = this.data.slice(this.index, this.index + count);
+        this.index += count;
         return bytes;
     }
 
@@ -113,8 +117,8 @@ export class BinaryParser {
         return { x, y, w, h };
     }
 
-    read_string(length: number): string {
-        const bytes = this.read_bytes(length);
+    read_string(length_bytes: number): string {
+        const bytes = this.read_bytes(length_bytes);
         return this.text_decoder.decode(bytes);
     }
 
@@ -137,5 +141,4 @@ export class BinaryParser {
 
         return this.read_string(length);
     }
-
 }

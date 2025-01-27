@@ -5,7 +5,7 @@ import { report_bandwidth, reportFrameStart as report_frame_start } from "./metr
 import { leaderboard } from "./leaderboard.js";
 import { chat, MessageType } from "./chat.js";
 import { Portal, Rect, RenderNode } from "./types.js";
-import { BinaryParser } from "./binary_parser.js";
+import { BinaryStream } from "./binary_stream.js";
 
 const game_container = document.querySelector("#game-container") as HTMLDivElement;
 const connection_panel = document.querySelector("#connection-panel") as HTMLDivElement;
@@ -114,49 +114,47 @@ async function init_cache() {
     console.log(cache);
 }
 
-function handle_area_update(data: Uint8Array) {
-    const parser = new BinaryParser(data);
+function handle_area_update(data: BinaryStream) {
+    const width = data.read_f32();
+    const height = data.read_f32();
 
-    const width = parser.read_f32();
-    const height = parser.read_f32();
-
-    const [r, g, b, a] = parser.read_rgba();
+    const [r, g, b, a] = data.read_rgba();
 
     const color = `rgba(${r}, ${g}, ${b}, ${a / 255})`;
 
-    const walls_length = parser.read_u16();
-    const safe_zones_length = parser.read_u16();
-    const portals_length = parser.read_u16();
+    const walls_length = data.read_u16();
+    const safe_zones_length = data.read_u16();
+    const portals_length = data.read_u16();
 
     const walls: Rect[] = [];
     const safe_zones: Rect[] = [];
     const portals: Portal[] = [];
 
     for (let i = 0; i < walls_length; i++) {
-        const rect = parser.read_rect();
+        const rect = data.read_rect();
         walls.push(rect);
     }
 
     for (let i = 0; i < safe_zones_length; i++) {
-        const rect = parser.read_rect();
+        const rect = data.read_rect();
         safe_zones.push(rect);
     }
 
     for (let i = 0; i < portals_length; i++) {
-        const x = parser.read_f32();
-        const y = parser.read_f32();
-        const w = parser.read_f32();
-        const h = parser.read_f32();
+        const x = data.read_f32();
+        const y = data.read_f32();
+        const w = data.read_f32();
+        const h = data.read_f32();
 
-        const [r, g, b, a] = parser.read_rgba();
+        const [r, g, b, a] = data.read_rgba();
 
         const color = `rgba(${r}, ${g}, ${b}, ${a / 255})`;
 
         portals.push({ x, y, w, h, color });
     }
 
-    const area_name = parser.read_length_u8_string();
-    const map_id = parser.read_length_u8_string();
+    const area_name = data.read_length_u8_string();
+    const map_id = data.read_length_u8_string();
 
     const map = cache.maps.find(m => m.id === map_id);
 
@@ -175,27 +173,26 @@ function handle_area_update(data: Uint8Array) {
 
 const nodes: RenderNode[] = [];
 
-function handle_render_update(data: Uint8Array) {
-    report_bandwidth(data.length);
-    const parser = new BinaryParser(data);
+function handle_render_update(data: BinaryStream) {
+    report_bandwidth(data.length());
 
-    const offset = parser.read_vector2();
+    const offset = data.read_vector2();
 
-    const [render] = parser.read_flags();
+    const [render] = data.read_flags();
 
-    const node_count = parser.read_u32();
+    const node_count = data.read_u32();
 
     for (let i = 0; i < node_count; i++) {
-        const x = parser.read_f32();
-        const y = parser.read_f32();
-        const radius = parser.read_f32();
+        const x = data.read_f32();
+        const y = data.read_f32();
+        const radius = data.read_f32();
 
-        const [r, g, b, a] = parser.read_rgba();
+        const [r, g, b, a] = data.read_rgba();
         const color = `rgba(${r}, ${g}, ${b}, ${a / 255})`;
 
-        const [has_outline, is_hero, downed, own_hero] = parser.read_flags();
+        const [has_outline, is_hero, downed, own_hero] = data.read_flags();
 
-        const name = parser.read_length_u8_string();
+        const name = data.read_length_u8_string();
 
         const node: RenderNode = {
             x,
@@ -220,74 +217,62 @@ function handle_render_update(data: Uint8Array) {
     }
 }
 
-function handle_leaderboard_add(data: Uint8Array) {
-    const parser = new BinaryParser(data);
+function handle_leaderboard_add(data: BinaryStream) {
+    const player_id = data.read_u64();
+    const area_order = data.read_u16();
+    const [downed] = data.read_flags();
 
-    const player_id = parser.read_u64();
-    const area_order = parser.read_u16();
-    const [downed] = parser.read_flags();
-
-    const player_name = parser.read_length_u8_string()!;
-    const area_name = parser.read_length_u8_string()!;
-    const map_id = parser.read_length_u8_string()!;
+    const player_name = data.read_length_u8_string()!;
+    const area_name = data.read_length_u8_string()!;
+    const map_id = data.read_length_u8_string()!;
 
     leaderboard.add(player_id, player_name, area_order, area_name, map_id, downed);
 }
 
-function handle_leaderboard_remove(data: Uint8Array) {
-    const parser = new BinaryParser(data);
-
-    const player_id = parser.read_u64();
+function handle_leaderboard_remove(data: BinaryStream) {
+    const player_id = data.read_u64();
     leaderboard.remove(player_id);
 }
 
-function handle_leaderboard_transfer(data: Uint8Array) {
-    const parser = new BinaryParser(data);
+function handle_leaderboard_transfer(data: BinaryStream) {
+    const player_id = data.read_u64();
+    const area_order = data.read_u16();
 
-    const player_id = parser.read_u64();
-    const area_order = parser.read_u16();
-
-    const area_name = parser.read_length_u8_string()!;
-    const map_id = parser.read_length_u8_string()!;
+    const area_name = data.read_length_u8_string()!;
+    const map_id = data.read_length_u8_string()!;
 
     leaderboard.transfer(player_id, area_order, area_name, map_id);
 }
 
-function handle_leaderboard_set_downed(data: Uint8Array) {
-    const parser = new BinaryParser(data);
-
-    const player_id = parser.read_u64();
-    const [downed] = parser.read_flags();
+function handle_leaderboard_set_downed(data: BinaryStream) {
+    const player_id = data.read_u64();
+    const [downed] = data.read_flags();
 
     leaderboard.set_downed(player_id, downed);
 }
 
-function handle_leaderboard_state_update(data: Uint8Array) {
-    const parser = new BinaryParser(data);
-
-    const entry_count = parser.read_u8();
+function handle_leaderboard_state_update(data: BinaryStream) {
+    const entry_count = data.read_u8();
 
     for (let i = 0; i < entry_count; i++) {
-        const player_id = parser.read_u64();
-        const area_order = parser.read_u16();
-        const [downed] = parser.read_flags();
+        const player_id = data.read_u64();
+        const area_order = data.read_u16();
+        const [downed] = data.read_flags();
 
-        const player_name = parser.read_length_u8_string()!;
-        const area_name = parser.read_length_u8_string()!;
-        const map_id = parser.read_length_u8_string()!;
+        const player_name = data.read_length_u8_string()!;
+        const area_name = data.read_length_u8_string()!;
+        const map_id = data.read_length_u8_string()!;
 
         leaderboard.add(player_id, player_name, area_order, area_name, map_id, downed);
     }
 }
 
-function handle_chat_broadcast(data: Uint8Array) {
-    const parser = new BinaryParser(data);
+function handle_chat_broadcast(data: BinaryStream) {
+    const message_type = data.read_u8() as MessageType;
+    const sender_id = data.read_u64();
 
-    const message_type = parser.read_u8() as MessageType;
-    const sender_id = parser.read_u64();
-
-    const name = parser.read_length_u8_string()!;
-    const message = parser.read_length_u8_string()!;
+    const name = data.read_length_u8_string()!;
+    const message = data.read_length_u8_string()!;
 
     chat.receive_message(message, sender_id, name, message_type);
 }
