@@ -14,7 +14,7 @@ static COMMANDS: LazyLock<Vec<Command>> = LazyLock::new(|| {
     vec![
         Command::new(
             "help",
-            Some(vec!["h"]),
+            Some(vec!["h", "?"]),
             "Displays this help message.",
             None,
             None,
