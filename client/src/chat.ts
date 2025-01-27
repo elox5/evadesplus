@@ -67,7 +67,7 @@ class Chat {
         const entry = document.createElement("div");
         entry.classList.add("chat-entry");
 
-        const show_username = message_type === 0 || message_type === 1;
+        const show_username = message_type === MessageType.Normal || message_type === MessageType.Whisper;
 
         message = message.replace(/\n/g, "\r\n");
 
@@ -82,13 +82,13 @@ class Chat {
             entry.innerHTML = `<span style="color: ${map.text_color};">${name}</span>: ${entry.innerHTML}`;
         }
 
-        if (message_type === 0) entry.classList.add("normal");
-        if (message_type === 1) entry.classList.add("special", "whisper");
-        if (message_type === 2) entry.classList.add("special", "command-response");
-        if (message_type === 3) entry.classList.add("special", "server-announcement");
-        if (message_type === 4) entry.classList.add("special", "server-error");
+        if (message_type === MessageType.Normal) entry.classList.add("normal");
+        if (message_type === MessageType.Whisper) entry.classList.add("special", "whisper");
+        if (message_type === MessageType.CommandResponse) entry.classList.add("special", "command-response");
+        if (message_type === MessageType.ServerAnnouncement) entry.classList.add("special", "server-announcement");
+        if (message_type === MessageType.ServerError) entry.classList.add("special", "server-error");
 
-        if (message_type === 1 && sender_id !== this.self_id) {
+        if (message_type === MessageType.Whisper && sender_id !== this.self_id) {
             this.reply_target = sender_id;
         }
 

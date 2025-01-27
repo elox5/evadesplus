@@ -31,8 +31,8 @@ impl ChatRequest {
         bytes.push(self.message_type.clone() as u8); // 1 byte
         bytes.extend_from_slice(&self.sender_id.to_le_bytes()); // 8 bytes
         bytes.push(self.sender_name.len() as u8); // 1 byte
-        bytes.push(self.message.len() as u8); // 1 byte
         bytes.extend_from_slice(self.sender_name.as_bytes()); // name.len() bytes
+        bytes.push(self.message.len() as u8); // 1 byte
         bytes.extend_from_slice(self.message.as_bytes()); // message.len() bytes
 
         bytes

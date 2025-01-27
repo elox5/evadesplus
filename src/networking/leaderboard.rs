@@ -97,10 +97,10 @@ impl LeaderboardUpdate {
                 bytes.extend_from_slice(&area_order.to_le_bytes()); // 2 bytes
                 bytes.push(*downed as u8); // 1 byte
                 bytes.push(player_name.len().to_le_bytes()[0]); // 1 byte
-                bytes.push(area_name.len().to_le_bytes()[0]); // 1 byte
-                bytes.push(map_id.len().to_le_bytes()[0]); // 1 byte
                 bytes.extend_from_slice(player_name.as_bytes()); // player_name.len() bytes
+                bytes.push(area_name.len().to_le_bytes()[0]); // 1 byte
                 bytes.extend_from_slice(area_name.as_bytes()); // area_name.len() bytes
+                bytes.push(map_id.len().to_le_bytes()[0]); // 1 byte
                 bytes.extend_from_slice(map_id.as_bytes()); // map_id.len() bytes
             }
             LeaderboardUpdateMode::Remove => {}
@@ -111,8 +111,8 @@ impl LeaderboardUpdate {
             } => {
                 bytes.extend_from_slice(&area_order.to_le_bytes()); // 2 bytes
                 bytes.push(area_name.len().to_le_bytes()[0]); // 1 byte
-                bytes.push(map_id.len().to_le_bytes()[0]); // 1 byte
                 bytes.extend_from_slice(area_name.as_bytes()); // area_name.len() bytes
+                bytes.push(map_id.len().to_le_bytes()[0]); // 1 byte
                 bytes.extend_from_slice(map_id.as_bytes()); // map_name.len() bytes
             }
             LeaderboardUpdateMode::SetDowned(downed) => {
@@ -142,10 +142,10 @@ impl LeaderboardStateEntry {
         bytes.extend_from_slice(&self.area_order.to_le_bytes()); // 2 bytes
         bytes.push(self.downed as u8); // 1 byte
         bytes.push(self.player_name.len() as u8); // 1 byte
-        bytes.push(self.area_name.len() as u8); // 1 byte
-        bytes.push(self.map_id.len() as u8); // 1 byte
         bytes.extend_from_slice(self.player_name.as_bytes()); // player_name.len() bytes
+        bytes.push(self.area_name.len() as u8); // 1 byte
         bytes.extend_from_slice(self.area_name.as_bytes()); // area_name.len() bytes
+        bytes.push(self.map_id.len() as u8); // 1 byte
         bytes.extend_from_slice(self.map_id.as_bytes()); // map_name.len() bytes
 
         bytes
