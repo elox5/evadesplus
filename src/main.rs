@@ -1,12 +1,13 @@
 use anyhow::Result;
 use evadesplus::{
     cache::Cache,
-    env::{get_env_or_default, get_env_var},
+    env::{get_env_or_default, get_env_var, try_get_env_var},
     game::game::Game,
     networking::webtransport::WebTransportServer,
     parsing::parse_map,
 };
 use std::{
+    ffi::OsStr,
     net::{IpAddr, SocketAddr},
     str::FromStr,
 };
@@ -30,19 +31,24 @@ async fn main() -> Result<()> {
 
     let map_path = get_env_or_default("MAP_PATH", "maps");
 
-    let maps = get_env_var("MAPS");
-    let maps = maps.split(',').collect::<Vec<_>>();
+    let maps = try_get_env_var("MAPS");
 
     let start_area_id = get_env_var("START_AREA_ID");
 
-    if maps.len() == 0 {
-        panic!(".env MAPS must contain at least one map");
-    }
-
-    let maps = maps
-        .iter()
-        .map(|m| parse_map(&format!("{}/{}.yaml", map_path, m)).unwrap())
-        .collect::<Vec<_>>();
+    let maps = match maps {
+        Some(m) => m
+            .split(',')
+            .into_iter()
+            .map(|m| parse_map(&format!("{}/{}.yaml", map_path, m)).unwrap())
+            .collect::<Vec<_>>(),
+        None => std::fs::read_dir(map_path)
+            .unwrap()
+            .filter_map(|f| f.ok())
+            .filter(|f| f.path().is_file())
+            .filter(|f| f.path().extension().unwrap_or(OsStr::new("")) == "yaml")
+            .map(|f| parse_map(f.path().to_str().unwrap()).unwrap())
+            .collect::<Vec<_>>(),
+    };
 
     let cache = Cache::new(&maps);
 
