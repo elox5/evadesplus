@@ -180,7 +180,7 @@ function handle_render_update(data: BinaryStream) {
 
     const [render] = data.read_flags();
 
-    const node_count = data.read_u32();
+    const node_count = data.read_u16();
 
     for (let i = 0; i < node_count; i++) {
         const x = data.read_f32();

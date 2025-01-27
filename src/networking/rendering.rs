@@ -7,7 +7,7 @@ pub struct RenderPacket {
 }
 
 impl RenderPacket {
-    const HEADER_SIZE: u32 = 13;
+    const HEADER_SIZE: u32 = 11;
 
     pub fn new() -> Self {
         Self { nodes: Vec::new() }
@@ -20,11 +20,11 @@ impl RenderPacket {
         while !nodes.is_empty() {
             let mut datagram = Vec::new();
 
-            let clear: u8 = 0;
+            let should_render: u8 = 0;
 
             datagram.extend_from_slice(&offset.x.to_le_bytes());
             datagram.extend_from_slice(&offset.y.to_le_bytes());
-            datagram.push(clear);
+            datagram.push(should_render);
 
             let mut datagram_nodes: Vec<RenderNode> = Vec::new();
             let mut node_total_size = 0;
@@ -44,7 +44,7 @@ impl RenderPacket {
                 datagram_nodes.push(node);
             }
 
-            let node_count = datagram_nodes.len() as u32;
+            let node_count = datagram_nodes.len() as u16;
 
             datagram.extend_from_slice(&node_count.to_le_bytes());
             for node in &datagram_nodes {
@@ -61,8 +61,7 @@ impl RenderPacket {
 
         let datagrams_len = datagrams.len();
         datagrams[datagrams_len - 1][8] = 1;
-        // the last datagram has to tell the client
-        // to render the frame
+        // the last datagram has to tell the client to render the frame
 
         // println!("Packet ready. Datagrams sent: {}", datagrams.len());
 
