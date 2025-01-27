@@ -1,6 +1,9 @@
 use anyhow::Result;
 use evadesplus::{
-    cache::Cache, env::get_env_var, game::game::Game, networking::webtransport::WebTransportServer,
+    cache::Cache,
+    env::{get_env_or_default, get_env_var},
+    game::game::Game,
+    networking::webtransport::WebTransportServer,
     parsing::parse_map,
 };
 use std::{
@@ -15,13 +18,17 @@ use wtransport::{tls::Sha256DigestFmt, Identity};
 async fn main() -> Result<()> {
     dotenvy::dotenv()?;
 
-    let local_ip_string = get_env_var("LOCAL_IP");
+    let local_ip_string = get_env_or_default("LOCAL_IP", "127.0.0.1");
     let local_ip = local_ip_string.parse().expect("Invalid local ip");
 
-    let https_port = get_env_var("HTTPS_PORT").parse().expect("Invalid port");
-    let http_port: u16 = get_env_var("HTTP_PORT").parse().expect("Invalid port");
+    let https_port = get_env_or_default("HTTPS_PORT", "443")
+        .parse()
+        .expect("Invalid port");
+    let http_port: u16 = get_env_or_default("HTTP_PORT", "80")
+        .parse()
+        .expect("Invalid port");
 
-    let map_path = get_env_var("MAP_PATH");
+    let map_path = get_env_or_default("MAP_PATH", "maps");
 
     let maps = get_env_var("MAPS");
     let maps = maps.split(',').collect::<Vec<_>>();

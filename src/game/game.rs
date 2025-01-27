@@ -6,7 +6,7 @@ use super::{
     templates::MapTemplate,
 };
 use crate::{
-    env::get_env_var,
+    env::get_env_or_default,
     game::components::CrossingPortal,
     networking::{
         chat::{ChatMessageType, ChatRequest},
@@ -60,7 +60,7 @@ impl Game {
 
         let mut lb_rx_clone = leaderboard_rx.resubscribe();
 
-        let framerate: f32 = get_env_var("SIMULATION_FRAMERATE")
+        let framerate: f32 = get_env_or_default("SIMULATION_FRAMERATE", "60")
             .parse()
             .expect("Invalid framerate");
 

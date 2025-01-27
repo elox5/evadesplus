@@ -15,25 +15,24 @@ This implementation is also completely open source, and aims to be modular and s
 
 3. Load custom map files by putting them in the `maps` directory
 
-4. Setup the environment variables
-
-An example .env file should look like this:
-```sh
-# Network data
-LOCAL_IP = 127.0.0.1
-HTTPS_PORT = 443
-HTTP_PORT = 80
-
-# Map data
-MAP_PATH = maps
-MAPS = aa,bb,cc
-START_AREA_ID = aa:0
-
-# Game settings
-SIMULATION_FRAMERATE = 60
-```
+4. Set up environment variables
 
 5. Start the server with `cargo run --release`
+
+## Environment variable reference
+
+### Network data
+- `LOCAL_IP`: The IP to start the server on (default: `127.0.0.1`)
+- `HTTPS_PORT`: The port to serve the game on (default: `443`)
+- `HTTP_PORT`: The port for the HTTP redirect (default: `80`)
+
+### Map data
+- `MAP_PATH`: The path to the directory containing map files (default: `maps`)
+- `MAPS`: The list of maps to load (required)
+- `START_AREA_ID`: The area ID to load new players into (required)
+
+### Game settings
+- `SIMULATION_FRAMERATE`: The framerate the simulation loop runs on (default: `60`)
 
 ## Issues with WebTransport for local hosting
 Recent updates to major browsers prevent WebTransport connections from being established for self-hosted SSL certificates by default. This means you need a valid CA-signed SSL certificate for the WebTransport connection to succeed. To bypass this, follow these steps:
