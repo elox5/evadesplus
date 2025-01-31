@@ -1,13 +1,13 @@
 import { BinaryStream } from "./binary_stream.js";
 import { chat, chat_settings } from "./chat.js";
 import { try_execute_command } from "./commands.js";
-import { input, input_settings, lock_mouse_input } from "./input.js";
+import { input, lock_mouse_input } from "./input.js";
 import { leaderboard } from "./leaderboard.js";
 import { cache, return_to_menu } from "./main.js";
 import { metric_settings, start_ping, report_ping } from "./metrics.js";
 import { Vector2 } from "./types.js";
 
-export let transport: WebTransport;
+export let transport: WebTransport | undefined;
 
 export let networkSettings = {
     input_update_rate: 1000 / 60,
@@ -24,6 +24,11 @@ let data: NetworkData = {
 }
 
 export async function connect(name: string) {
+    if (transport !== undefined) {
+        console.warn("WebTransport connection already established");
+        return;
+    }
+
     const url = window.location.origin;
     let certificate = await get_certificate();
 
@@ -59,6 +64,8 @@ export async function connect(name: string) {
 }
 
 async function close_webtransport_connection() {
+    if (transport === undefined) return;
+
     transport.close({ closeCode: 1000, reason: "ClientDisconnected" });
 
     await transport.closed;
@@ -69,6 +76,8 @@ async function close_webtransport_connection() {
     if (data.input_interval !== undefined) {
         clearInterval(data.input_interval);
     }
+
+    transport = undefined;
 
     console.log("Closed WebTransport connection");
 }
@@ -99,7 +108,11 @@ let lastInput: Vector2 = {
 }
 
 async function initialize_ping_meter() {
+    if (transport === undefined) return;
+
     data.ping_interval = setInterval(async () => {
+        if (transport === undefined) return;
+
         start_ping();
         const stream = await transport.createBidirectionalStream();
 
@@ -119,6 +132,8 @@ async function initialize_ping_meter() {
 }
 
 export async function send_chat_message(msg: string) {
+    if (transport === undefined) return;
+
     if (chat_settings.auto_reply && chat.reply_target !== undefined && cache.current_players.some(p => p.player_id === chat.reply_target) && !msg.startsWith("/")) {
         msg = `/reply ${msg}`;
     }
@@ -155,6 +170,8 @@ async function send_input(writer: WritableStreamDefaultWriter, input: Vector2) {
 }
 
 export function establish_input_connection() {
+    if (transport === undefined) return;
+
     const stream = transport.datagrams.writable;
     const writer = stream.getWriter();
 
@@ -169,6 +186,8 @@ type StreamCallback = {
 }
 
 export async function establish_render_connection(callback: (stream: BinaryStream) => void) {
+    if (transport === undefined) return;
+
     const reader = transport.datagrams.readable.getReader();
     while (true) {
         const { value, done } = await reader.read();
@@ -184,6 +203,8 @@ export async function establish_render_connection(callback: (stream: BinaryStrea
 }
 
 export async function establish_uni_connection(callbacks: StreamCallback[]) {
+    if (transport === undefined) return;
+
     const reader = transport.incomingUnidirectionalStreams.getReader();
     while (true) {
         const { value, done } = await reader.read();
