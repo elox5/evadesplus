@@ -98,7 +98,7 @@ function display_command_help(name: string) {
     msg += command.description;
 
     if (command.usage !== null) {
-        msg += `\n\nUsage: ${command.usage}`;
+        msg += `\n\nUsage: /${command.name} ${command.usage}`;
     }
 
     if (command.aliases !== null) {
