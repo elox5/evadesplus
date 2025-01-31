@@ -22,6 +22,7 @@ class Leaderboard {
 
         cache.current_players.push({
             player_id,
+            player_name,
             map_id
         });
     }

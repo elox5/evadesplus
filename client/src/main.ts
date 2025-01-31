@@ -27,6 +27,7 @@ export type CommandData = {
 
 type PlayerData = {
     player_id: bigint,
+    player_name: string,
     map_id: string,
 };
 

@@ -21,15 +21,17 @@ function resolve_token(token: CommandAutocompleteToken, input: string): string[]
             }
         }
     } else if (token.name === "player") {
-        // TODO
+        for (let player of cache.current_players) {
+            if (player.player_name.startsWith(input) && !matches.includes(player.player_name)) {
+                matches.push(player.player_name);
+            }
+        }
     } else if (token.name === "map") {
         for (let map of cache.maps) {
             if (map.name.startsWith(input) && !matches.includes(map.name)) {
                 matches.push(map.name);
             }
         }
-    } else if (token.name === "area") {
-        // TODO
     }
 
     return matches;
