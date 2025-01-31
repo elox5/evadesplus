@@ -116,13 +116,14 @@ pub async fn handle_command(
     req: CommandRequest,
 ) -> Result<Option<ChatRequest>> {
     for command in COMMANDS.iter() {
-        if command.matches(command_name) {
+        if command.matches(&command_name.to_lowercase()) {
             return command.execute(req).await;
         }
     }
 
     Err(anyhow!(
-        "Unknown command: /{command_name}. This should've been handled on the client, but it has somehow reached the server."
+        "Unknown command: /{}. This should've been handled on the client, but it has somehow reached the server.",
+        &command_name.to_lowercase()
     ))
 }
 

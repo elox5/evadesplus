@@ -32,7 +32,7 @@ export function try_execute_command(message: string) {
 
         response.executed = true;
     }
-    else if (matches_command_name(commandName, "help")) {
+    else if (matches_command_with_name(commandName, "help")) {
         const arg = args[0];
 
         if (arg === "" || arg === undefined) {
@@ -44,7 +44,7 @@ export function try_execute_command(message: string) {
 
         response.executed = true;
     }
-    else if (matches_command_name(commandName, "reply")) {
+    else if (matches_command_with_name(commandName, "reply")) {
         if (chat.reply_target === undefined) {
             mock_server_response("There's nobody to reply to.");
 
@@ -60,24 +60,24 @@ export function try_execute_command(message: string) {
 
         response.message = `/whisper @${chat.reply_target} ${args.join(" ")}`;
     }
-    else if (matches_command_name(commandName, "togglereply")) {
+    else if (matches_command_with_name(commandName, "togglereply")) {
         chat_settings.auto_reply = !chat_settings.auto_reply;
 
         mock_server_response(`Auto-reply is now ${chat_settings.auto_reply ? "enabled" : "disabled"}.`);
 
         response.executed = true;
     }
-    else if (matches_command_name(commandName, "reset")) {
+    else if (matches_command_with_name(commandName, "reset")) {
         lock_mouse_input();
     }
-    else if (matches_command_name(commandName, "clear")) {
+    else if (matches_command_with_name(commandName, "clear")) {
         chat.clear();
 
         mock_server_response("Chat cleared.");
 
         response.executed = true;
     }
-    else if (matches_command_name(commandName, "disconnect")) {
+    else if (matches_command_with_name(commandName, "disconnect")) {
         disconnect();
 
         response.executed = true;
@@ -118,7 +118,9 @@ function display_command_list() {
     mock_server_response(msg);
 }
 
-function matches_command_name(name: string, command_name: string) {
+function matches_command_with_name(name: string, command_name: string) {
+    name = name.toLowerCase();
+
     const command = cache.commands.find(command => command.name === command_name);
 
     if (command === undefined) {
@@ -129,6 +131,12 @@ function matches_command_name(name: string, command_name: string) {
 }
 
 function matches_command(name: string, command: CommandData) {
+    if (name.charAt(0) == "/") {
+        name = name.substring(1);
+    }
+
+    name = name.toLowerCase();
+
     return command.name === name || (command.aliases !== null && command.aliases.some(alias => alias === name));
 }
 
