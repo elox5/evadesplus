@@ -150,7 +150,7 @@ function is_valid_command(name: string) {
     return false;
 }
 
-function try_get_command(name: string): CommandData | null {
+export function try_get_command(name: string): CommandData | null {
     for (let command of cache.commands) {
         if (matches_command(name, command)) {
             return command;

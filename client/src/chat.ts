@@ -1,3 +1,4 @@
+import { get_autocomplete } from "./autocomplete.js";
 import { cache } from "./main.js";
 import { send_chat_message } from "./networking.js";
 
@@ -7,9 +8,13 @@ class Chat {
 
     private list: HTMLDivElement;
     private input: HTMLInputElement;
+    private autocomplete_display: HTMLDivElement;
 
     reply_target?: bigint;
     private self_id: bigint;
+
+    private autocomplete_entries: string[] | null = null;
+    private autocomplete_index: number = 0;
 
     constructor() {
         this.messages = [];
@@ -19,16 +24,55 @@ class Chat {
         this.input = document.getElementById("chat-input") as HTMLInputElement;
         const send_button = document.getElementById("chat-send-button") as HTMLButtonElement;
 
+        this.autocomplete_display = document.getElementById("chat-autocomplete") as HTMLDivElement;
+
         send_button.onclick = () => {
             this.send_message(this.input.value);
         };
 
         this.input.onkeydown = (e) => {
             if (e.key === "Enter") {
+                if (this.autocomplete_entries !== null) {
+                    const should_send = this.fill_autocomplete(this.autocomplete_entries[this.autocomplete_index]);
+                    if (!should_send) return;
+                }
+
                 this.send_message(this.input.value);
                 e.stopPropagation();
             }
+            else if (e.key === "Tab" && this.autocomplete_entries !== null) {
+                this.cycle_autocomplete_down();
+
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            else if (e.key === "ArrowDown" && this.autocomplete_entries !== null) {
+                this.cycle_autocomplete_down();
+
+                e.stopPropagation();
+            }
+            else if (e.key === "ArrowUp" && this.autocomplete_entries !== null) {
+                this.cycle_autocomplete_up();
+
+                e.stopPropagation();
+            }
         };
+
+        this.input.onkeyup = (_) => {
+            if (this.input.value.charAt(0) === "/") {
+
+                const entries = get_autocomplete(this.input.value);
+
+                if (entries === null || entries.length === 0) {
+                    this.hide_autocomplete();
+                }
+                else {
+                    this.show_autocomplete(entries);
+                }
+            } else {
+                this.hide_autocomplete();
+            }
+        }
     }
 
     set_self_id(self_id: bigint) {
@@ -123,6 +167,97 @@ class Chat {
     clear() {
         this.messages = [];
         this.list.innerHTML = "";
+    }
+
+    private hide_autocomplete() {
+        this.autocomplete_entries = null;
+        this.autocomplete_index = 0;
+
+        this.autocomplete_display.classList.add("hidden");
+    }
+
+    private show_autocomplete(entries: string[]) {
+        this.autocomplete_entries = entries;
+
+        this.autocomplete_display.classList.remove("hidden");
+
+        this.autocomplete_display.innerHTML = "";
+        for (const entry of entries) {
+            const button = document.createElement("button");
+            button.classList.add("autocomplete-entry");
+
+            button.textContent = entry;
+            button.onclick = () => {
+                this.fill_autocomplete(entry);
+            };
+
+            this.autocomplete_display.appendChild(button);
+        }
+
+        if (this.autocomplete_index >= this.autocomplete_entries.length) {
+            this.autocomplete_index = this.autocomplete_entries.length - 1;
+        }
+
+        this.focus_autocomplete();
+    }
+
+    private focus_autocomplete() {
+        const entry_element = this.autocomplete_display.children[this.autocomplete_index] as HTMLButtonElement;
+
+        for (let i = 0; i < this.autocomplete_display.children.length; i++) {
+            this.autocomplete_display.children[i].classList.remove("selected");
+        }
+
+        entry_element.classList.add("selected");
+
+        this.autocomplete_display.scrollTop = entry_element.offsetTop - this.autocomplete_display.offsetTop;
+    }
+
+    private cycle_autocomplete_up() {
+        if (this.autocomplete_entries === null) {
+            return;
+        }
+
+        this.autocomplete_index = (this.autocomplete_index - 1 + this.autocomplete_entries.length) % this.autocomplete_entries.length;
+
+        this.focus_autocomplete();
+    }
+
+    private cycle_autocomplete_down() {
+        if (this.autocomplete_entries === null) {
+            return;
+        }
+
+        this.autocomplete_index = (this.autocomplete_index + 1) % this.autocomplete_entries.length;
+
+        this.focus_autocomplete();
+    }
+
+    private fill_autocomplete(entry: string): boolean {
+        if (entry === "") {
+            this.hide_autocomplete();
+            return true;
+        }
+
+        const words = this.input.value.split(" ");
+        const last_word = words[words.length - 1];
+
+        if (last_word.replace("/", "") === entry) {
+            this.hide_autocomplete();
+            return true;
+        }
+
+        const string_without_last_word = words.slice(0, words.length - 1).join(" ");
+
+        if (string_without_last_word === "") {
+            this.input.value = `/${entry} `;
+        }
+        else {
+            this.input.value = `${string_without_last_word} ${entry} `;
+        }
+
+        this.hide_autocomplete();
+        return false;
     }
 }
 
