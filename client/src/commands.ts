@@ -27,34 +27,20 @@ export function try_execute_command(message: string) {
     const commandName = split[0].trim();
     const args = split.slice(1);
 
-    if (!isValidCommand(commandName)) {
+    if (!is_valid_command(commandName)) {
         mock_server_response(`Unknown command: */${commandName}*. For a list of available commands, use */help*.`);
 
         response.executed = true;
     }
     else if (matches_command_name(commandName, "help")) {
-        const messages = [];
+        const arg = args[0];
 
-        for (let command of cache.commands) {
-            let msg = `*/${command.name}* - ${command.description}`;
-
-            if (command.usage !== null) {
-                msg += `\nUsage: ${command.usage}`;
-            }
-
-            if (command.aliases !== null) {
-                let aliases = command.aliases.map(alias => `/${alias}`);
-
-                msg += "\nAliases: ";
-                msg += aliases.join(", ");
-            }
-
-            messages.push(msg);
+        if (arg === "" || arg === undefined) {
+            display_command_list();
         }
-
-        const helpMessage = messages.join("\n\n");
-
-        mock_server_response(helpMessage);
+        else {
+            display_command_help(arg);
+        }
 
         response.executed = true;
     }
@@ -100,6 +86,38 @@ export function try_execute_command(message: string) {
     return response;
 }
 
+function display_command_help(name: string) {
+    const command = try_get_command(name);
+
+    if (command === null) {
+        display_command_list();
+        return;
+    }
+
+    let msg = `*/${command.name}*\n`;
+    msg += command.description;
+
+    if (command.usage !== null) {
+        msg += `\n\nUsage: ${command.usage}`;
+    }
+
+    if (command.aliases !== null) {
+        msg += `\n\nAliases: ${command.aliases.map(alias => `/${alias}`).join(", ")}`;
+    }
+
+    mock_server_response(msg);
+}
+
+function display_command_list() {
+    let msg = "*Available commands:*\n";
+
+    msg += cache.commands.map(command => `/${command.name}`).join(", ");
+
+    msg += `\n\n Use */help <command>* for more information about a specific command.`;
+
+    mock_server_response(msg);
+}
+
 function matches_command_name(name: string, command_name: string) {
     const command = cache.commands.find(command => command.name === command_name);
 
@@ -114,7 +132,7 @@ function matches_command(name: string, command: CommandData) {
     return command.name === name || (command.aliases !== null && command.aliases.some(alias => alias === name));
 }
 
-function isValidCommand(name: string) {
+function is_valid_command(name: string) {
     for (let command of cache.commands) {
         if (matches_command(name, command)) {
             return true;
@@ -122,6 +140,16 @@ function isValidCommand(name: string) {
     }
 
     return false;
+}
+
+function try_get_command(name: string): CommandData | null {
+    for (let command of cache.commands) {
+        if (matches_command(name, command)) {
+            return command;
+        }
+    }
+
+    return null;
 }
 
 function mock_server_response(message: string) {
