@@ -227,7 +227,7 @@ export function render_frame(offset: Vector2, nodes: RenderNode[]) {
         draw_text(main_canvas, node.x, node.y + 1, node.name!, nameColor, 16, "bold");
     }
 
-    let range = input_settings.mouseInputRange;
+    let range = input_settings.mouse_input_range;
     drawLine(main_canvas, offset.x, offset.y, offset.x + (input.x * range), offset.y + (input.y * range), "yellow", 2);
     draw_circle(main_canvas, offset.x, offset.y, range, {
         outline_color: "orange",

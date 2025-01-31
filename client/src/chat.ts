@@ -122,7 +122,6 @@ class Chat {
 
     clear() {
         this.messages = [];
-
         this.list.innerHTML = "";
     }
 }

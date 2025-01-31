@@ -1,6 +1,6 @@
 import { setup_canvas as setup_canvas, renderArea as render_area, render_frame } from "./rendering.js";
 import { setup_input as setup_input } from "./input.js";
-import { connect, establish_uni_connection as establish_uni_connection, establishInputConnection as establish_input_connection, establish_render_connection as establish_render_connection } from "./networking.js";
+import { connect, establish_uni_connection as establish_uni_connection, establish_input_connection as establish_input_connection, establish_render_connection as establish_render_connection } from "./networking.js";
 import { report_bandwidth, reportFrameStart as report_frame_start } from "./metrics.js";
 import { leaderboard } from "./leaderboard.js";
 import { chat, MessageType } from "./chat.js";
@@ -102,6 +102,13 @@ async function handle_connection() {
     connection_panel.classList.add("hidden");
 
     setup_canvas();
+}
+
+export function return_to_menu() {
+    game_container.classList.add("hidden");
+    connection_panel.classList.remove("hidden");
+
+    connect_button.disabled = false;
 }
 
 async function init_cache() {

@@ -1,6 +1,7 @@
 import { chat, chat_settings } from "./chat.js";
-import { lockMouseInput } from "./input.js";
+import { lock_mouse_input } from "./input.js";
 import { cache, CommandData } from "./main.js";
+import { disconnect } from "./networking.js";
 
 export function try_execute_command(message: string) {
     const response = {
@@ -81,12 +82,17 @@ export function try_execute_command(message: string) {
         response.executed = true;
     }
     else if (matches_command_name(commandName, "reset")) {
-        lockMouseInput();
+        lock_mouse_input();
     }
     else if (matches_command_name(commandName, "clear")) {
         chat.clear();
 
         mock_server_response("Chat cleared.");
+
+        response.executed = true;
+    }
+    else if (matches_command_name(commandName, "disconnect")) {
+        disconnect();
 
         response.executed = true;
     }

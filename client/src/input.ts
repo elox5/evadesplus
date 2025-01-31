@@ -11,7 +11,7 @@ export let input = {
 }
 
 export let input_settings = {
-    mouseInputRange: 4,
+    mouse_input_range: 4,
 }
 
 let keyboard_pressed = {
@@ -147,7 +147,7 @@ export function setup_input() {
     };
 }
 
-export function lockMouseInput() {
+export function lock_mouse_input() {
     mouse_input_active = false;
 
     mouse_input.x = 0;
@@ -159,7 +159,7 @@ export function lockMouseInput() {
 function calculate_mouse_input(e: MouseEvent) {
     const centerX = window.innerWidth / 2;
     const centerY = window.innerHeight / 2;
-    const range = input_settings.mouseInputRange;
+    const range = input_settings.mouse_input_range;
 
     let delta = {
         x: (e.clientX - centerX) / render_settings.tile_size / range,

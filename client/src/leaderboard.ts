@@ -10,7 +10,6 @@ class Leaderboard {
         this.maps = new Map();
     }
 
-
     add(player_id: bigint, player_name: string, area_order: number, area_name: string, map_id: string, downed: boolean) {
         if (!this.maps.get(map_id)) {
             const map = new LeaderboardMap(map_id);
@@ -66,6 +65,11 @@ class Leaderboard {
         for (const map of this.maps.values()) {
             map.set_downed(player_id, downed);
         }
+    }
+
+    clear() {
+        this.maps.clear();
+        this.element.innerHTML = "";
     }
 }
 

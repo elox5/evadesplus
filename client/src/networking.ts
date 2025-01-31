@@ -1,8 +1,9 @@
 import { BinaryStream } from "./binary_stream.js";
 import { chat, chat_settings } from "./chat.js";
 import { try_execute_command } from "./commands.js";
-import { input } from "./input.js";
-import { cache } from "./main.js";
+import { input, input_settings, lock_mouse_input } from "./input.js";
+import { leaderboard } from "./leaderboard.js";
+import { cache, return_to_menu } from "./main.js";
 import { metric_settings, start_ping, report_ping } from "./metrics.js";
 import { Vector2 } from "./types.js";
 
@@ -10,6 +11,16 @@ export let transport: WebTransport;
 
 export let networkSettings = {
     input_update_rate: 1000 / 60,
+}
+
+type NetworkData = {
+    ping_interval: number | undefined,
+    input_interval: number | undefined
+}
+
+let data: NetworkData = {
+    ping_interval: undefined,
+    input_interval: undefined
 }
 
 export async function connect(name: string) {
@@ -32,8 +43,7 @@ export async function connect(name: string) {
     console.log("Connected");
 
     window.onpagehide = () => {
-        console.log("Closing WebTransport connection");
-        transport.close();
+        close_webtransport_connection();
     }
 
     const encoder = new TextEncoder();
@@ -46,6 +56,32 @@ export async function connect(name: string) {
     initialize_ping_meter();
 
     console.log("Sent player data");
+}
+
+async function close_webtransport_connection() {
+    transport.close({ closeCode: 1000, reason: "ClientDisconnected" });
+
+    await transport.closed;
+
+    if (data.ping_interval !== undefined) {
+        clearInterval(data.ping_interval);
+    }
+    if (data.input_interval !== undefined) {
+        clearInterval(data.input_interval);
+    }
+
+    console.log("Closed WebTransport connection");
+}
+
+export async function disconnect() {
+    await close_webtransport_connection();
+
+    cache.current_players = [];
+    leaderboard.clear();
+    lock_mouse_input();
+    chat.clear();
+
+    return_to_menu();
 }
 
 async function get_certificate() {
@@ -63,7 +99,7 @@ let lastInput: Vector2 = {
 }
 
 async function initialize_ping_meter() {
-    setInterval(async () => {
+    data.ping_interval = setInterval(async () => {
         start_ping();
         const stream = await transport.createBidirectionalStream();
 
@@ -104,7 +140,7 @@ export async function send_chat_message(msg: string) {
     await writer.close();
 }
 
-async function sendInput(writer: WritableStreamDefaultWriter, input: Vector2) {
+async function send_input(writer: WritableStreamDefaultWriter, input: Vector2) {
     if (lastInput.x === input.x && lastInput.y === input.y) {
         return;
     }
@@ -118,12 +154,12 @@ async function sendInput(writer: WritableStreamDefaultWriter, input: Vector2) {
     await writer.write(data);
 }
 
-export function establishInputConnection() {
+export function establish_input_connection() {
     const stream = transport.datagrams.writable;
     const writer = stream.getWriter();
 
-    setInterval(async () => {
-        sendInput(writer, input);
+    data.input_interval = setInterval(async () => {
+        send_input(writer, input);
     }, networkSettings.input_update_rate);
 }
 

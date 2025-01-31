@@ -28,6 +28,13 @@ static COMMANDS: LazyLock<Vec<Command>> = LazyLock::new(|| {
             Some(Box::new(reset)),
         ),
         Command::new(
+            "disconnect",
+            Some(vec!["dc", "ff", "quit"]),
+            "Disconnects from the server.",
+            None,
+            None,
+        ),
+        Command::new(
             "whisper",
             Some(vec!["w", "pm", "msg", "message"]),
             "Sends a private message to another player.",
