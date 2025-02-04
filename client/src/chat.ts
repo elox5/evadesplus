@@ -1,6 +1,8 @@
 import { get_autocomplete } from "./autocomplete.js";
-import { cache } from "./main.js";
-import { send_chat_message } from "./networking.js";
+import { BinaryStream } from "./binary_stream.js";
+import { cache } from "./cache.js";
+import { try_execute_command } from "./commands.js";
+import { network_controller, NetworkController, NetworkModule } from "./network_controller.js";
 
 class Chat {
     private messages: ChatMessage[];
@@ -9,6 +11,11 @@ class Chat {
     private list: HTMLDivElement;
     private input: HTMLInputElement;
     private autocomplete_display: HTMLDivElement;
+
+    settings = {
+        max_messages: 100,
+        auto_reply: false,
+    }
 
     reply_target?: bigint;
     private self_id: bigint;
@@ -102,7 +109,7 @@ class Chat {
             this.message_timestamp_queue.shift();
         }
 
-        send_chat_message(message);
+        module.send_chat_message(message);
     }
 
     receive_message(message: string, sender_id: bigint, name: string, message_type: MessageType) {
@@ -274,9 +281,55 @@ export enum MessageType {
     ServerError = 4
 }
 
-export const chat_settings = {
-    max_messages: 100,
-    auto_reply: false,
+export const chat = new Chat();
+
+export class ChatModule implements NetworkModule {
+    async register(controller: NetworkController) {
+        controller.register_uni_handler("CHBR", this.handle_broadcast.bind(this));
+    }
+
+    async cleanup() {
+        chat.clear();
+    }
+
+    private handle_broadcast(data: BinaryStream) {
+        const message_type = data.read_u8() as MessageType;
+        const sender_id = data.read_u64();
+
+        const name = data.read_length_u8_string()!;
+        const message = data.read_length_u8_string()!;
+
+        chat.receive_message(message, sender_id, name, message_type);
+    }
+
+    async send_chat_message(msg: string) {
+        if (chat.settings.auto_reply
+            && chat.reply_target !== undefined
+            && cache.current_players.some(p => p.player_id === chat.reply_target)
+            && !msg.startsWith("/")
+        ) {
+            msg = `/reply ${msg}`;
+        }
+
+        if (msg.startsWith("/")) {
+            let { executed, message } = try_execute_command(msg);
+
+            if (executed) return;
+
+            msg = message;
+        }
+
+        const encoder = new TextEncoder();
+        const writer = await network_controller.create_uni_writer();
+
+        if (writer === null) {
+            console.error("Failed to send chat message");
+            return;
+        }
+
+        await writer.write(encoder.encode(`CHAT${msg}`));
+    }
 }
 
-export const chat = new Chat();
+const module = new ChatModule();
+network_controller.register_module(module);

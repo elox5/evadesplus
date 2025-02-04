@@ -1,3 +1,5 @@
+import { BinaryStream } from "./binary_stream.js";
+import { network_controller, NetworkController, NetworkModule } from "./network_controller.js";
 
 const pingMeter = document.getElementById("ping-meter") as HTMLSpanElement;
 const bandwidthMeter = document.getElementById("bandwidth-meter") as HTMLSpanElement;
@@ -51,14 +53,14 @@ export function report_render_start() {
     }
 }
 
-export function reportRenderEnd() {
+export function report_render_end() {
     if (render_report_counter % metric_settings.render_report_frequency === 0) {
         const renderTime = performance.now() - render_start_time;
         renderMsMeter.textContent = renderTime.toFixed(2);
     }
 }
 
-export function reportFrameStart() {
+export function report_frame_start() {
     const frameTime = performance.now();
 
     frame_time_queue.push(frameTime);
@@ -76,13 +78,6 @@ export function reportFrameStart() {
 
 export function start_ping() {
     ping_start_time = performance.now();
-}
-
-export function report_ping() {
-    const pingTime = performance.now() - ping_start_time;
-    pingMeter.textContent = pingTime.toFixed(2);
-
-    set_meter_color(pingMeter, pingTime, metric_settings.ping_color_levels, false);
 }
 
 function set_meter_color(meter: HTMLSpanElement, value: number, colorLevels: ColorLevel[], lower: boolean) {
@@ -114,3 +109,47 @@ export function report_bandwidth(bandwidth: number) {
 
     bandwidthMeter.textContent = (sum / timeDelta).toFixed(0);
 }
+
+export class PingModule implements NetworkModule {
+    private interval: number | undefined;
+
+    async register(controller: NetworkController) {
+
+        this.interval = setInterval(async () => {
+            if (!controller.is_connected()) return;
+
+            start_ping();
+
+            const ping_stream = await controller.create_bi_stream();
+
+            const readable = ping_stream.readable;
+            const writer = ping_stream.writable.getWriter();
+
+            await writer.write(new TextEncoder().encode("ping"));
+            await writer.close();
+
+            const { value } = await readable.getReader().read();
+            const stream = new BinaryStream(value);
+
+            if (stream.read_string(4) !== "pong") {
+                console.error("Invalid ping response");
+                return;
+            }
+
+            this.report_ping();
+        }, metric_settings.ping_frequency);
+    }
+
+    cleanup() {
+        clearInterval(this.interval);
+    }
+
+    private report_ping() {
+        const pingTime = performance.now() - ping_start_time;
+        pingMeter.textContent = pingTime.toFixed(2);
+
+        set_meter_color(pingMeter, pingTime, metric_settings.ping_color_levels, false);
+    }
+}
+
+network_controller.register_module(new PingModule());

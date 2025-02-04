@@ -1,7 +1,10 @@
 import { input, input_settings } from "./input.js";
 import Canvas from "./canvas.js";
-import { reportRenderEnd, report_render_start } from "./metrics.js";
+import { report_bandwidth, report_frame_start, report_render_end, report_render_start } from "./metrics.js";
 import { Portal, Rect, RenderNode, Vector2 } from "./types.js";
+import { network_controller, NetworkController, NetworkModule } from "./network_controller.js";
+import { BinaryStream } from "./binary_stream.js";
+import { cache } from "./cache.js";
 
 export let render_settings = {
     tile_size: 40,
@@ -15,7 +18,7 @@ const area_canvas = new Canvas("area-canvas", render_settings.tile_size);
 const area_minimap = new Canvas("area-minimap", render_settings.minimap_tile_size);
 const hero_minimap = new Canvas("hero-minimap", render_settings.minimap_tile_size, render_settings.minimap_hero_scale);
 
-export function setup_canvas() {
+function setup_canvas() {
     main_canvas.update_dimensions();
     main_canvas.clear();
 
@@ -39,7 +42,7 @@ type DrawSettings = {
 function draw_circle(canvas: Canvas, _x: number, _y: number, _r: number, settings: DrawSettings) {
     const ctx = canvas.ctx;
     const { x, y } = canvas.game_to_canvas_pos(_x, _y);
-    const r = _r * canvas.tileSize * canvas.radiusScale;
+    const r = _r * canvas.tile_size * canvas.radius_scale;
 
     ctx.beginPath();
     ctx.arc(x, y, r, 0, 2 * Math.PI);
@@ -132,21 +135,21 @@ function drawGrid(width: number, height: number) {
 
     for (let i = 0; i < width; i++) {
         ctx.beginPath();
-        ctx.moveTo(i * area_canvas.tileSize, 0);
-        ctx.lineTo(i * area_canvas.tileSize, area_canvas.canvas.height);
+        ctx.moveTo(i * area_canvas.tile_size, 0);
+        ctx.lineTo(i * area_canvas.tile_size, area_canvas.canvas.height);
         ctx.stroke();
     }
 
     for (let j = 0; j < height; j++) {
         ctx.beginPath();
-        ctx.moveTo(0, j * area_canvas.tileSize);
-        ctx.lineTo(area_canvas.canvas.width, j * area_canvas.tileSize);
+        ctx.moveTo(0, j * area_canvas.tile_size);
+        ctx.lineTo(area_canvas.canvas.width, j * area_canvas.tile_size);
         ctx.stroke();
     }
 }
 
-export function renderArea(width: number, height: number, color: string, walls: Rect[], safeZones: Rect[], portals: Portal[]) {
-    area_canvas.set_dimensions(width * area_canvas.tileSize, height * area_canvas.tileSize);
+function render_area(width: number, height: number, color: string, walls: Rect[], safeZones: Rect[], portals: Portal[]) {
+    area_canvas.set_dimensions(width * area_canvas.tile_size, height * area_canvas.tile_size);
 
     const ctx = area_canvas.ctx;
 
@@ -180,7 +183,7 @@ export function renderArea(width: number, height: number, color: string, walls: 
 }
 
 
-export function render_frame(offset: Vector2, nodes: RenderNode[]) {
+function render_frame(offset: Vector2, nodes: RenderNode[]) {
     report_render_start();
 
     main_canvas.clear();
@@ -197,7 +200,7 @@ export function render_frame(offset: Vector2, nodes: RenderNode[]) {
         }
 
         if (node.is_hero) {
-            drawMinimapHero(node);
+            draw_minimap_hero(node);
 
             if (node.downed) {
                 draw_text(hero_minimap, node.x, node.y + 1, "!", "red", 16, "bold");
@@ -234,11 +237,136 @@ export function render_frame(offset: Vector2, nodes: RenderNode[]) {
         outline_width: 2
     });
 
-    reportRenderEnd();
+    report_render_end();
 }
 
-function drawMinimapHero(hero: RenderNode) {
+function draw_minimap_hero(hero: RenderNode) {
     draw_circle(hero_minimap, hero.x, hero.y, hero.radius, {
         fill_color: hero.color,
     });
 }
+
+class RenderingModule implements NetworkModule {
+    private nodes: RenderNode[];
+
+    private area_name_heading: HTMLHeadingElement;
+
+    constructor() {
+        this.nodes = [];
+        this.area_name_heading = document.querySelector("#area-name") as HTMLHeadingElement;
+    }
+
+    pre_register() {
+        setup_canvas();
+    }
+
+    register(controller: NetworkController) {
+        controller.register_datagram_handler("REND", this.handle_render_update.bind(this));
+        controller.register_uni_handler("ADEF", this.handle_area_update.bind(this));
+    }
+
+    cleanup() { }
+
+    private handle_area_update(data: BinaryStream) {
+        const width = data.read_f32();
+        const height = data.read_f32();
+
+        const [r, g, b, a] = data.read_rgba();
+
+        const color = `rgba(${r}, ${g}, ${b}, ${a / 255})`;
+
+        const walls_length = data.read_u16();
+        const safe_zones_length = data.read_u16();
+        const portals_length = data.read_u16();
+
+        const walls: Rect[] = [];
+        const safe_zones: Rect[] = [];
+        const portals: Portal[] = [];
+
+        for (let i = 0; i < walls_length; i++) {
+            const rect = data.read_rect();
+            walls.push(rect);
+        }
+
+        for (let i = 0; i < safe_zones_length; i++) {
+            const rect = data.read_rect();
+            safe_zones.push(rect);
+        }
+
+        for (let i = 0; i < portals_length; i++) {
+            const x = data.read_f32();
+            const y = data.read_f32();
+            const w = data.read_f32();
+            const h = data.read_f32();
+
+            const [r, g, b, a] = data.read_rgba();
+
+            const color = `rgba(${r}, ${g}, ${b}, ${a / 255})`;
+
+            portals.push({ x, y, w, h, color });
+        }
+
+        const area_name = data.read_length_u8_string();
+        const map_id = data.read_length_u8_string();
+
+        const map = cache.maps.find(m => m.id === map_id);
+
+        if (!map) {
+            console.error(`Map '${map_id}' not found in cache`);
+            return;
+        }
+
+        const name = `${map.name} - ${area_name}`;
+
+        this.area_name_heading.innerHTML = name;
+        this.area_name_heading.style.color = map.text_color;
+
+        render_area(width, height, color, walls, safe_zones, portals);
+    }
+
+    private handle_render_update(data: BinaryStream) {
+        report_bandwidth(data.length());
+
+        const offset = data.read_vector2();
+
+        const [render] = data.read_flags();
+
+        const node_count = data.read_u16();
+
+        for (let i = 0; i < node_count; i++) {
+            const x = data.read_f32();
+            const y = data.read_f32();
+            const radius = data.read_f32();
+
+            const [r, g, b, a] = data.read_rgba();
+            const color = `rgba(${r}, ${g}, ${b}, ${a / 255})`;
+
+            const [has_outline, is_hero, downed, own_hero] = data.read_flags();
+
+            const name = data.read_length_u8_string();
+
+            const node: RenderNode = {
+                x,
+                y,
+                radius,
+                color,
+                has_outline,
+                is_hero,
+                downed,
+                own_hero,
+                name
+            };
+
+            this.nodes.push(node);
+        }
+
+        if (render) {
+            report_frame_start();
+
+            render_frame(offset, this.nodes);
+            this.nodes.length = 0;
+        }
+    }
+}
+
+network_controller.register_module(new RenderingModule());

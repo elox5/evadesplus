@@ -1,5 +1,6 @@
 import { chat } from "./chat.js";
-import { send_chat_message } from "./networking.js";
+import { try_execute_command } from "./commands.js";
+import { network_controller, NetworkController, NetworkModule } from "./network_controller.js";
 import { render_settings } from "./rendering.js";
 import { Vector2 } from "./types.js";
 
@@ -70,7 +71,7 @@ function get_keyboard_input() {
     return normalize(total);
 }
 
-export function setup_input() {
+function setup_input() {
     window.onkeydown = (e) => {
         if (chat.focused()) return;
 
@@ -94,7 +95,7 @@ export function setup_input() {
             chat.focus();
             return;
         } else if (e.key == "Escape" && !chat.focused()) {
-            send_chat_message("/reset");
+            try_execute_command("/reset");
         } else {
             return;
         }
@@ -187,3 +188,50 @@ function normalize(v: Vector2, magnitude: number | undefined = undefined) {
 
     return { x: v.x / magnitude, y: v.y / magnitude };
 }
+
+class InputModule implements NetworkModule {
+    private lastInput: Vector2 = {
+        x: 0,
+        y: 0,
+    }
+
+    private interval: number | undefined;
+
+    pre_register() {
+        setup_input();
+    }
+
+    register(controller: NetworkController) {
+        const input_writer = controller.create_datagram_writer();
+
+        if (input_writer === null) {
+            console.warn("Failed to register input module");
+            return;
+        }
+
+        this.interval = setInterval(async () => {
+            this.send_input(input_writer, input);
+        }, 1000 / 60);
+    }
+
+    cleanup() {
+        clearInterval(this.interval);
+        lock_mouse_input();
+    }
+
+    private async send_input(writer: WritableStreamDefaultWriter, input: Vector2) {
+        if (this.lastInput.x === input.x && this.lastInput.y === input.y) {
+            return;
+        }
+
+        const input_array = new Float32Array([input.x, input.y]);
+        const data = new Uint8Array(input_array.buffer);
+
+        this.lastInput.x = input.x;
+        this.lastInput.y = input.y;
+
+        await writer.write(data);
+    }
+}
+
+network_controller.register_module(new InputModule());

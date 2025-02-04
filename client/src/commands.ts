@@ -1,7 +1,7 @@
-import { chat, chat_settings } from "./chat.js";
+import { chat } from "./chat.js";
 import { lock_mouse_input } from "./input.js";
-import { cache, CommandData } from "./main.js";
-import { disconnect } from "./networking.js";
+import { cache, CommandData } from "./cache.js";
+import { network_controller } from "./network_controller.js";
 
 export function try_execute_command(message: string) {
     const response = {
@@ -61,9 +61,9 @@ export function try_execute_command(message: string) {
         response.message = `/whisper @${chat.reply_target} ${args.join(" ")}`;
     }
     else if (matches_command_with_name(commandName, "togglereply")) {
-        chat_settings.auto_reply = !chat_settings.auto_reply;
+        chat.settings.auto_reply = !chat.settings.auto_reply;
 
-        mock_server_response(`Auto-reply is now ${chat_settings.auto_reply ? "enabled" : "disabled"}.`);
+        mock_server_response(`Auto-reply is now ${chat.settings.auto_reply ? "enabled" : "disabled"}.`);
 
         response.executed = true;
     }
@@ -78,7 +78,7 @@ export function try_execute_command(message: string) {
         response.executed = true;
     }
     else if (matches_command_with_name(commandName, "disconnect")) {
-        disconnect();
+        network_controller.disconnect();
 
         response.executed = true;
     }

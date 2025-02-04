@@ -1,4 +1,6 @@
-import { cache } from "./main.js";
+import { BinaryStream } from "./binary_stream.js";
+import { cache } from "./cache.js";
+import { network_controller, NetworkController, NetworkModule } from "./network_controller.js";
 
 class Leaderboard {
     private maps: Map<string, LeaderboardMap>;
@@ -166,4 +168,71 @@ class LeaderboardEntry {
     }
 }
 
-export const leaderboard = new Leaderboard();
+const leaderboard = new Leaderboard();
+
+export class LeaderboadModule implements NetworkModule {
+
+    register(controller: NetworkController) {
+        controller.register_uni_handler("LBAD", this.handle_add.bind(this));
+        controller.register_uni_handler("LBRM", this.handle_remove.bind(this));
+        controller.register_uni_handler("LBTR", this.handle_transfer.bind(this));
+        controller.register_uni_handler("LBSD", this.handle_set_downed.bind(this));
+        controller.register_uni_handler("LBST", this.handle_state_update.bind(this));
+    }
+
+    cleanup() {
+        leaderboard.clear();
+    }
+
+    private handle_add(data: BinaryStream) {
+        const player_id = data.read_u64();
+        const area_order = data.read_u16();
+        const [downed] = data.read_flags();
+
+        const player_name = data.read_length_u8_string()!;
+        const area_name = data.read_length_u8_string()!;
+        const map_id = data.read_length_u8_string()!;
+
+        leaderboard.add(player_id, player_name, area_order, area_name, map_id, downed);
+    }
+
+    private handle_remove(data: BinaryStream) {
+        const player_id = data.read_u64();
+        leaderboard.remove(player_id);
+    }
+
+    private handle_transfer(data: BinaryStream) {
+        const player_id = data.read_u64();
+        const area_order = data.read_u16();
+
+        const area_name = data.read_length_u8_string()!;
+        const map_id = data.read_length_u8_string()!;
+
+        leaderboard.transfer(player_id, area_order, area_name, map_id);
+    }
+
+    private handle_set_downed(data: BinaryStream) {
+        const player_id = data.read_u64();
+        const [downed] = data.read_flags();
+
+        leaderboard.set_downed(player_id, downed);
+    }
+
+    private handle_state_update(data: BinaryStream) {
+        const entry_count = data.read_u8();
+
+        for (let i = 0; i < entry_count; i++) {
+            const player_id = data.read_u64();
+            const area_order = data.read_u16();
+            const [downed] = data.read_flags();
+
+            const player_name = data.read_length_u8_string()!;
+            const area_name = data.read_length_u8_string()!;
+            const map_id = data.read_length_u8_string()!;
+
+            leaderboard.add(player_id, player_name, area_order, area_name, map_id, downed);
+        }
+    }
+}
+
+network_controller.register_module(new LeaderboadModule());
