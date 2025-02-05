@@ -158,6 +158,11 @@ class Chat {
             element: entry,
         });
 
+        if (this.messages.length > this.settings.max_messages) {
+            const removed_message = this.messages.shift();
+            this.list.removeChild(removed_message!.element);
+        }
+
         if (atBottom) {
             this.list.scrollTo(0, this.list.scrollHeight);
         }
