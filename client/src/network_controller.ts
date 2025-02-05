@@ -1,4 +1,4 @@
-import { BinaryStream } from "./binary_stream.js";
+import { BinaryReader } from "./binary_reader.js";
 
 export class NetworkController {
     private transport: WebTransport;
@@ -89,12 +89,12 @@ export class NetworkController {
         }
     }
 
-    async register_uni_handler(header: string, callback: (data: BinaryStream) => void) {
+    async register_uni_handler(header: string, callback: (data: BinaryReader) => void) {
         const handler = { header, callback };
         this.uni_handlers.push(handler);
     }
 
-    async register_datagram_handler(header: string, callback: (data: BinaryStream) => void) {
+    async register_datagram_handler(header: string, callback: (data: BinaryReader) => void) {
         const handler = { header, callback };
         this.datagram_handlers.push(handler);
     }
@@ -106,12 +106,13 @@ export class NetworkController {
 
         while (true) {
             const { value, done } = await reader.read();
+            const data = value as Uint8Array;
 
             if (done) {
                 break;
             }
 
-            const stream = new BinaryStream(value);
+            const stream = new BinaryReader(data.buffer);
 
             for (const handler of this.datagram_handlers) {
                 handler.callback(stream);
@@ -139,13 +140,13 @@ export class NetworkController {
 
         while (true) {
             const { value, done } = await reader.read();
-            const data = value;
+            const data = value as Uint8Array;
 
             if (done) {
                 break;
             }
 
-            const stream = new BinaryStream(data);
+            const stream = new BinaryReader(data.buffer);
             const header = stream.read_string(4);
 
             for (const callback of callbacks) {
@@ -198,7 +199,7 @@ export class NetworkController {
 
 type StreamHandler = {
     header: string,
-    callback: (data: BinaryStream) => void
+    callback: (data: BinaryReader) => void
 }
 
 export class NetworkModule {

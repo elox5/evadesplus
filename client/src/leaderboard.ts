@@ -1,4 +1,4 @@
-import { BinaryStream } from "./binary_stream.js";
+import { BinaryReader } from "./binary_reader.js";
 import { cache } from "./cache.js";
 import { network_controller, NetworkController, NetworkModule } from "./network_controller.js";
 
@@ -184,7 +184,7 @@ export class LeaderboadModule implements NetworkModule {
         leaderboard.clear();
     }
 
-    private handle_add(data: BinaryStream) {
+    private handle_add(data: BinaryReader) {
         const player_id = data.read_u64();
         const area_order = data.read_u16();
         const [downed] = data.read_flags();
@@ -196,12 +196,12 @@ export class LeaderboadModule implements NetworkModule {
         leaderboard.add(player_id, player_name, area_order, area_name, map_id, downed);
     }
 
-    private handle_remove(data: BinaryStream) {
+    private handle_remove(data: BinaryReader) {
         const player_id = data.read_u64();
         leaderboard.remove(player_id);
     }
 
-    private handle_transfer(data: BinaryStream) {
+    private handle_transfer(data: BinaryReader) {
         const player_id = data.read_u64();
         const area_order = data.read_u16();
 
@@ -211,14 +211,14 @@ export class LeaderboadModule implements NetworkModule {
         leaderboard.transfer(player_id, area_order, area_name, map_id);
     }
 
-    private handle_set_downed(data: BinaryStream) {
+    private handle_set_downed(data: BinaryReader) {
         const player_id = data.read_u64();
         const [downed] = data.read_flags();
 
         leaderboard.set_downed(player_id, downed);
     }
 
-    private handle_state_update(data: BinaryStream) {
+    private handle_state_update(data: BinaryReader) {
         const entry_count = data.read_u8();
 
         for (let i = 0; i < entry_count; i++) {

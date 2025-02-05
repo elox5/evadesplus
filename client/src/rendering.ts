@@ -3,7 +3,7 @@ import Canvas from "./canvas.js";
 import { report_bandwidth, report_frame_start, report_render_end, report_render_start } from "./metrics.js";
 import { Portal, Rect, RenderNode, Vector2 } from "./types.js";
 import { network_controller, NetworkController, NetworkModule } from "./network_controller.js";
-import { BinaryStream } from "./binary_stream.js";
+import { BinaryReader } from "./binary_reader.js";
 import { cache } from "./cache.js";
 
 export let render_settings = {
@@ -267,7 +267,7 @@ class RenderingModule implements NetworkModule {
 
     cleanup() { }
 
-    private handle_area_update(data: BinaryStream) {
+    private handle_area_update(data: BinaryReader) {
         const width = data.read_f32();
         const height = data.read_f32();
 
@@ -324,7 +324,7 @@ class RenderingModule implements NetworkModule {
         render_area(width, height, color, walls, safe_zones, portals);
     }
 
-    private handle_render_update(data: BinaryStream) {
+    private handle_render_update(data: BinaryReader) {
         report_bandwidth(data.length());
 
         const offset = data.read_vector2();

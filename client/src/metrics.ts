@@ -1,4 +1,4 @@
-import { BinaryStream } from "./binary_stream.js";
+import { BinaryReader } from "./binary_reader.js";
 import { network_controller, NetworkController, NetworkModule } from "./network_controller.js";
 
 const pingMeter = document.getElementById("ping-meter") as HTMLSpanElement;
@@ -129,7 +129,7 @@ export class PingModule implements NetworkModule {
             await writer.close();
 
             const { value } = await readable.getReader().read();
-            const stream = new BinaryStream(value);
+            const stream = new BinaryReader(value);
 
             if (stream.read_string(4) !== "pong") {
                 console.error("Invalid ping response");

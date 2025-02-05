@@ -1,87 +1,88 @@
 import { Rect, Vector2 } from "./types.js";
 
-export class BinaryStream {
-    private data: Uint8Array;
+export class BinaryReader {
+    private buffer: ArrayBuffer;
     private index: number;
-    private text_decoder: TextDecoder;
 
-    constructor(data: Uint8Array, text_decoder?: TextDecoder) {
-        this.data = data;
+    private decoder: TextDecoder;
+
+    constructor(data: ArrayBuffer) {
+        this.buffer = data;
         this.index = 0;
 
-        this.text_decoder = text_decoder ?? new TextDecoder("utf-8");
-    }
-
-    set_text_decoder(decoder: TextDecoder) {
-        this.text_decoder = decoder;
+        this.decoder = new TextDecoder("utf-8");
     }
 
     length(): number {
-        return this.data.length;
+        return this.buffer.byteLength;
+    }
+
+    step(length: number) {
+        this.index += length;
     }
 
     read_u8(): number {
-        const value = this.data[this.index];
+        const value = new Uint8Array(this.buffer.slice(this.index, this.index + 1))[0];
         this.index += 1;
         return value;
     }
 
     read_u16(): number {
-        const value = new Uint16Array(this.data.buffer.slice(this.index, this.index + 2))[0];
+        const value = new Uint16Array(this.buffer.slice(this.index, this.index + 2))[0];
         this.index += 2;
         return value;
     }
 
     read_u32(): number {
-        const value = new Uint32Array(this.data.buffer.slice(this.index, this.index + 4))[0];
+        const value = new Uint32Array(this.buffer.slice(this.index, this.index + 4))[0];
         this.index += 4;
         return value;
     }
 
     read_u64(): bigint {
-        const value = new BigUint64Array(this.data.buffer.slice(this.index, this.index + 8))[0];
+        const value = new BigInt64Array(this.buffer.slice(this.index, this.index + 8))[0];
         this.index += 8;
         return value;
     }
 
     read_i8(): number {
-        const value = new Int8Array(this.data.buffer.slice(this.index, this.index + 1))[0];
+        const value = new Int8Array(this.buffer.slice(this.index, this.index + 1))[0];
         this.index += 1;
         return value;
     }
 
     read_i16(): number {
-        const value = new Int16Array(this.data.buffer.slice(this.index, this.index + 2))[0];
+        const value = new Int16Array(this.buffer.slice(this.index, this.index + 2))[0];
         this.index += 2;
         return value;
     }
 
     read_i32(): number {
-        const value = new Int32Array(this.data.buffer.slice(this.index, this.index + 4))[0];
+        const value = new Int32Array(this.buffer.slice(this.index, this.index + 4))[0];
         this.index += 4;
         return value;
     }
 
     read_i64(): bigint {
-        const value = new BigInt64Array(this.data.buffer.slice(this.index, this.index + 8))[0];
+        const value = new BigInt64Array(this.buffer.slice(this.index, this.index + 8))[0];
         this.index += 8;
         return value;
     }
 
     read_f32(): number {
-        const value = new Float32Array(this.data.buffer.slice(this.index, this.index + 4))[0];
+        const value = new Float32Array(this.buffer.slice(this.index, this.index + 4))[0];
         this.index += 4;
         return value;
     }
 
     read_f64(): number {
-        const value = new Float64Array(this.data.buffer.slice(this.index, this.index + 8))[0];
+        const value = new Float64Array(this.buffer.slice(this.index, this.index + 8))[0];
         this.index += 8;
         return value;
     }
 
-    read_bytes(count: number): Uint8Array {
-        const bytes = this.data.slice(this.index, this.index + count);
+    read_bytes(count: number): ArrayBuffer {
+        const bytes = this.buffer.slice(this.index, this.index + count);
         this.index += count;
         return bytes;
     }
@@ -96,30 +97,29 @@ export class BinaryStream {
     }
 
     read_rgba(): [number, number, number, number] {
-        const r = this.read_u8();
-        const g = this.read_u8();
-        const b = this.read_u8();
-        const a = this.read_u8();
+        const bytes = this.read_bytes(4);
+        const [r, g, b, a] = new Uint8Array(bytes);
+
         return [r, g, b, a];
     }
 
     read_vector2(): Vector2 {
-        const x = this.read_f32();
-        const y = this.read_f32();
+        const bytes = this.read_bytes(8);
+        const [x, y] = new Float32Array(bytes);
+
         return { x, y };
     }
 
     read_rect(): Rect {
-        const x = this.read_f32();
-        const y = this.read_f32();
-        const w = this.read_f32();
-        const h = this.read_f32();
+        const bytes = this.read_bytes(16);
+        const [x, y, w, h] = new Float32Array(bytes);
+
         return { x, y, w, h };
     }
 
     read_string(length_bytes: number): string {
         const bytes = this.read_bytes(length_bytes);
-        return this.text_decoder.decode(bytes);
+        return this.decoder.decode(bytes);
     }
 
     read_length_u8_string(): string | undefined {

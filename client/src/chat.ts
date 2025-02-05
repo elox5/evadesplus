@@ -1,5 +1,5 @@
 import { get_autocomplete } from "./autocomplete.js";
-import { BinaryStream } from "./binary_stream.js";
+import { BinaryReader } from "./binary_reader.js";
 import { cache } from "./cache.js";
 import { try_execute_command } from "./commands.js";
 import { network_controller, NetworkController, NetworkModule } from "./network_controller.js";
@@ -292,7 +292,7 @@ export class ChatModule implements NetworkModule {
         chat.clear();
     }
 
-    private handle_broadcast(data: BinaryStream) {
+    private handle_broadcast(data: BinaryReader) {
         const message_type = data.read_u8() as MessageType;
         const sender_id = data.read_u64();
 
