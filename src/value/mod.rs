@@ -3,7 +3,10 @@ use crate::effects::core_types::{
 };
 use std::{
     ops::{Add, Mul},
-    sync::mpsc,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        mpsc,
+    },
 };
 
 pub mod effects;
@@ -16,6 +19,7 @@ where
 {
     value: T,
     base: T,
+    changed: AtomicBool,
     base_effect: EffectAction<T, TAdd, TMul>,
     effect_receptivity: f32,
     rx: mpsc::Receiver<UpdateEffects>,
@@ -34,6 +38,7 @@ where
         Self {
             base,
             value: base,
+            changed: AtomicBool::new(false),
             base_effect: EffectAction::None,
             effect_receptivity,
             rx,
@@ -61,6 +66,14 @@ where
             self.effects
                 .retain(|effect| effect.action.upgrade().is_some());
             self.recalculate();
+        }
+    }
+
+    pub fn get_value_if_changed(&self) -> Option<T> {
+        if self.changed.swap(false, Ordering::Release) {
+            Some(self.value)
+        } else {
+            None
         }
     }
 
@@ -113,5 +126,6 @@ where
                 ids.push(effect.id);
             }
         }
+        self.changed.store(true, Ordering::Relaxed);
     }
 }
