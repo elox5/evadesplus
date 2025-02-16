@@ -1,5 +1,5 @@
 use super::PriorityGroup;
-use crate::effects::group_table;
+use crate::effects::string_tables::GROUP_TABLE;
 use std::cmp::Ordering;
 
 #[derive(Clone, Copy)]
@@ -11,14 +11,14 @@ pub struct EffectPriority {
 impl EffectPriority {
     pub fn new(group: &'static str, value: u8) -> Self {
         Self {
-            group: group_table::get(group),
+            group: GROUP_TABLE.get(group),
             value,
         }
     }
 
     pub fn from_string(group: String, value: u8) -> Self {
         Self {
-            group: group_table::get_or_insert(group),
+            group: GROUP_TABLE.get_or_insert(group),
             value,
         }
     }

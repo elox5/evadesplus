@@ -1,12 +1,12 @@
 pub mod core_types;
-pub mod group_table;
-pub mod id_table;
+pub mod string_tables;
 pub mod target;
 pub mod timed_effect;
 pub mod togglable_effect;
 
 use core_types::{EffectAction, EffectPriority};
 use std::{sync::Weak, time::Duration};
+use string_tables::ID_TABLE;
 use target::EffectTarget;
 use timed_effect::TimedEffect;
 use togglable_effect::TogglableEffect;
@@ -32,7 +32,7 @@ where
     ) -> Self {
         Self::Togglable(Some(TogglableEffect::apply(
             target_list,
-            id_table::get(id),
+            ID_TABLE.get(id),
             priority,
             action,
             ignore_receptivity,
@@ -48,7 +48,7 @@ where
     ) -> Self {
         Self::Togglable(Some(TogglableEffect::apply(
             target_list,
-            id_table::get_or_insert(id),
+            ID_TABLE.get_or_insert(id),
             priority,
             action,
             ignore_receptivity,
@@ -65,7 +65,7 @@ where
     ) -> Self {
         Self::Timed(TimedEffect::apply(
             target_list,
-            id_table::get(id),
+            ID_TABLE.get(id),
             priority,
             action,
             ignore_receptivity,
@@ -83,7 +83,7 @@ where
     ) -> Self {
         Self::Timed(TimedEffect::apply(
             target_list,
-            id_table::get_or_insert(id),
+            ID_TABLE.get_or_insert(id),
             priority,
             action,
             ignore_receptivity,
