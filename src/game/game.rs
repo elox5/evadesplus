@@ -1,5 +1,5 @@
 use super::{
-    area::Area,
+    area::{Area, AreaKey},
     components::{Downed, Position, RenderReceiver},
     data::MapData,
     systems::*,
@@ -30,13 +30,13 @@ use tokio::{
 use wtransport::Connection;
 
 pub struct Game {
-    maps: Vec<MapTemplate>,
+    maps: HashMap<String, MapTemplate>,
 
-    areas: HashMap<String, Arc<Mutex<Area>>>,
+    areas: HashMap<AreaKey, Arc<Mutex<Area>>>,
 
     players: HashMap<u64, ArcSwap<Player>>,
 
-    start_area_id: String,
+    start_area_key: AreaKey,
 
     transfer_tx: mpsc::Sender<TransferRequest>,
     transfer_queue: Vec<u64>,
@@ -52,7 +52,7 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn new(maps: Vec<MapData>, start_area_id: &str) -> Arc<Mutex<Self>> {
+    pub fn new(maps: Vec<MapData>, start_area_key: AreaKey) -> Arc<Mutex<Self>> {
         let (transfer_tx, mut transfer_rx) = mpsc::channel::<TransferRequest>(8);
         let (leaderboard_tx, leaderboard_rx) = broadcast::channel(8);
 
@@ -66,11 +66,19 @@ impl Game {
 
         let frame_duration = Duration::from_secs_f32(1.0 / framerate);
 
+        let maps = maps
+            .into_iter()
+            .map(|map| {
+                let template = map.to_template();
+                (template.id.clone(), template)
+            })
+            .collect();
+
         let game = Game {
-            maps: maps.into_iter().map(|m| m.to_template()).collect(),
+            maps,
             areas: HashMap::new(),
             players: HashMap::new(),
-            start_area_id: start_area_id.to_owned(),
+            start_area_key,
             transfer_tx: transfer_tx.clone(),
             transfer_queue: Vec::new(),
             leaderboard_state: LeaderboardState::new(),
@@ -103,18 +111,22 @@ impl Game {
         arc
     }
 
-    pub fn try_create_area(&mut self, id: &str) -> Result<Arc<Mutex<Area>>> {
-        let (map_id, area_id) = Self::split_id(id).ok_or(anyhow::anyhow!("Invalid id"))?;
+    fn try_create_area(&mut self, key: &AreaKey) -> Result<Arc<Mutex<Area>>> {
+        let map_id = key.map_id();
 
         let map = self
             .try_get_map(map_id)
-            .ok_or(anyhow::anyhow!("Map '{}' not found", map_id))?;
+            .ok_or_else(|| anyhow::anyhow!("Map '{}' not found", map_id))?;
 
-        let template = map.get_area(area_id).ok_or(anyhow::anyhow!(
-            "Area '{}' not found in map '{}'",
-            area_id,
-            map_id
-        ))?;
+        let template = map
+            .try_get_area(key.order() as usize)
+            .ok_or_else(|| anyhow::anyhow!("Area '{}' not found", key))?;
+
+        println!(
+            "Area {} opened. Loaded areas: {:?}",
+            key,
+            self.areas.keys().collect::<Vec<_>>()
+        );
 
         let area = Area::from_template(
             template,
@@ -123,37 +135,33 @@ impl Game {
         );
         let area = Arc::new(Mutex::new(area));
         Self::start_update_loop(area.clone(), self.frame_duration);
-        self.areas.insert(id.to_owned(), area.clone());
+        self.areas.insert(key.clone(), area.clone());
 
-        println!(
-            "Area {} opened. Loaded areas: {:?}",
-            id,
-            self.areas.keys().collect::<Vec<_>>()
-        );
         Ok(area)
     }
 
-    pub fn get_or_create_area(&mut self, id: &str) -> Result<Arc<Mutex<Area>>> {
-        if let Some(area) = self.areas.get(id) {
+    pub fn get_or_create_area(&mut self, key: &AreaKey) -> Result<Arc<Mutex<Area>>> {
+        if let Some(area) = self.areas.get(&key) {
             return Ok(area.clone());
         }
 
-        self.try_create_area(id)
+        self.try_create_area(key)
     }
 
-    pub fn close_area(&mut self, id: &str) {
-        self.areas.remove(id);
+    fn close_area(&mut self, key: &AreaKey) {
+        self.areas.remove(key);
 
         println!(
             "Area {} closed. Loaded areas: {:?}",
-            id,
+            key,
             self.areas.keys().collect::<Vec<_>>()
         );
     }
 
-    pub fn get_start_area(&mut self) -> Result<Arc<Mutex<Area>>> {
-        let start_area_id = self.start_area_id.clone();
-        self.get_or_create_area(&start_area_id)
+    fn get_start_area(&mut self) -> Arc<Mutex<Area>> {
+        let start_area_key = self.start_area_key.clone();
+        self.get_or_create_area(&start_area_key)
+            .unwrap_or_else(|_| panic!("Start area '{start_area_key}' not found"))
     }
 
     async fn update_area(area: &mut Area, delta_time: f32) {
@@ -198,11 +206,8 @@ impl Game {
     }
 
     pub async fn spawn_hero(&mut self, id: u64, name: &str, connection: Connection) {
-        let start_area_id = self.start_area_id.clone();
+        let area_arc = self.get_start_area();
 
-        let area_arc = self
-            .get_or_create_area(&start_area_id)
-            .unwrap_or_else(|_| panic!("Start area '{start_area_id}' not found"));
         let mut area = area_arc.lock().await;
 
         let entity = area.spawn_player(id, name, connection);
@@ -210,8 +215,7 @@ impl Game {
         let player = Player {
             id,
             entity,
-            area_id: area.full_id.clone(),
-            area: area_arc.clone(),
+            area_key: area.key.clone(),
             name: name.to_owned(),
         };
 
@@ -221,9 +225,9 @@ impl Game {
             id,
             name.to_owned(),
             false,
-            area.order,
+            area.key.order(),
             area.name.clone(),
-            area.map_id.clone(),
+            area.key.map_id().to_owned(),
         ));
 
         println!("Spawning hero '{}' (entity {})", name, entity.id());
@@ -234,7 +238,9 @@ impl Game {
     pub async fn despawn_hero(&mut self, player_id: u64) -> Result<()> {
         let player = self.get_player(player_id)?;
 
-        let mut area = player.area.lock().await;
+        let area_arc = self.get_or_create_area(&player.area_key)?;
+        let mut area = area_arc.lock().await;
+
         let (_, should_close) = area.despawn_player(player.entity);
 
         let _ = self
@@ -246,7 +252,7 @@ impl Game {
         self.send_server_announcement(format!("{} left the game", player.name));
 
         if should_close {
-            self.close_area(&area.full_id);
+            self.close_area(&area.key);
         }
 
         self.players.remove(&player_id);
@@ -257,7 +263,7 @@ impl Game {
     pub async fn reset_hero(&mut self, player_id: u64) -> Result<()> {
         let req = TransferRequest {
             player_id,
-            target_area_id: self.start_area_id.clone(),
+            target: TransferTarget::Spawn,
             target_pos: None,
         };
 
@@ -269,7 +275,8 @@ impl Game {
             .leaderboard_tx
             .send(LeaderboardUpdate::set_downed(player_id, false));
 
-        let mut area = player.area.lock().await;
+        let area = self.get_or_create_area(&player.area_key)?;
+        let mut area = area.lock().await;
 
         let _ = area.world.remove_one::<Downed>(player.entity);
 
@@ -283,15 +290,22 @@ impl Game {
 
         let player = self.get_player(req.player_id)?;
 
-        if req.target_area_id == player.area_id {
+        let target_key = match req.target {
+            TransferTarget::Spawn => self.start_area_key.clone(),
+            TransferTarget::Area(ref key) => key.clone(),
+        };
+
+        if target_key == player.area_key {
             return self.move_hero_across_area(req).await;
         }
 
-        let target_area_arc = self.get_or_create_area(&req.target_area_id)?;
+        let target_area_arc = self.get_or_create_area(&target_key)?;
 
-        let (mut area, mut target_area) = join!(player.area.lock(), target_area_arc.lock());
+        let player_area = self.get_or_create_area(&player.area_key)?;
 
-        let (taken_entity, should_close) = area.despawn_player(player.entity);
+        let (mut player_area, mut target_area) = join!(player_area.lock(), target_area_arc.lock());
+
+        let (taken_entity, should_close) = player_area.despawn_player(player.entity);
         let entity = taken_entity?;
         let entity = target_area.world.spawn(entity);
 
@@ -299,9 +313,9 @@ impl Game {
 
         let _ = self.leaderboard_tx.send(LeaderboardUpdate::transfer(
             req.player_id,
-            target_area.order,
+            target_area.key.order(),
             target_area.name.clone(),
-            target_area.map_id.clone(),
+            target_area.key.map_id().to_owned(),
         ));
 
         let target_pos = req.target_pos.unwrap_or(target_area.spawn_pos);
@@ -309,8 +323,7 @@ impl Game {
         let new_player = Player {
             id: player.id,
             entity,
-            area_id: target_area.full_id.clone(),
-            area: target_area_arc.clone(),
+            area_key: target_area.key.clone(),
             name: player.name.clone(),
         };
 
@@ -318,10 +331,10 @@ impl Game {
         player_arcswap.store(Arc::new(new_player));
 
         if should_close {
-            self.close_area(&area.full_id);
+            self.close_area(&player_area.key);
         }
 
-        drop(area);
+        drop(player_area);
 
         let (render, pos) = target_area
             .world
@@ -351,8 +364,7 @@ impl Game {
     pub async fn move_hero_across_area(&mut self, req: TransferRequest) -> Result<()> {
         let player = self.get_player(req.player_id)?;
 
-        let area = self.get_or_create_area(&player.area_id)?;
-
+        let area = self.get_or_create_area(&player.area_key)?;
         let mut area = area.lock().await;
 
         let area_spawn_pos = area.spawn_pos;
@@ -367,7 +379,9 @@ impl Game {
     pub async fn update_player_input(&mut self, player_id: u64, input: Vec2) -> Result<()> {
         let player = self.get_player(player_id)?;
 
-        let mut area = player.area.lock().await;
+        let area = self.get_or_create_area(&player.area_key)?;
+        let mut area = area.lock().await;
+
         area.update_player_input(player.entity, input);
 
         Ok(())
@@ -403,15 +417,8 @@ impl Game {
             .ok_or(anyhow!("Player '{name}' not found"))
     }
 
-    fn split_id(id: &str) -> Option<(&str, &str)> {
-        let mut split = id.split(':');
-        let map_id = split.next()?;
-        let area_id = split.next()?;
-        Some((map_id, area_id))
-    }
-
     fn try_get_map(&self, map_id: &str) -> Option<&MapTemplate> {
-        self.maps.iter().find(|m| m.id == map_id)
+        self.maps.get(map_id)
     }
 
     fn send_server_announcement(&self, message: String) {
@@ -429,14 +436,19 @@ impl Game {
 pub struct Player {
     pub id: u64,
     pub entity: Entity,
-    pub area_id: String,
-    pub area: Arc<Mutex<Area>>,
+    pub area_key: AreaKey,
     pub name: String,
 }
 
 #[derive(Clone, Debug)]
 pub struct TransferRequest {
     pub player_id: u64,
-    pub target_area_id: String,
+    pub target: TransferTarget,
     pub target_pos: Option<Vec2>,
+}
+
+#[derive(Clone, Debug)]
+pub enum TransferTarget {
+    Area(AreaKey),
+    Spawn,
 }

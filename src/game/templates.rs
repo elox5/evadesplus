@@ -1,4 +1,9 @@
-use super::{area::Portal, components::Color};
+use std::collections::HashMap;
+
+use super::{
+    area::{AreaKey, Portal},
+    components::Color,
+};
 use crate::physics::{rect::Rect, vec2::Vec2};
 
 pub struct MapTemplate {
@@ -8,22 +13,48 @@ pub struct MapTemplate {
     pub text_color: Color,
 
     pub areas: Vec<AreaTemplate>,
+
+    alias_orders: HashMap<String, u16>,
 }
 
 impl MapTemplate {
-    pub fn get_area(&self, id: &str) -> Option<&AreaTemplate> {
-        self.areas.iter().find(|area| area.area_id == id)
+    pub fn new(
+        id: String,
+        name: String,
+        background_color: Color,
+        text_color: Color,
+        areas: Vec<AreaTemplate>,
+    ) -> Self {
+        let alias_orders: HashMap<String, u16> = areas
+            .iter()
+            .filter(|area| area.alias.is_some())
+            .map(|area| (area.alias.clone().unwrap(), area.key.order()))
+            .collect();
+
+        Self {
+            id,
+            name,
+            background_color,
+            text_color,
+            areas,
+            alias_orders,
+        }
+    }
+
+    pub fn try_get_area(&self, order: usize) -> Option<&AreaTemplate> {
+        self.areas.get(order)
+    }
+
+    pub fn get_alias_order(&self, alias: &str) -> Option<u16> {
+        self.alias_orders.get(alias).copied()
     }
 }
 
 pub struct AreaTemplate {
-    pub order: u16,
+    pub key: AreaKey,
+    pub alias: Option<String>,
 
     pub name: String,
-
-    pub area_id: String,
-    pub map_id: String,
-
     pub background_color: Color,
 
     pub width: f32,

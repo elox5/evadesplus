@@ -10,6 +10,7 @@ use crate::{
     networking::{leaderboard::LeaderboardUpdate, rendering::RenderPacket},
     physics::{rect::Rect, vec2::Vec2},
 };
+use anyhow::Result;
 use hecs::{Entity, TakenEntity, World};
 use tokio::{
     sync::{broadcast, mpsc},
@@ -18,14 +19,10 @@ use tokio::{
 use wtransport::Connection;
 
 pub struct Area {
-    pub order: u16,
+    pub key: AreaKey,
+    pub alias: Option<String>,
 
     pub name: String,
-
-    pub area_id: String,
-    pub map_id: String,
-    pub full_id: String,
-
     pub background_color: Color,
 
     pub world: World,
@@ -55,13 +52,10 @@ impl Area {
         leaderboard_tx: broadcast::Sender<LeaderboardUpdate>,
     ) -> Self {
         let mut area = Self {
-            order: template.order,
+            key: template.key.clone(),
+            alias: template.alias.clone(),
 
             name: template.name.clone(),
-
-            area_id: template.area_id.clone(),
-            map_id: template.map_id.clone(),
-            full_id: format!("{}:{}", template.map_id, template.area_id),
 
             background_color: template.background_color.clone(),
             bounds: Rect::new(0.0, 0.0, template.width, template.height),
@@ -192,10 +186,71 @@ impl Area {
         packet.push(self.name.len() as u8);
         packet.extend_from_slice(self.name.as_bytes());
 
-        packet.push(self.map_id.len() as u8);
-        packet.extend_from_slice(self.map_id.as_bytes());
+        packet.push(self.key.map_id.len() as u8);
+        packet.extend_from_slice(self.key.map_id.as_bytes());
 
         packet
+    }
+}
+#[derive(Eq, Clone)]
+pub struct AreaKey {
+    map_id: String,
+    order: u16,
+}
+
+impl AreaKey {
+    pub fn new(map_id: String, order: u16) -> Self {
+        Self { map_id, order }
+    }
+
+    pub fn from_map_order_string(string: &str) -> Result<Self> {
+        let (map_id, order) = string
+            .split_once(':')
+            .ok_or_else(|| anyhow::anyhow!("Invalid area key format"))?;
+
+        let key = Self {
+            map_id: map_id.to_owned(),
+            order: order.parse()?,
+        };
+
+        Ok(key)
+    }
+
+    pub fn map_id(&self) -> &str {
+        &self.map_id
+    }
+
+    pub fn order(&self) -> u16 {
+        self.order
+    }
+
+    pub fn to_string(&self) -> String {
+        format!("{}:{}", self.map_id, self.order)
+    }
+}
+
+impl std::fmt::Debug for AreaKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.to_string())
+    }
+}
+
+impl std::fmt::Display for AreaKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.to_string())
+    }
+}
+
+impl std::hash::Hash for AreaKey {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.map_id.hash(state);
+        self.order.hash(state);
+    }
+}
+
+impl PartialEq for AreaKey {
+    fn eq(&self, other: &Self) -> bool {
+        self.map_id == other.map_id && self.order == other.order
     }
 }
 
@@ -203,6 +258,6 @@ impl Area {
 pub struct Portal {
     pub rect: Rect,
     pub color: Color,
-    pub target_id: String,
+    pub target_key: AreaKey,
     pub target_pos: Vec2,
 }

@@ -54,6 +54,7 @@ areas:
           y: 7.5
         color: "#77ffff55"
   - name: "Named Area"
+    alias: "named_area"
     background_color: "#64C864"
     enemy_groups:
       - color: "#c8c8c8"

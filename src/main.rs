@@ -2,7 +2,7 @@ use anyhow::Result;
 use evadesplus::{
     cache::Cache,
     env::{get_env_or_default, get_env_var, try_get_env_var},
-    game::game::Game,
+    game::{area::AreaKey, game::Game},
     networking::webtransport::WebTransportServer,
     parsing::parse_map,
 };
@@ -39,7 +39,7 @@ async fn main() -> Result<()> {
 
     let maps = try_get_env_var("MAPS");
 
-    let start_area_id = get_env_var("START_AREA_ID");
+    let start_map = get_env_var("START_MAP");
 
     let maps = match maps {
         Some(m) => m
@@ -58,7 +58,9 @@ async fn main() -> Result<()> {
 
     let cache = Cache::new(&maps);
 
-    let game = Game::new(maps, &start_area_id);
+    let start_key = AreaKey::new(start_map, 0);
+
+    let game = Game::new(maps, start_key);
 
     let identity = Identity::self_signed([&local_ip_string])?;
     let cert_digest = identity.certificate_chain().as_slice()[0].hash();

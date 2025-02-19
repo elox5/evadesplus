@@ -4,7 +4,7 @@ use super::{
         BounceOffBounds, Bounded, Color, CrossingPortal, Downed, Enemy, Hero, Named, PlayerId,
         RenderReceiver, Size,
     },
-    game::TransferRequest,
+    game::{TransferRequest, TransferTarget},
 };
 use crate::{
     game::components::{Direction, Position, Speed, Velocity},
@@ -308,7 +308,7 @@ pub async fn system_portals(area: &mut Area) {
             if portal.rect.contains_circle(pos.0, size.0 / 2.0) {
                 let req = TransferRequest {
                     player_id: player_id.0,
-                    target_area_id: portal.target_id.clone(),
+                    target: TransferTarget::Area(portal.target_key.clone()),
                     target_pos: Some(portal.target_pos),
                 };
 

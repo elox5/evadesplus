@@ -178,9 +178,11 @@ async fn handle_uni_stream(
 
             game.spawn_hero(id, name, connection.clone()).await;
 
-            let area = game.get_player(id)?.area.clone();
+            let area_key = game.get_player(id)?.area_key.clone();
+            let area = game.get_or_create_area(&area_key)?;
+            let area = area.lock().await;
 
-            let definition = area.lock().await.definition_packet();
+            let definition = area.definition_packet();
 
             if !leaderboard_state.is_empty() {
                 let mut state_stream = connection.open_uni().await?.await?;
