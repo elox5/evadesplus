@@ -1,6 +1,5 @@
+use crate::game::map::MapData;
 use anyhow::Result;
-
-use crate::game::data::MapData;
 
 pub fn parse_map(path: &str) -> Result<MapData> {
     let file = std::fs::read_to_string(path)?;

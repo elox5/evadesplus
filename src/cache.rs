@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use crate::{game::data::MapData, networking::commands::get_command_cache};
+use crate::{game::map::MapData, networking::commands::get_command_cache};
 
 #[derive(Serialize, Clone)]
 pub struct MapCache {

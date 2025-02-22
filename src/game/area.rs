@@ -4,7 +4,7 @@ use super::{
         RenderReceiver, Size, Speed, Velocity,
     },
     game::TransferRequest,
-    templates::{AreaTemplate, EnemyGroup},
+    portal::{Portal, PortalCreationContext, PortalData},
 };
 use crate::{
     networking::{leaderboard::LeaderboardUpdate, rendering::RenderPacket},
@@ -12,6 +12,7 @@ use crate::{
 };
 use anyhow::Result;
 use hecs::{Entity, TakenEntity, World};
+use serde::Deserialize;
 use tokio::{
     sync::{broadcast, mpsc},
     task::AbortHandle,
@@ -46,7 +47,7 @@ pub struct Area {
 }
 
 impl Area {
-    pub fn from_template(
+    pub fn new(
         template: &AreaTemplate,
         transfer_tx: mpsc::Sender<TransferRequest>,
         leaderboard_tx: broadcast::Sender<LeaderboardUpdate>,
@@ -254,10 +255,125 @@ impl PartialEq for AreaKey {
     }
 }
 
+pub struct AreaTemplate {
+    pub key: AreaKey,
+    pub alias: Option<String>,
+
+    pub name: String,
+    pub background_color: Color,
+
+    pub width: f32,
+    pub height: f32,
+
+    pub spawn_pos: Vec2,
+
+    pub inner_walls: Vec<Rect>,
+    pub safe_zones: Vec<Rect>,
+    pub portals: Vec<Portal>,
+
+    pub enemy_groups: Vec<EnemyGroup>,
+}
+
+impl AreaTemplate {
+    pub fn new(data: AreaData, order: u16, ctx: &AreaCreationContext) -> Self {
+        let key = AreaKey::new(ctx.map_id.clone(), order as u16);
+
+        let name = data.name.unwrap_or_else(|| format!("Area {}", order + 1));
+        let background_color = data
+            .background_color
+            .unwrap_or(ctx.background_color.clone())
+            .into();
+        let width = data.width.unwrap_or(100.0);
+        let height = data.height.unwrap_or(15.0);
+
+        let portal_ctx = PortalCreationContext {
+            map_id: ctx.map_id.clone(),
+            area_order: order,
+        };
+
+        let portals = match data.portals {
+            Some(portals) => portals
+                .into_iter()
+                .map(|data| Portal::new(data, &portal_ctx))
+                .collect::<Vec<_>>(),
+            None => Vec::new(),
+        };
+
+        let enemy_groups = data.enemy_groups.unwrap_or_default();
+        let enemy_groups = enemy_groups
+            .into_iter()
+            .map(|group| EnemyGroup {
+                color: group.color.into(),
+                count: group.count,
+                speed: group.speed,
+                size: group.size,
+            })
+            .collect::<Vec<_>>();
+
+        AreaTemplate {
+            key,
+            alias: data.alias,
+            name,
+            background_color,
+            width,
+            height,
+            spawn_pos: data
+                .spawn_pos
+                .unwrap_or_else(|| Vec2::new(5.0, height / 2.0)),
+            portals,
+            inner_walls: data.inner_walls.unwrap_or_default(),
+            safe_zones: data.safe_zones.unwrap_or_default(),
+            enemy_groups,
+        }
+    }
+}
+
+#[derive(Deserialize)]
+pub struct AreaData {
+    pub alias: Option<String>,
+    pub name: Option<String>,
+    pub background_color: Option<String>,
+
+    pub width: Option<f32>,
+    pub height: Option<f32>,
+
+    pub spawn_pos: Option<Vec2>,
+
+    pub inner_walls: Option<Vec<Rect>>,
+    pub safe_zones: Option<Vec<Rect>>,
+    pub portals: Option<Vec<PortalData>>,
+
+    pub enemy_groups: Option<Vec<EnemyGroupData>>,
+}
+
+pub struct AreaCreationContext {
+    pub map_id: String,
+    pub background_color: String,
+}
+
 #[derive(Clone)]
-pub struct Portal {
-    pub rect: Rect,
+pub struct EnemyGroup {
     pub color: Color,
-    pub target_key: AreaKey,
-    pub target_pos: Vec2,
+    pub count: u32,
+    pub speed: f32,
+    pub size: f32,
+}
+
+impl EnemyGroup {
+    pub fn new(color: Color, count: u32, speed: f32, size: f32) -> Self {
+        Self {
+            color,
+            count,
+            speed,
+            size,
+        }
+    }
+}
+
+#[derive(Deserialize)]
+pub struct EnemyGroupData {
+    pub color: String,
+    pub count: u32,
+    pub speed: f32,
+    pub size: f32,
 }

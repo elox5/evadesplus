@@ -1,9 +1,8 @@
 use super::{
     area::{Area, AreaKey},
     components::{Downed, Position, RenderReceiver},
-    data::MapData,
+    map::{MapData, MapTemplate},
     systems::*,
-    templates::MapTemplate,
 };
 use crate::{
     env::get_env_or_default,
@@ -69,7 +68,7 @@ impl Game {
         let maps = maps
             .into_iter()
             .map(|map| {
-                let template = map.to_template();
+                let template = MapTemplate::new(map);
                 (template.id.clone(), template)
             })
             .collect();
@@ -128,7 +127,7 @@ impl Game {
             self.areas.keys().collect::<Vec<_>>()
         );
 
-        let area = Area::from_template(
+        let area = Area::new(
             template,
             self.transfer_tx.clone(),
             self.leaderboard_tx.clone(),
