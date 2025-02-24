@@ -39,7 +39,7 @@ areas:
           y: 7
           w: 5
           h: 2
-        destination: Next
+        target: Next
         target_pos:
           x: 5
           y: 7.5
@@ -48,11 +48,10 @@ areas:
           y: 5
           w: 1
           h: 1
-        destination: !Id "lm:0"
+        target: !Map "lm"
         target_pos:
           x: 5
           y: 7.5
-        color: "#77ffff55"
   - name: "Named Area"
     alias: "named_area"
     background_color: "#64C864"
@@ -80,7 +79,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        destination: Previous
+        target: Previous
         target_pos:
           x: 50
           y: 7.5
@@ -89,7 +88,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        destination: Next
+        target: Next
         target_pos:
           x: 5
           y: 7.5
@@ -122,7 +121,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        destination: Previous
+        target: Previous
         target_pos:
           x: 95
           y: 7.5 
@@ -131,7 +130,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        destination: Next
+        target: Next
         target_pos:
           x: 5
           y: 7.5 
@@ -156,7 +155,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        destination: Previous
+        target: Previous
         target_pos:
           x: 95
           y: 7.5 

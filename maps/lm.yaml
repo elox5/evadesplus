@@ -2,7 +2,6 @@ id: "lm"
 name: "Long Map"
 background_color: "#ffffdd"
 text_color: "#ddddbb"
-start_area_order: 2
 areas:
   - enemy_groups:
       - color: "#777777"
@@ -24,7 +23,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        destination: !Id "tt:0"
+        target: !Map "tt"
         target_pos:
           x: 50
           y: 7.5 
@@ -33,7 +32,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        destination: Next
+        target: Next
         target_pos:
           x: 5
           y: 7.5 
@@ -61,7 +60,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        destination: Previous
+        target: Previous
         target_pos:
           x: 95
           y: 7.5 
@@ -70,7 +69,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        destination: Next
+        target: Next
         target_pos:
           x: 5
           y: 7.5 
@@ -98,7 +97,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        destination: Previous
+        target: Previous
         target_pos:
           x: 95
           y: 7.5 
@@ -107,7 +106,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        destination: Next
+        target: Next
         target_pos:
           x: 5
           y: 7.5
@@ -135,7 +134,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        destination: Previous
+        target: Previous
         target_pos:
           x: 95
           y: 7.5 
@@ -144,7 +143,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        destination: Next
+        target: Next
         target_pos:
           x: 5
           y: 7.5 
@@ -172,7 +171,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        destination: Previous
+        target: Previous
         target_pos:
           x: 95
           y: 7.5 
@@ -181,7 +180,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        destination: Next
+        target: Next
         target_pos:
           x: 5
           y: 7.5 
@@ -209,7 +208,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        destination: Previous
+        target: Previous
         target_pos:
           x: 95
           y: 7.5 
@@ -218,7 +217,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        destination: Next
+        target: Next
         target_pos:
           x: 5
           y: 7.5 
@@ -250,7 +249,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        destination: Previous
+        target: Previous
         target_pos:
           x: 95
           y: 7.5 
@@ -259,7 +258,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        destination: Next
+        target: Next
         target_pos:
           x: 5
           y: 7.5 
@@ -291,7 +290,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        destination: Previous
+        target: Previous
         target_pos:
           x: 95
           y: 7.5 
@@ -300,7 +299,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        destination: Next
+        target: Next
         target_pos:
           x: 5
           y: 7.5 
@@ -332,7 +331,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        destination: Previous
+        target: Previous
         target_pos:
           x: 95
           y: 7.5 
@@ -341,7 +340,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        destination: Next
+        target: Next
         target_pos:
           x: 5
           y: 7.5 
@@ -373,7 +372,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        destination: Previous 
+        target: Previous 
         target_pos:
           x: 95
           y: 7.5 
@@ -382,7 +381,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        destination: Next
+        target: Next
         target_pos:
           x: 5
           y: 7.5 
@@ -414,7 +413,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        destination: Previous 
+        target: Previous 
         target_pos:
           x: 95
           y: 7.5 
@@ -423,7 +422,7 @@ areas:
           y: 0
           w: 1
           h: 15
-        destination: !Id "tt:1"
+        target: !Area "tt:1"
         target_pos:
           x: 5
           y: 7.5 

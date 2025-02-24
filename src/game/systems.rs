@@ -306,15 +306,19 @@ pub async fn system_portals(area: &mut Area) {
     {
         for portal in &area.portals {
             if portal.rect.contains_circle(pos.0, size.0 / 2.0) {
-                let req = TransferRequest {
-                    player_id: player_id.0,
-                    target: TransferTarget::Area(portal.target_key.clone()),
-                    target_pos: Some(portal.target_pos),
-                };
+                let area_key = portal.target.get_area_key();
 
-                to_cross.push(entity);
+                if let Some(area_key) = area_key {
+                    let req = TransferRequest {
+                        player_id: player_id.0,
+                        target: TransferTarget::Area(area_key),
+                        target_pos: Some(portal.target_pos),
+                    };
 
-                let _ = area.transfer_tx.send(req).await;
+                    to_cross.push(entity);
+
+                    let _ = area.transfer_tx.send(req).await;
+                }
             }
         }
     }
