@@ -297,6 +297,12 @@ impl Game {
 
         let target_key = match req.target {
             TransferTarget::Spawn => self.spawn_area_key.clone(),
+            TransferTarget::MapStart(ref map_id) => self
+                .try_get_map(&map_id)
+                .ok_or_else(|| anyhow::anyhow!("Map '{}' not found", map_id))?
+                .get_start_area()
+                .key
+                .clone(),
             TransferTarget::Area(ref key) => key.clone(),
         };
 
@@ -455,5 +461,6 @@ pub struct TransferRequest {
 #[derive(Clone, Debug)]
 pub enum TransferTarget {
     Area(AreaKey),
+    MapStart(String),
     Spawn,
 }

@@ -1,6 +1,7 @@
 use super::chat::{ChatMessageType, ChatRequest};
 use crate::cache::CommandCache;
 use crate::game::game::Game;
+use crate::game::game::TransferRequest;
 use anyhow::anyhow;
 use anyhow::Result;
 use std::{
@@ -54,6 +55,13 @@ static COMMANDS: LazyLock<Vec<Command>> = LazyLock::new(|| {
             "Tries to automatically sends a private reply when sending a chat message.",
             None,
             None,
+        ),
+        Command::new(
+            "warp",
+            Some(vec!["tp"]),
+            "Warps you to the start of the provided map",
+            Some("<map>"),
+            Some(Box::new(warp)),
         ),
     ]
 });
@@ -193,6 +201,25 @@ async fn whisper(req: CommandRequest) -> Result<Option<ChatRequest>> {
         ChatMessageType::Whisper,
         Some(vec![sender_id, recipient.id]),
     )))
+}
+
+async fn warp(req: CommandRequest) -> Result<Option<ChatRequest>> {
+    let map_id = match req.args.get(0) {
+        Some(id) => id,
+        None => return response("You must specify a target map".to_owned(), req.player_id),
+    };
+
+    let transfer_request = TransferRequest {
+        player_id: req.player_id,
+        target: crate::game::game::TransferTarget::MapStart(map_id.to_owned()),
+        target_pos: None,
+    };
+
+    let mut game = req.game.lock().await;
+
+    game.transfer_hero(transfer_request).await?;
+
+    Ok(None)
 }
 
 //
