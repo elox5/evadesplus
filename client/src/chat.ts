@@ -1,4 +1,4 @@
-import { get_autocomplete } from "./autocomplete.js";
+import { AutocompleteMatch, get_autocomplete } from "./autocomplete.js";
 import { BinaryReader } from "./binary_reader.js";
 import { cache } from "./cache.js";
 import { try_execute_command } from "./commands.js";
@@ -20,7 +20,7 @@ class Chat {
     reply_target?: bigint;
     private self_id: bigint;
 
-    private autocomplete_entries: string[] | null = null;
+    private autocomplete_entries: AutocompleteMatch[] | null = null;
     private autocomplete_index: number = 0;
 
     constructor() {
@@ -40,7 +40,7 @@ class Chat {
         this.input.onkeydown = (e) => {
             if (e.key === "Enter") {
                 if (this.autocomplete_entries !== null) {
-                    const should_send = this.fill_autocomplete(this.autocomplete_entries[this.autocomplete_index]);
+                    const should_send = this.fill_autocomplete(this.autocomplete_entries[this.autocomplete_index].value);
                     if (!should_send) return;
                 }
 
@@ -188,7 +188,7 @@ class Chat {
         this.autocomplete_display.classList.add("hidden");
     }
 
-    private show_autocomplete(entries: string[]) {
+    private show_autocomplete(entries: AutocompleteMatch[]) {
         this.autocomplete_entries = entries;
 
         this.autocomplete_display.classList.remove("hidden");
@@ -198,9 +198,9 @@ class Chat {
             const button = document.createElement("button");
             button.classList.add("autocomplete-entry");
 
-            button.textContent = entry;
+            button.textContent = entry.name;
             button.onclick = () => {
-                this.fill_autocomplete(entry);
+                this.fill_autocomplete(entry.value);
             };
 
             this.autocomplete_display.appendChild(button);
