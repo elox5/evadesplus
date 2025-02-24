@@ -40,28 +40,16 @@ areas:
           w: 5
           h: 2
         target: Next
-        target_pos:
-          x: 5
-          y: 7.5
+        target_x: !FromLeft 2
+        target_y: KeepPlayer
       - rect:
           x: 38
           y: 5
           w: 1
           h: 1
         target: !Map lm
-        target_pos:
-          x: 5
-          y: 7.5
-      - rect:
-          x: 46
-          y: 12
-          w: 1
-          h: 1
-        target: !Area tt:named_area
-        target_pos:
-          x: 5
-          y: 7.5
-        color: "#ff000055"
+        target_x: !FromLeft 2
+        target_y: KeepPlayer
   - name: "Named Area"
     alias: "named_area"
     background_color: "#64C864"
@@ -90,18 +78,16 @@ areas:
           w: 1
           h: 15
         target: Previous
-        target_pos:
-          x: 50
-          y: 7.5
+        target_x: Center
+        target_y: Center
       - rect:
           x: 99
           y: 0
           w: 1
           h: 15
         target: Next
-        target_pos:
-          x: 5
-          y: 7.5
+        target_x: !FromLeft 2
+        target_y: KeepPlayer
   - enemy_groups:
       - color: "#ff000055"
         count: 100
@@ -132,18 +118,16 @@ areas:
           w: 1
           h: 15
         target: Previous
-        target_pos:
-          x: 95
-          y: 7.5 
+        target_x: !FromRight 2
+        target_y: KeepPlayer
       - rect:
           x: 99
           y: 0
           w: 1
           h: 15
         target: Next
-        target_pos:
-          x: 5
-          y: 7.5 
+        target_x: !FromLeft 2
+        target_y: KeepPlayer
   - width: 35
     enemy_groups:
       - color: "#0077ff"
@@ -166,6 +150,5 @@ areas:
           w: 1
           h: 15
         target: Previous
-        target_pos:
-          x: 95
-          y: 7.5 
+        target_x: !FromRight 2
+        target_y: KeepPlayer

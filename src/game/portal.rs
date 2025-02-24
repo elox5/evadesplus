@@ -1,5 +1,5 @@
 use super::{area::AreaKey, components::Color, map_table::try_get_map};
-use crate::physics::{rect::Rect, vec2::Vec2};
+use crate::physics::rect::Rect;
 use anyhow::Result;
 use serde::Deserialize;
 
@@ -8,7 +8,8 @@ pub struct Portal {
     pub rect: Rect,
     pub color: Color,
     pub target: PortalTarget,
-    pub target_pos: Vec2,
+    pub target_x: PortalTargetPosX,
+    pub target_y: PortalTargetPosY,
 }
 
 impl Portal {
@@ -43,7 +44,8 @@ impl Portal {
             rect: data.rect,
             color: color.into(),
             target,
-            target_pos: data.target_pos,
+            target_x: data.target_x,
+            target_y: data.target_y,
         }
     }
 }
@@ -58,7 +60,8 @@ pub struct PortalData {
     pub rect: Rect,
     pub color: Option<String>,
     pub target: PortalTargetData,
-    pub target_pos: Vec2,
+    pub target_x: PortalTargetPosX,
+    pub target_y: PortalTargetPosY,
 }
 
 #[derive(Deserialize)]
@@ -74,6 +77,22 @@ pub enum PortalTarget {
     AreaKey(AreaKey),
     AreaAlias(String),
     Map(String),
+}
+
+#[derive(Deserialize, Clone)]
+pub enum PortalTargetPosX {
+    FromLeft(f32),
+    FromRight(f32),
+    KeepPlayer,
+    Center,
+}
+
+#[derive(Deserialize, Clone)]
+pub enum PortalTargetPosY {
+    FromBottom(f32),
+    FromTop(f32),
+    KeepPlayer,
+    Center,
 }
 
 impl PortalTarget {

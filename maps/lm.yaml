@@ -24,18 +24,16 @@ areas:
           w: 1
           h: 15
         target: !Map "tt"
-        target_pos:
-          x: 50
-          y: 7.5 
+        target_x: Center
+        target_y: Center
       - rect:
           x: 99
           y: 0
           w: 1
           h: 15
         target: Next
-        target_pos:
-          x: 5
-          y: 7.5 
+        target_x: !FromLeft 2
+        target_y: KeepPlayer
   - enemy_groups:
       - color: "#777777"
         count: 60
@@ -61,18 +59,16 @@ areas:
           w: 1
           h: 15
         target: Previous
-        target_pos:
-          x: 95
-          y: 7.5 
+        target_x: !FromRight 2
+        target_y: KeepPlayer
       - rect:
           x: 99
           y: 0
           w: 1
           h: 15
         target: Next
-        target_pos:
-          x: 5
-          y: 7.5 
+        target_x: !FromLeft 2
+        target_y: KeepPlayer
   - enemy_groups:
       - color: "#777777"
         count: 70
@@ -98,18 +94,16 @@ areas:
           w: 1
           h: 15
         target: Previous
-        target_pos:
-          x: 95
-          y: 7.5 
+        target_x: !FromRight 2
+        target_y: KeepPlayer
       - rect:
           x: 99
           y: 0
           w: 1
           h: 15
         target: Next
-        target_pos:
-          x: 5
-          y: 7.5
+        target_x: !FromLeft 2
+        target_y: KeepPlayer
   - enemy_groups:
       - color: "#777777"
         count: 80
@@ -135,18 +129,16 @@ areas:
           w: 1
           h: 15
         target: Previous
-        target_pos:
-          x: 95
-          y: 7.5 
+        target_x: !FromRight 2
+        target_y: KeepPlayer
       - rect:
           x: 99
           y: 0
           w: 1
           h: 15
         target: Next
-        target_pos:
-          x: 5
-          y: 7.5 
+        target_x: !FromLeft 2
+        target_y: KeepPlayer
   - enemy_groups:
       - color: "#777777"
         count: 90
@@ -172,18 +164,16 @@ areas:
           w: 1
           h: 15
         target: Previous
-        target_pos:
-          x: 95
-          y: 7.5 
+        target_x: !FromRight 2
+        target_y: KeepPlayer
       - rect:
           x: 99
           y: 0
           w: 1
           h: 15
         target: Next
-        target_pos:
-          x: 5
-          y: 7.5 
+        target_x: !FromLeft 2
+        target_y: KeepPlayer
   - enemy_groups:
       - color: "#777777"
         count: 100
@@ -209,18 +199,16 @@ areas:
           w: 1
           h: 15
         target: Previous
-        target_pos:
-          x: 95
-          y: 7.5 
+        target_x: !FromRight 2
+        target_y: KeepPlayer
       - rect:
           x: 99
           y: 0
           w: 1
           h: 15
         target: Next
-        target_pos:
-          x: 5
-          y: 7.5 
+        target_x: !FromLeft 2
+        target_y: KeepPlayer
   - enemy_groups:
       - color: "#777777"
         count: 90
@@ -250,18 +238,16 @@ areas:
           w: 1
           h: 15
         target: Previous
-        target_pos:
-          x: 95
-          y: 7.5 
+        target_x: !FromRight 2
+        target_y: KeepPlayer
       - rect:
           x: 99
           y: 0
           w: 1
           h: 15
         target: Next
-        target_pos:
-          x: 5
-          y: 7.5 
+        target_x: !FromLeft 2
+        target_y: KeepPlayer
   - enemy_groups:
       - color: "#777777"
         count: 80
@@ -291,18 +277,16 @@ areas:
           w: 1
           h: 15
         target: Previous
-        target_pos:
-          x: 95
-          y: 7.5 
+        target_x: !FromRight 2
+        target_y: KeepPlayer
       - rect:
           x: 99
           y: 0
           w: 1
           h: 15
         target: Next
-        target_pos:
-          x: 5
-          y: 7.5 
+        target_x: !FromLeft 2
+        target_y: KeepPlayer
   - enemy_groups:
       - color: "#777777"
         count: 70
@@ -332,18 +316,16 @@ areas:
           w: 1
           h: 15
         target: Previous
-        target_pos:
-          x: 95
-          y: 7.5 
+        target_x: !FromRight 2
+        target_y: KeepPlayer
       - rect:
           x: 99
           y: 0
           w: 1
           h: 15
         target: Next
-        target_pos:
-          x: 5
-          y: 7.5 
+        target_x: !FromLeft 2
+        target_y: KeepPlayer
   - enemy_groups:
       - color: "#777777"
         count: 60
@@ -373,18 +355,16 @@ areas:
           w: 1
           h: 15
         target: Previous 
-        target_pos:
-          x: 95
-          y: 7.5 
+        target_x: !FromRight 2
+        target_y: KeepPlayer
       - rect:
           x: 99
           y: 0
           w: 1
           h: 15
         target: Next
-        target_pos:
-          x: 5
-          y: 7.5 
+        target_x: !FromLeft 2
+        target_y: KeepPlayer
   - enemy_groups:
       - color: "#777777"
         count: 50
@@ -414,15 +394,13 @@ areas:
           w: 1
           h: 15
         target: Previous 
-        target_pos:
-          x: 95
-          y: 7.5 
+        target_x: !FromRight 2
+        target_y: KeepPlayer
       - rect:
           x: 99
           y: 0
           w: 1
           h: 15
         target: !Area "tt:1"
-        target_pos:
-          x: 5
-          y: 7.5 
+        target_x: !FromLeft 2
+        target_y: KeepPlayer
