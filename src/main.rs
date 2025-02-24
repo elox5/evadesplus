@@ -1,13 +1,11 @@
 use anyhow::Result;
 use evadesplus::{
     cache::Cache,
-    env::{get_env_or_default, get_env_var, try_get_env_var},
-    game::game::Game,
+    env::{get_env_or_default, get_env_var},
+    game::{game::Game, map_table::get_map_list},
     networking::webtransport::WebTransportServer,
-    parsing::parse_map,
 };
 use std::{
-    ffi::OsStr,
     net::{IpAddr, SocketAddr},
     str::FromStr,
 };
@@ -35,30 +33,11 @@ async fn main() -> Result<()> {
         panic!("Client code has not been compiled.");
     }
 
-    let map_path = get_env_or_default("MAP_PATH", "maps");
-
-    let maps = try_get_env_var("MAPS");
+    let cache = Cache::new(get_map_list());
 
     let start_map_id = get_env_var("START_MAP");
 
-    let maps = match maps {
-        Some(m) => m
-            .split(',')
-            .into_iter()
-            .map(|m| parse_map(&format!("{}/{}.yaml", map_path, m)).unwrap())
-            .collect::<Vec<_>>(),
-        None => std::fs::read_dir(map_path)
-            .unwrap()
-            .filter_map(|f| f.ok())
-            .filter(|f| f.path().is_file())
-            .filter(|f| f.path().extension().unwrap_or(OsStr::new("")) == "yaml")
-            .map(|f| parse_map(f.path().to_str().unwrap()).unwrap())
-            .collect::<Vec<_>>(),
-    };
-
-    let cache = Cache::new(&maps);
-
-    let game = Game::new(maps, start_map_id);
+    let game = Game::new(start_map_id);
 
     let identity = Identity::self_signed([&local_ip_string])?;
     let cert_digest = identity.certificate_chain().as_slice()[0].hash();

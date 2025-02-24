@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use crate::{game::map::MapData, networking::commands::get_command_cache};
+use crate::{game::map::MapTemplate, networking::commands::get_command_cache};
 
 #[derive(Serialize, Clone)]
 pub struct MapCache {
@@ -11,12 +11,12 @@ pub struct MapCache {
 }
 
 impl MapCache {
-    pub fn new(map: &MapData) -> Self {
+    pub fn new(map: &MapTemplate) -> Self {
         Self {
             id: map.id.clone(),
             name: map.name.clone(),
-            background_color: map.background_color.clone(),
-            text_color: map.text_color.clone(),
+            background_color: map.background_color.to_hex(),
+            text_color: map.text_color.to_hex(),
         }
     }
 }
@@ -52,8 +52,8 @@ pub struct Cache {
 }
 
 impl Cache {
-    pub fn new(map_data: &Vec<MapData>) -> Self {
-        let maps = map_data.iter().map(MapCache::new).collect();
+    pub fn new(map_data: Vec<&MapTemplate>) -> Self {
+        let maps = map_data.into_iter().map(MapCache::new).collect();
 
         let commands = get_command_cache();
 

@@ -1,12 +1,11 @@
 use super::{
     area::{Area, AreaKey},
-    components::{Downed, Position, RenderReceiver},
-    map::{MapData, MapTemplate},
+    components::{CrossingPortal, Downed, Position, RenderReceiver},
+    map_table::try_get_map,
     systems::*,
 };
 use crate::{
     env::get_env_or_default,
-    game::components::CrossingPortal,
     networking::{
         chat::{ChatMessageType, ChatRequest},
         leaderboard::{LeaderboardState, LeaderboardUpdate},
@@ -29,8 +28,6 @@ use tokio::{
 use wtransport::Connection;
 
 pub struct Game {
-    maps: HashMap<String, MapTemplate>,
-
     areas: HashMap<AreaKey, Arc<Mutex<Area>>>,
 
     players: HashMap<u64, ArcSwap<Player>>,
@@ -51,7 +48,7 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn new(maps: Vec<MapData>, start_map_id: String) -> Arc<Mutex<Self>> {
+    pub fn new(start_map_id: String) -> Arc<Mutex<Self>> {
         let (transfer_tx, mut transfer_rx) = mpsc::channel::<TransferRequest>(8);
         let (leaderboard_tx, leaderboard_rx) = broadcast::channel(8);
 
@@ -65,23 +62,13 @@ impl Game {
 
         let frame_duration = Duration::from_secs_f32(1.0 / framerate);
 
-        let maps: HashMap<String, MapTemplate> = maps
-            .into_iter()
-            .map(|map| {
-                let template = MapTemplate::new(map);
-                (template.id.clone(), template)
-            })
-            .collect();
-
-        let spawn_area_key = maps
-            .get(&start_map_id)
+        let spawn_area_key = try_get_map(&start_map_id)
             .unwrap_or_else(|| panic!("Could not find start map"))
             .get_start_area()
             .key
             .clone();
 
         let game = Game {
-            maps,
             areas: HashMap::new(),
             players: HashMap::new(),
             spawn_area_key,
@@ -120,9 +107,8 @@ impl Game {
     fn try_create_area(&mut self, key: &AreaKey) -> Result<Arc<Mutex<Area>>> {
         let map_id = key.map_id();
 
-        let map = self
-            .try_get_map(map_id)
-            .ok_or_else(|| anyhow::anyhow!("Map '{}' not found", map_id))?;
+        let map =
+            try_get_map(map_id).ok_or_else(|| anyhow::anyhow!("Map '{}' not found", map_id))?;
 
         let template = map
             .try_get_area(key.order() as usize)
@@ -297,8 +283,7 @@ impl Game {
 
         let target_key = match req.target {
             TransferTarget::Spawn => self.spawn_area_key.clone(),
-            TransferTarget::MapStart(ref map_id) => self
-                .try_get_map(&map_id)
+            TransferTarget::MapStart(ref map_id) => try_get_map(&map_id)
                 .ok_or_else(|| anyhow::anyhow!("Map '{}' not found", map_id))?
                 .get_start_area()
                 .key
@@ -426,10 +411,6 @@ impl Game {
                 }
             })
             .ok_or(anyhow!("Player '{name}' not found"))
-    }
-
-    fn try_get_map(&self, map_id: &str) -> Option<&MapTemplate> {
-        self.maps.get(map_id)
     }
 
     fn send_server_announcement(&self, message: String) {
