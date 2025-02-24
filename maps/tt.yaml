@@ -48,10 +48,20 @@ areas:
           y: 5
           w: 1
           h: 1
-        target: !Map "lm"
+        target: !Map lm
         target_pos:
           x: 5
           y: 7.5
+      - rect:
+          x: 46
+          y: 12
+          w: 1
+          h: 1
+        target: !Area tt:named_area
+        target_pos:
+          x: 5
+          y: 7.5
+        color: "#ff000055"
   - name: "Named Area"
     alias: "named_area"
     background_color: "#64C864"

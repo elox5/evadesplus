@@ -1,5 +1,6 @@
 use super::{area::AreaKey, components::Color, map_table::try_get_map};
 use crate::physics::{rect::Rect, vec2::Vec2};
+use anyhow::Result;
 use serde::Deserialize;
 
 #[derive(Clone)]
@@ -13,24 +14,28 @@ pub struct Portal {
 impl Portal {
     pub fn new(data: PortalData, ctx: &PortalCreationContext) -> Self {
         let target = match data.target {
-            PortalTargetData::Area(id) => PortalTarget::Area(
-                AreaKey::from_map_order_string(&id)
-                    .unwrap_or_else(|_| panic!("Invalid portal target id: {id}")),
-            ),
+            PortalTargetData::Area(id) => {
+                let key = AreaKey::from_map_order_string(&id);
+
+                match key {
+                    Ok(key) => PortalTarget::AreaKey(key),
+                    Err(_) => PortalTarget::AreaAlias(id),
+                }
+            }
             PortalTargetData::Map(id) => PortalTarget::Map(id),
             PortalTargetData::Previous => {
-                PortalTarget::Area(AreaKey::new(ctx.map_id.clone(), ctx.area_order as u16 - 1))
+                PortalTarget::AreaKey(AreaKey::new(ctx.map_id.clone(), ctx.area_order as u16 - 1))
             }
             PortalTargetData::Next => {
-                PortalTarget::Area(AreaKey::new(ctx.map_id.clone(), ctx.area_order as u16 + 1))
+                PortalTarget::AreaKey(AreaKey::new(ctx.map_id.clone(), ctx.area_order as u16 + 1))
             }
         };
 
         let color = match data.color {
             Some(color) => color,
             None => match target {
-                PortalTarget::Area(_) => "#ffff0033".to_owned(),
                 PortalTarget::Map(_) => "#77ffff55".to_owned(),
+                _ => "#ffff0033".to_owned(),
             },
         };
 
@@ -66,15 +71,35 @@ pub enum PortalTargetData {
 
 #[derive(Clone)]
 pub enum PortalTarget {
-    Area(AreaKey),
+    AreaKey(AreaKey),
+    AreaAlias(String),
     Map(String),
 }
 
 impl PortalTarget {
-    pub fn get_area_key(&self) -> Option<AreaKey> {
+    pub fn get_area_key(&self) -> Result<AreaKey> {
         match self {
-            PortalTarget::Area(key) => Some(key.clone()),
-            PortalTarget::Map(id) => try_get_map(id).map(|map| map.get_start_area().key.clone()),
+            PortalTarget::AreaKey(key) => Ok(key.clone()),
+            PortalTarget::AreaAlias(id) => {
+                let (map_id, alias) = id
+                    .split_once(':')
+                    .ok_or(anyhow::anyhow!("Could not parse portal target {id}"))?;
+
+                match try_get_map(&map_id) {
+                    Some(map) => Ok(map
+                        .try_get_area_by_alias(alias)
+                        .ok_or(anyhow::anyhow!(
+                            "Could not find area with alias {alias} in map {map_id}"
+                        ))?
+                        .key
+                        .clone()),
+                    None => Err(anyhow::anyhow!("Map {map_id} not found")),
+                }
+            }
+            PortalTarget::Map(id) => match try_get_map(id) {
+                Some(map) => Ok(map.get_start_area().key.clone()),
+                None => Err(anyhow::anyhow!("Map {id} not found")),
+            },
         }
     }
 }

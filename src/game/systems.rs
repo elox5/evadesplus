@@ -308,7 +308,7 @@ pub async fn system_portals(area: &mut Area) {
             if portal.rect.contains_circle(pos.0, size.0 / 2.0) {
                 let area_key = portal.target.get_area_key();
 
-                if let Some(area_key) = area_key {
+                if let Ok(area_key) = area_key {
                     let req = TransferRequest {
                         player_id: player_id.0,
                         target: TransferTarget::Area(area_key),

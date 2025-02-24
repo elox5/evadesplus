@@ -62,6 +62,11 @@ impl MapTemplate {
         self.areas.get(order)
     }
 
+    pub fn try_get_area_by_alias(&self, alias: &str) -> Option<&AreaTemplate> {
+        let order = *self.alias_orders.get(alias)?;
+        self.areas.get(order as usize)
+    }
+
     pub fn get_start_area(&self) -> &AreaTemplate {
         self.areas.get(self.start_area_order as usize).unwrap()
     }
