@@ -35,7 +35,7 @@ pub struct Game {
 
     players: HashMap<u64, ArcSwap<Player>>,
 
-    start_area_key: AreaKey,
+    spawn_area_key: AreaKey,
 
     transfer_tx: mpsc::Sender<TransferRequest>,
     transfer_queue: Vec<u64>,
@@ -51,7 +51,7 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn new(maps: Vec<MapData>, start_area_key: AreaKey) -> Arc<Mutex<Self>> {
+    pub fn new(maps: Vec<MapData>, start_map_id: String) -> Arc<Mutex<Self>> {
         let (transfer_tx, mut transfer_rx) = mpsc::channel::<TransferRequest>(8);
         let (leaderboard_tx, leaderboard_rx) = broadcast::channel(8);
 
@@ -65,7 +65,7 @@ impl Game {
 
         let frame_duration = Duration::from_secs_f32(1.0 / framerate);
 
-        let maps = maps
+        let maps: HashMap<String, MapTemplate> = maps
             .into_iter()
             .map(|map| {
                 let template = MapTemplate::new(map);
@@ -73,11 +73,18 @@ impl Game {
             })
             .collect();
 
+        let spawn_area_key = maps
+            .get(&start_map_id)
+            .unwrap_or_else(|| panic!("Could not find start map"))
+            .get_start_area()
+            .key
+            .clone();
+
         let game = Game {
             maps,
             areas: HashMap::new(),
             players: HashMap::new(),
-            start_area_key,
+            spawn_area_key,
             transfer_tx: transfer_tx.clone(),
             transfer_queue: Vec::new(),
             leaderboard_state: LeaderboardState::new(),
@@ -157,10 +164,10 @@ impl Game {
         );
     }
 
-    fn get_start_area(&mut self) -> Arc<Mutex<Area>> {
-        let start_area_key = self.start_area_key.clone();
-        self.get_or_create_area(&start_area_key)
-            .unwrap_or_else(|_| panic!("Start area '{start_area_key}' not found"))
+    fn get_spawn_area(&mut self) -> Arc<Mutex<Area>> {
+        let spawn_area_key = self.spawn_area_key.clone();
+        self.get_or_create_area(&spawn_area_key)
+            .unwrap_or_else(|_| panic!("Start area '{spawn_area_key}' not found"))
     }
 
     async fn update_area(area: &mut Area, delta_time: f32) {
@@ -205,9 +212,8 @@ impl Game {
     }
 
     pub async fn spawn_hero(&mut self, id: u64, name: &str, connection: Connection) {
-        let area_arc = self.get_start_area();
-
-        let mut area = area_arc.lock().await;
+        let area = self.get_spawn_area();
+        let mut area = area.lock().await;
 
         let entity = area.spawn_player(id, name, connection);
 
@@ -290,7 +296,7 @@ impl Game {
         let player = self.get_player(req.player_id)?;
 
         let target_key = match req.target {
-            TransferTarget::Spawn => self.start_area_key.clone(),
+            TransferTarget::Spawn => self.spawn_area_key.clone(),
             TransferTarget::Area(ref key) => key.clone(),
         };
 

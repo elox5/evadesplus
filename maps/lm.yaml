@@ -2,6 +2,7 @@ id: "lm"
 name: "Long Map"
 background_color: "#ffffdd"
 text_color: "#ddddbb"
+start_area_order: 2
 areas:
   - enemy_groups:
       - color: "#777777"
