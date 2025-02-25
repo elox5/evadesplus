@@ -37,3 +37,15 @@
 
     text-shadow: 2px 2px 4px black;
 }
+
+#area-message-display {
+    position: absolute;
+    bottom: 60px;
+    left: 50%;
+    translate: -50% 0%;
+
+    font-size: 36px;
+
+    z-index: 1;
+    text-shadow: 2px 2px 4px black;
+}

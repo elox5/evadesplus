@@ -18,6 +18,8 @@ const area_canvas = new Canvas("area-canvas", render_settings.tile_size);
 const area_minimap = new Canvas("area-minimap", render_settings.minimap_tile_size);
 const hero_minimap = new Canvas("hero-minimap", render_settings.minimap_tile_size, render_settings.minimap_hero_scale);
 
+const area_message_display = document.getElementById("area-message-display") as HTMLHeadingElement;
+
 function setup_canvas() {
     main_canvas.update_dimensions();
     main_canvas.clear();
@@ -30,6 +32,11 @@ function setup_canvas() {
 function set_draw_offset(x: number, y: number) {
     main_canvas.set_render_offset(x - main_canvas.canvas.width / 2 / render_settings.tile_size, -y + main_canvas.canvas.height / 2 / render_settings.tile_size);
     area_canvas.set_physical_offset(x, y);
+}
+
+type AreaMessage = {
+    text: string,
+    color: string,
 }
 
 type DrawSettings = {
@@ -148,7 +155,7 @@ function drawGrid(width: number, height: number) {
     }
 }
 
-function render_area(width: number, height: number, color: string, walls: Rect[], safeZones: Rect[], portals: Portal[]) {
+function render_area(width: number, height: number, color: string, walls: Rect[], safeZones: Rect[], portals: Portal[], message: AreaMessage | null) {
     area_canvas.set_dimensions(width * area_canvas.tile_size, height * area_canvas.tile_size);
 
     const ctx = area_canvas.ctx;
@@ -176,6 +183,14 @@ function render_area(width: number, height: number, color: string, walls: Rect[]
         });
     }
 
+    if (message !== null) {
+        area_message_display.textContent = message.text;
+        area_message_display.style.color = message.color;
+    }
+    else {
+        area_message_display.textContent = "";
+    }
+
     area_minimap.set_dimensions(width * render_settings.minimap_tile_size, height * render_settings.minimap_tile_size);
     hero_minimap.set_dimensions(width * render_settings.minimap_tile_size, height * render_settings.minimap_tile_size);
 
@@ -195,7 +210,7 @@ function render_frame(offset: Vector2, nodes: RenderNode[]) {
     let own_hero = null;
 
     for (const node of nodes) {
-        if (node.name !== undefined) {
+        if (node.name !== null) {
             named_nodes.push(node);
         }
 
@@ -316,12 +331,27 @@ class RenderingModule implements NetworkModule {
             return;
         }
 
+        let message: AreaMessage | null = null;
+
+        const message_length = data.read_u8();
+
+        if (message_length > 0) {
+            const text = data.read_string(message_length);
+            const [r, g, b, a] = data.read_rgba();
+            const color = `rgba(${r}, ${g}, ${b}, ${a / 255})`;
+
+            message = {
+                text,
+                color
+            }
+        }
+
         const name = `${map.name} - ${area_name}`;
 
         this.area_name_heading.innerHTML = name;
         this.area_name_heading.style.color = map.text_color;
 
-        render_area(width, height, color, walls, safe_zones, portals);
+        render_area(width, height, color, walls, safe_zones, portals, message);
     }
 
     private handle_render_update(data: BinaryReader) {
@@ -354,7 +384,7 @@ class RenderingModule implements NetworkModule {
                 is_hero,
                 downed,
                 own_hero,
-                name
+                name,
             };
 
             this.nodes.push(node);

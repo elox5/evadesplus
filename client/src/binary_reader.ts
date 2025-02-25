@@ -122,21 +122,21 @@ export class BinaryReader {
         return this.decoder.decode(bytes);
     }
 
-    read_length_u8_string(): string | undefined {
+    read_length_u8_string(): string | null {
         const length = this.read_u8();
 
         if (length === 0) {
-            return undefined;
+            return null;
         }
 
         return this.read_string(length);
     }
 
-    read_length_u16_string(): string | undefined {
+    read_length_u16_string(): string | null {
         const length = this.read_u16();
 
         if (length === 0) {
-            return undefined;
+            return null;
         }
 
         return this.read_string(length);

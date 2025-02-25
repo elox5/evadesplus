@@ -28,5 +28,5 @@ export type RenderNode = {
     is_hero: boolean;
     downed: boolean;
     own_hero: boolean;
-    name?: string;
+    name: string | null;
 }

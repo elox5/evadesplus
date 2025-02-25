@@ -53,6 +53,7 @@ areas:
   - name: "Named Area"
     alias: "named_area"
     background_color: "#64C864"
+    message: "This is a test message"
     enemy_groups:
       - color: "#c8c8c8"
         count: 10
@@ -88,7 +89,10 @@ areas:
         target: Next
         target_x: !FromLeft 2
         target_y: KeepPlayer
-  - enemy_groups:
+  - message: Death fills the air.
+    message_config:
+      color: "#ff0000"
+    enemy_groups:
       - color: "#ff000055"
         count: 100
         speed: 1

@@ -25,6 +25,7 @@ pub struct Area {
 
     pub name: String,
     pub background_color: Color,
+    pub message: Option<AreaMessage>,
 
     pub world: World,
 
@@ -57,8 +58,9 @@ impl Area {
             alias: template.alias.clone(),
 
             name: template.name.clone(),
-
             background_color: template.background_color.clone(),
+            message: template.message.clone(),
+
             bounds: Rect::new(0.0, 0.0, template.width, template.height),
             spawn_pos: template.spawn_pos,
             inner_walls: template.inner_walls.clone(),
@@ -190,6 +192,12 @@ impl Area {
         packet.push(self.key.map_id.len() as u8);
         packet.extend_from_slice(self.key.map_id.as_bytes());
 
+        if let Some(message) = &self.message {
+            packet.extend_from_slice(&message.to_bytes());
+        } else {
+            packet.push(0);
+        }
+
         packet
     }
 }
@@ -272,6 +280,8 @@ pub struct AreaTemplate {
     pub portals: Vec<Portal>,
 
     pub enemy_groups: Vec<EnemyGroup>,
+
+    pub message: Option<AreaMessage>,
 }
 
 impl AreaTemplate {
@@ -310,6 +320,10 @@ impl AreaTemplate {
             })
             .collect::<Vec<_>>();
 
+        let message = data
+            .message
+            .map(|message| AreaMessage::new(message, data.message_config));
+
         AreaTemplate {
             key,
             alias: data.alias,
@@ -324,6 +338,7 @@ impl AreaTemplate {
             inner_walls: data.inner_walls.unwrap_or_default(),
             safe_zones: data.safe_zones.unwrap_or_default(),
             enemy_groups,
+            message,
         }
     }
 }
@@ -344,6 +359,9 @@ pub struct AreaData {
     pub portals: Option<Vec<PortalData>>,
 
     pub enemy_groups: Option<Vec<EnemyGroupData>>,
+
+    pub message: Option<String>,
+    pub message_config: Option<MessageConfigData>,
 }
 
 pub struct AreaCreationContext {
@@ -376,4 +394,40 @@ pub struct EnemyGroupData {
     pub count: u32,
     pub speed: f32,
     pub size: f32,
+}
+
+#[derive(Clone)]
+pub struct AreaMessage {
+    pub message: String,
+    pub color: Color,
+}
+
+impl AreaMessage {
+    pub fn new(message: String, data: Option<MessageConfigData>) -> Self {
+        let color = data
+            .map(|data| data.color)
+            .flatten()
+            .unwrap_or("#7fff7f".to_owned());
+
+        Self {
+            message,
+            color: color.into(),
+        }
+    }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+
+        bytes.push(self.message.len() as u8);
+        bytes.extend_from_slice(self.message.as_bytes());
+
+        bytes.extend_from_slice(&self.color.to_bytes());
+
+        bytes
+    }
+}
+
+#[derive(Deserialize)]
+pub struct MessageConfigData {
+    pub color: Option<String>,
 }
