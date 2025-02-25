@@ -56,3 +56,7 @@ pub fn get_map_table() -> &'static HashMap<String, MapTemplate> {
 pub fn get_map_list() -> Vec<&'static MapTemplate> {
     MAPS.values().collect()
 }
+
+pub fn map_exists(id: &str) -> bool {
+    MAPS.contains_key(id)
+}

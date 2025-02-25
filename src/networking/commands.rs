@@ -2,6 +2,8 @@ use super::chat::{ChatMessageType, ChatRequest};
 use crate::cache::CommandCache;
 use crate::game::game::Game;
 use crate::game::game::TransferRequest;
+use crate::game::game::TransferTarget;
+use crate::game::map_table::map_exists;
 use anyhow::anyhow;
 use anyhow::Result;
 use std::{
@@ -209,9 +211,13 @@ async fn warp(req: CommandRequest) -> Result<Option<ChatRequest>> {
         None => return response("You must specify a target map".to_owned(), req.player_id),
     };
 
+    if !map_exists(map_id) {
+        return response(format!("Map '{}' does not exist", map_id), req.player_id);
+    }
+
     let transfer_request = TransferRequest {
         player_id: req.player_id,
-        target: crate::game::game::TransferTarget::MapStart(map_id.to_owned()),
+        target: TransferTarget::MapStart(map_id.to_owned()),
         target_pos: None,
     };
 
