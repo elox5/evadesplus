@@ -7,10 +7,27 @@ const connect_button = document.querySelector("#connect-button") as HTMLButtonEl
 const connection_message_display = document.querySelector("#connection-message") as HTMLDivElement;
 
 async function main() {
-    await cache.init();
+    display_connection_message("Fetching cache...", "#dddddd");
 
-    connect_button.disabled = false;
-    connect_button.onclick = handle_connection;
+    const warning_timeout = setTimeout(() => {
+        display_connection_message("Fetching cache is taking longer than expected. Check the console for any errors", "#ffbf40");
+    }, 5000);
+
+    try {
+        await cache.init();
+
+        clear_connection_message();
+        connect_button.disabled = false;
+        connect_button.onclick = handle_connection;
+    }
+    catch (err) {
+        display_connection_message("Failed to fetch cache. Check the console for more info", "#ff3f3f");
+
+        console.error("Failed to fetch cache:\n", err);
+    }
+    finally {
+        clearTimeout(warning_timeout);
+    }
 }
 window.onload = main;
 
@@ -19,9 +36,10 @@ async function handle_connection() {
     const name = name_input.value.trim();
 
     console.log("Connecting...");
+    display_connection_message("Connecting...", "#bfff3f");
 
     if (name.length === 0) {
-        display_connection_message("Please enter a name", "#ffbf40");
+        display_connection_message("Please enter a name", "#ffbf3f");
         return;
     }
 
@@ -42,6 +60,10 @@ function show_game() {
 function display_connection_message(message: string, color: string) {
     connection_message_display.textContent = message;
     connection_message_display.style.color = color;
+}
+
+function clear_connection_message() {
+    connection_message_display.textContent = "";
 }
 
 class CleanupModule implements NetworkModule {
