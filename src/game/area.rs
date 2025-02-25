@@ -57,8 +57,6 @@ impl Area {
         transfer_tx: mpsc::Sender<TransferRequest>,
         leaderboard_tx: broadcast::Sender<LeaderboardUpdate>,
     ) -> Self {
-        println!("{}, {}", template.flags.boss, template.flags.victory);
-
         let mut area = Self {
             key: template.key.clone(),
             alias: template.alias.clone(),

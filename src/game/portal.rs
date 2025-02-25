@@ -1,4 +1,8 @@
-use super::{area::AreaKey, components::Color, map_table::try_get_map};
+use super::{
+    area::AreaKey,
+    components::Color,
+    map_table::{map_exists, try_get_map},
+};
 use crate::physics::rect::Rect;
 use anyhow::Result;
 use serde::Deserialize;
@@ -23,7 +27,13 @@ impl Portal {
                     Err(_) => PortalTarget::AreaAlias(id),
                 }
             }
-            PortalTargetData::Map(id) => PortalTarget::Map(id),
+            PortalTargetData::Map(id) => {
+                if !map_exists(&id) {
+                    panic!("Map '{id}' in portal target does not exist");
+                }
+
+                PortalTarget::Map(id)
+            }
             PortalTargetData::Previous => {
                 PortalTarget::AreaKey(AreaKey::new(ctx.map_id.clone(), ctx.area_order as u16 - 1))
             }
