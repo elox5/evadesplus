@@ -3,24 +3,17 @@ import { lock_mouse_input } from "./input.js";
 import { cache, CommandData } from "./cache.js";
 import { network_controller } from "./network_controller.js";
 
-export function try_execute_command(message: string) {
-    const response = {
-        executed: false,
-        message: message,
-    }
-
+export function try_execute_command(message: string): boolean {
     if (cache.commands === null) {
         mock_server_response("The command list cache has not been initialized yet. Please wait a few seconds...");
 
-        response.executed = true;
-        return response;
+        return true;
     }
 
     message = message.substring(1).trim();
 
     if (message.length === 0) {
-        response.executed = true;
-        return response;
+        return true;
     }
 
     const split = message.split(" ");
@@ -30,7 +23,7 @@ export function try_execute_command(message: string) {
     if (!is_valid_command(commandName)) {
         mock_server_response(`Unknown command: */${commandName}*. For a list of available commands, use */help*.`);
 
-        response.executed = true;
+        return true;
     }
     else if (matches_command_with_name(commandName, "help")) {
         const arg = args[0];
@@ -42,32 +35,34 @@ export function try_execute_command(message: string) {
             display_command_help(arg);
         }
 
-        response.executed = true;
+        return true;
     }
     else if (matches_command_with_name(commandName, "reply")) {
         if (chat.reply_target === undefined) {
             mock_server_response("There's nobody to reply to.");
 
-            response.executed = true;
-            return response;
+            return true;
         }
         if (!cache.current_players.some(p => p.player_id === chat.reply_target)) {
             mock_server_response("The target player is no longer available.");
 
-            response.executed = true;
-            return response;
+            return true;
         }
 
-        response.message = `/whisper @${chat.reply_target} ${args.join(" ")}`;
+        chat.send_message_raw(`/whisper @${chat.reply_target} ${args.join(" ")}`);
+
+        return true;
     }
     else if (matches_command_with_name(commandName, "togglereply")) {
         chat.settings.auto_reply = !chat.settings.auto_reply;
 
         mock_server_response(`Auto-reply is now ${chat.settings.auto_reply ? "enabled" : "disabled"}.`);
 
-        response.executed = true;
+        return true;
     }
     else if (matches_command_with_name(commandName, "reset")) {
+        chat.send_message_raw("/reset");
+
         lock_mouse_input();
     }
     else if (matches_command_with_name(commandName, "clear")) {
@@ -75,15 +70,15 @@ export function try_execute_command(message: string) {
 
         mock_server_response("Chat cleared.");
 
-        response.executed = true;
+        return true;
     }
     else if (matches_command_with_name(commandName, "disconnect")) {
         network_controller.disconnect();
 
-        response.executed = true;
+        return true;
     }
 
-    return response;
+    return false;
 }
 
 function display_command_help(name: string) {

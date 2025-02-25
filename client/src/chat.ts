@@ -117,6 +117,10 @@ class Chat {
         module.send_chat_message(message);
     }
 
+    send_message_raw(message: string) {
+        module.send_message_raw(message);
+    }
+
     receive_message(message: string, sender_id: bigint, name: string, message_type: MessageType) {
         const atBottom = Math.abs(this.list.scrollHeight - this.list.clientHeight - this.list.scrollTop) < 1
 
@@ -322,22 +326,25 @@ export class ChatModule implements NetworkModule {
         }
 
         if (msg.startsWith("/")) {
-            let { executed, message } = try_execute_command(msg);
-
+            const executed = try_execute_command(msg);
             if (executed) return;
-
-            msg = message;
         }
 
+        await this.send_message_raw(msg);
+    }
+
+    async send_message_raw(msg: string) {
         const encoder = new TextEncoder();
+        const message = encoder.encode(`CHAT${msg}`);
+
         const writer = await network_controller.create_uni_writer();
 
         if (writer === null) {
-            console.error("Failed to send chat message");
+            console.error("Failed to create network writer");
             return;
         }
 
-        await writer.write(encoder.encode(`CHAT${msg}`));
+        await writer.write(message);
     }
 }
 
