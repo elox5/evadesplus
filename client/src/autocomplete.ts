@@ -21,10 +21,23 @@ function resolve_token(token: CommandAutocompleteToken, input: string): Autocomp
     input = input.toLowerCase();
 
     if (token.name === "command") {
+        let exact_match: AutocompleteMatch | null = null;
+
         for (let command of cache.commands) {
             if (input === undefined || input === "" || (command.name.toLowerCase().startsWith(input) && !matches.some(m => m.name == command.name))) {
                 matches.push({ name: command.name, value: command.name });
             }
+            if (command.aliases !== null) {
+                for (let alias of command.aliases) {
+                    if (alias.toLowerCase() === input && !matches.some(m => m.name == alias)) {
+                        exact_match = { name: alias, value: alias };
+                    }
+                }
+            }
+        }
+
+        if (exact_match !== null) {
+            matches.unshift(exact_match);
         }
     } else if (token.name === "player") {
         for (let player of cache.current_players) {
