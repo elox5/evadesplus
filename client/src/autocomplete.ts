@@ -47,8 +47,7 @@ export function get_autocomplete(input: string): AutocompleteMatch[] | null {
     const [command, ...args] = words;
 
     if (args.length === 0) {
-        return null;
-        // return resolve_token({ name: "command", optional: false }, command);
+        return resolve_token({ name: "command", optional: false }, command);
     }
 
     const usage = try_get_command(command)?.usage;
