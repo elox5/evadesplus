@@ -96,7 +96,7 @@ class Chat {
             const tenMessagesTime = Date.now() - this.message_timestamp_queue[0];
 
             if (tenMessagesTime < 10000) {
-                this.receive_message(`Please wait ${(10 - tenMessagesTime / 1000).toFixed(1)} seconds before sending another message.`, -1n, "", 2);
+                this.receive_message(`Please wait ${(10 - tenMessagesTime / 1000).toFixed(1)} seconds before sending another message.`, null, 2);
                 return;
             }
         }
@@ -121,13 +121,11 @@ class Chat {
         module.send_message_raw(message);
     }
 
-    receive_message(message: string, sender_id: bigint, name: string, message_type: MessageType) {
+    receive_message(message: string, sender_id: bigint | null, message_type: MessageType, properties?: ChatMessageProperties) {
         const atBottom = Math.abs(this.list.scrollHeight - this.list.clientHeight - this.list.scrollTop) < 1
 
         const entry = document.createElement("div");
         entry.classList.add("chat-entry");
-
-        const show_username = message_type === MessageType.Normal || message_type === MessageType.Whisper;
 
         message = message.replace(/\n/g, "\r\n");
 
@@ -135,11 +133,11 @@ class Chat {
 
         entry.innerHTML = entry.innerHTML.replace(/\*([^*]*)\*/g, "<strong>$1</strong>");
 
-        if (show_username) {
-            const mapId = cache.current_players.find(p => p.player_id === sender_id)!.map_id;
-            const map = cache.maps.find(m => m.id === mapId)!;
-
-            entry.innerHTML = `<span style="color: ${map.text_color};">${name}</span>: ${entry.innerHTML}`;
+        if (message_type === MessageType.Normal && sender_id !== null) {
+            entry.innerHTML = `${this.get_player_colored_name(sender_id)}: ${entry.innerHTML}`;
+        }
+        if (message_type === MessageType.Whisper && sender_id !== null && properties !== undefined && properties.target_id !== undefined) {
+            entry.innerHTML = `${this.get_player_colored_name(sender_id)} -> ${this.get_player_colored_name(properties.target_id)}: ${entry.innerHTML}`;
         }
 
         if (message_type === MessageType.Normal) entry.classList.add("normal");
@@ -148,7 +146,7 @@ class Chat {
         if (message_type === MessageType.ServerAnnouncement) entry.classList.add("special", "server-announcement");
         if (message_type === MessageType.ServerError) entry.classList.add("special", "server-error");
 
-        if (message_type === MessageType.Whisper && sender_id !== this.self_id) {
+        if (message_type === MessageType.Whisper && sender_id !== null && sender_id !== this.self_id) {
             this.reply_target = sender_id;
         }
 
@@ -163,7 +161,7 @@ class Chat {
         this.list.appendChild(entry);
 
         this.messages.push({
-            sender_id: sender_id,
+            sender_id,
             element: entry,
         });
 
@@ -175,6 +173,10 @@ class Chat {
         if (atBottom) {
             this.list.scrollTo(0, this.list.scrollHeight);
         }
+    }
+
+    mock_server_response(message: string) {
+        this.receive_message(message, null, MessageType.CommandResponse);
     }
 
     focus() {
@@ -280,11 +282,23 @@ class Chat {
         this.hide_autocomplete();
         return false;
     }
+
+    private get_player_colored_name(player_id: bigint) {
+        const player = cache.current_players.find(p => p.player_id === player_id)!;
+        const map = cache.maps.find(m => m.id === player.map_id)!;
+        const map_color = map.text_color;
+
+        return `<span style="color: ${map_color}">${player.player_name}</span>`;
+    }
 }
 
 type ChatMessage = {
-    sender_id: bigint;
+    sender_id: bigint | null;
     element: HTMLElement;
+}
+
+type ChatMessageProperties = {
+    target_id?: bigint
 }
 
 export enum MessageType {
@@ -309,11 +323,14 @@ export class ChatModule implements NetworkModule {
     private handle_broadcast(data: BinaryReader) {
         const message_type = data.read_u8() as MessageType;
         const sender_id = data.read_u64();
-
-        const name = data.read_length_u8_string()!;
         const message = data.read_length_u8_string()!;
 
-        chat.receive_message(message, sender_id, name, message_type);
+        let properties: ChatMessageProperties | undefined = undefined;
+        if (message_type === MessageType.Whisper) {
+            properties = { target_id: data.read_u64() };
+        }
+
+        chat.receive_message(message, sender_id, message_type, properties);
     }
 
     async send_chat_message(msg: string) {

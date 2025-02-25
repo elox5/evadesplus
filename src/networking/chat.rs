@@ -30,16 +30,24 @@ impl ChatRequest {
         bytes.extend_from_slice(b"CHBR"); // 4 bytes (chat broadcast)
         bytes.push(self.message_type.clone() as u8); // 1 byte
         bytes.extend_from_slice(&self.sender_id.to_le_bytes()); // 8 bytes
-        bytes.push(self.sender_name.len() as u8); // 1 byte
-        bytes.extend_from_slice(self.sender_name.as_bytes()); // name.len() bytes
         bytes.push(self.message.len() as u8); // 1 byte
         bytes.extend_from_slice(self.message.as_bytes()); // message.len() bytes
+
+        if self.message_type == ChatMessageType::Whisper {
+            if let Some(recipients) = &self.recipient_filter {
+                let target = recipients.iter().find(|r| **r != self.sender_id);
+
+                if let Some(target) = target {
+                    bytes.extend_from_slice(&target.to_le_bytes()); // 8 bytes
+                }
+            }
+        }
 
         bytes
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub enum ChatMessageType {
     Normal,
     Whisper,

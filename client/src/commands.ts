@@ -5,7 +5,7 @@ import { network_controller } from "./network_controller.js";
 
 export function try_execute_command(message: string): boolean {
     if (cache.commands === null) {
-        mock_server_response("The command list cache has not been initialized yet. Please wait a few seconds...");
+        chat.mock_server_response("The command list cache has not been initialized yet. Please wait a few seconds...");
 
         return true;
     }
@@ -21,7 +21,7 @@ export function try_execute_command(message: string): boolean {
     const args = split.slice(1);
 
     if (!is_valid_command(commandName)) {
-        mock_server_response(`Unknown command: */${commandName}*. For a list of available commands, use */help*.`);
+        chat.mock_server_response(`Unknown command: */${commandName}*. For a list of available commands, use */help*.`);
 
         return true;
     }
@@ -39,12 +39,12 @@ export function try_execute_command(message: string): boolean {
     }
     else if (matches_command_with_name(commandName, "reply")) {
         if (chat.reply_target === undefined) {
-            mock_server_response("There's nobody to reply to.");
+            chat.mock_server_response("There's nobody to reply to.");
 
             return true;
         }
         if (!cache.current_players.some(p => p.player_id === chat.reply_target)) {
-            mock_server_response("The target player is no longer available.");
+            chat.mock_server_response("The target player is no longer available.");
 
             return true;
         }
@@ -56,7 +56,7 @@ export function try_execute_command(message: string): boolean {
     else if (matches_command_with_name(commandName, "togglereply")) {
         chat.settings.auto_reply = !chat.settings.auto_reply;
 
-        mock_server_response(`Auto-reply is now ${chat.settings.auto_reply ? "enabled" : "disabled"}.`);
+        chat.mock_server_response(`Auto-reply is now ${chat.settings.auto_reply ? "enabled" : "disabled"}.`);
 
         return true;
     }
@@ -68,7 +68,7 @@ export function try_execute_command(message: string): boolean {
     else if (matches_command_with_name(commandName, "clear")) {
         chat.clear();
 
-        mock_server_response("Chat cleared.");
+        chat.mock_server_response("Chat cleared.");
 
         return true;
     }
@@ -100,7 +100,7 @@ function display_command_help(name: string) {
         msg += `\n\nAliases: ${command.aliases.map(alias => `/${alias}`).join(", ")}`;
     }
 
-    mock_server_response(msg);
+    chat.mock_server_response(msg);
 }
 
 function display_command_list() {
@@ -110,7 +110,7 @@ function display_command_list() {
 
     msg += `\n\n Use */help <command>* for more information about a specific command.`;
 
-    mock_server_response(msg);
+    chat.mock_server_response(msg);
 }
 
 function matches_command_with_name(name: string, command_name: string) {
@@ -153,8 +153,4 @@ export function try_get_command(name: string): CommandData | null {
     }
 
     return null;
-}
-
-function mock_server_response(message: string) {
-    chat.receive_message(message, -1n, "", 2);
 }
