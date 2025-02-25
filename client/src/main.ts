@@ -22,7 +22,6 @@ async function main() {
     }
     catch (err) {
         display_connection_message("Failed to fetch cache. Check the console for more info", "#ff3f3f");
-
         console.error("Failed to fetch cache:\n", err);
     }
     finally {
@@ -45,11 +44,17 @@ async function handle_connection() {
 
     connect_button.disabled = true;
 
-    await network_controller.connect(name);
+    try {
+        await network_controller.connect(name);
 
-    show_game();
+        show_game();
 
-    network_controller.run_module_pre_register();
+        network_controller.run_module_pre_register();
+    }
+    catch (err) {
+        display_connection_message("Failed to establish WebTransport connection. Check the console for more info", "#ff3f3f");
+        console.error("Failed to establish WebTransport connection:\n", err);
+    }
 }
 
 function show_game() {
