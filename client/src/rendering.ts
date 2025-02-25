@@ -321,7 +321,13 @@ class RenderingModule implements NetworkModule {
             portals.push({ x, y, w, h, color });
         }
 
-        const area_name = data.read_length_u8_string();
+        const [boss, victory] = data.read_flags();
+
+        let area_name = data.read_length_u8_string();
+
+        if (victory) area_name = `Victory! ${area_name}`;
+        if (boss) area_name = `BOSS ${area_name}`;
+
         const map_id = data.read_length_u8_string();
 
         const map = cache.maps.find(m => m.id === map_id);

@@ -36,6 +36,8 @@ pub struct Area {
     pub safe_zones: Vec<Rect>,
     pub portals: Vec<Portal>,
 
+    pub flags: AreaFlags,
+
     pub time: f32,
     pub delta_time: f32,
 
@@ -53,6 +55,8 @@ impl Area {
         transfer_tx: mpsc::Sender<TransferRequest>,
         leaderboard_tx: broadcast::Sender<LeaderboardUpdate>,
     ) -> Self {
+        println!("{}, {}", template.flags.boss, template.flags.victory);
+
         let mut area = Self {
             key: template.key.clone(),
             alias: template.alias.clone(),
@@ -66,6 +70,7 @@ impl Area {
             inner_walls: template.inner_walls.clone(),
             safe_zones: template.safe_zones.clone(),
             portals: template.portals.clone(),
+            flags: template.flags.clone(),
             world: World::new(),
             time: 0.0,
             delta_time: 0.0,
@@ -186,6 +191,8 @@ impl Area {
             packet.extend_from_slice(&portal.color.to_bytes());
         }
 
+        packet.push(self.flags.to_byte());
+
         packet.push(self.name.len() as u8);
         packet.extend_from_slice(self.name.as_bytes());
 
@@ -269,6 +276,7 @@ pub struct AreaTemplate {
 
     pub name: String,
     pub background_color: Color,
+    pub message: Option<AreaMessage>,
 
     pub width: f32,
     pub height: f32,
@@ -281,7 +289,7 @@ pub struct AreaTemplate {
 
     pub enemy_groups: Vec<EnemyGroup>,
 
-    pub message: Option<AreaMessage>,
+    pub flags: AreaFlags,
 }
 
 impl AreaTemplate {
@@ -329,6 +337,7 @@ impl AreaTemplate {
             alias: data.alias,
             name,
             background_color,
+            message,
             width,
             height,
             spawn_pos: data
@@ -338,9 +347,14 @@ impl AreaTemplate {
             inner_walls: data.inner_walls.unwrap_or_default(),
             safe_zones: data.safe_zones.unwrap_or_default(),
             enemy_groups,
-            message,
+            flags: AreaFlags::new(data.flags),
         }
     }
+}
+
+pub struct AreaCreationContext {
+    pub map_id: String,
+    pub background_color: String,
 }
 
 #[derive(Deserialize)]
@@ -348,6 +362,8 @@ pub struct AreaData {
     pub alias: Option<String>,
     pub name: Option<String>,
     pub background_color: Option<String>,
+    pub message: Option<String>,
+    pub message_config: Option<MessageConfigData>,
 
     pub width: Option<f32>,
     pub height: Option<f32>,
@@ -360,13 +376,38 @@ pub struct AreaData {
 
     pub enemy_groups: Option<Vec<EnemyGroupData>>,
 
-    pub message: Option<String>,
-    pub message_config: Option<MessageConfigData>,
+    pub flags: Option<AreaFlagsData>,
 }
 
-pub struct AreaCreationContext {
-    pub map_id: String,
-    pub background_color: String,
+#[derive(Clone)]
+pub struct AreaFlags {
+    pub boss: bool,
+    pub victory: bool,
+}
+
+impl AreaFlags {
+    pub fn new(data: Option<AreaFlagsData>) -> Self {
+        match data {
+            Some(data) => Self {
+                boss: data.boss.unwrap_or(false),
+                victory: data.victory.unwrap_or(false),
+            },
+            None => Self {
+                boss: false,
+                victory: false,
+            },
+        }
+    }
+
+    pub fn to_byte(&self) -> u8 {
+        self.boss as u8 | (self.victory as u8) << 1
+    }
+}
+
+#[derive(Deserialize)]
+pub struct AreaFlagsData {
+    pub boss: Option<bool>,
+    pub victory: Option<bool>,
 }
 
 #[derive(Clone)]
