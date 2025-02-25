@@ -1,6 +1,6 @@
 import { input, input_settings } from "./input.js";
 import Canvas from "./canvas.js";
-import { report_bandwidth, report_frame_start, report_render_end, report_render_start } from "./metrics.js";
+import { report_frame_start, report_render_end, report_render_start } from "./metrics.js";
 import { Portal, Rect, RenderNode, Vector2 } from "./types.js";
 import { network_controller, NetworkController, NetworkModule } from "./network_controller.js";
 import { BinaryReader } from "./binary_reader.js";
@@ -361,8 +361,6 @@ class RenderingModule implements NetworkModule {
     }
 
     private handle_render_update(data: BinaryReader) {
-        report_bandwidth(data.length());
-
         const offset = data.read_vector2();
 
         const [render] = data.read_flags();

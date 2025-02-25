@@ -152,4 +152,6 @@ export class PingModule implements NetworkModule {
     }
 }
 
-network_controller.register_module(new PingModule());
+setTimeout(() => {
+    network_controller.register_module(new PingModule());
+})

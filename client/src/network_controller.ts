@@ -1,4 +1,5 @@
 import { BinaryReader } from "./binary_reader.js";
+import { report_bandwidth } from "./metrics.js";
 
 export class NetworkController {
     private transport: WebTransport;
@@ -112,6 +113,8 @@ export class NetworkController {
                 break;
             }
 
+            report_bandwidth(data.byteLength);
+
             const stream = new BinaryReader(data.buffer);
 
             for (const handler of this.datagram_handlers) {
@@ -145,6 +148,8 @@ export class NetworkController {
             if (done) {
                 break;
             }
+
+            report_bandwidth(data.byteLength);
 
             const stream = new BinaryReader(data.buffer);
             const header = stream.read_string(4);
