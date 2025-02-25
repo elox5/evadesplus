@@ -1,7 +1,7 @@
 import { AutocompleteMatch, get_autocomplete } from "./autocomplete.js";
 import { BinaryReader } from "./binary_reader.js";
 import { cache } from "./cache.js";
-import { try_execute_command } from "./commands.js";
+import { try_execute_command, try_get_command } from "./commands.js";
 import { network_controller, NetworkController, NetworkModule } from "./network_controller.js";
 
 class Chat {
@@ -40,7 +40,10 @@ class Chat {
         this.input.onkeydown = (e) => {
             if (e.key === "Enter") {
                 if (this.autocomplete_entries !== null) {
-                    const should_send = this.fill_autocomplete(this.autocomplete_entries[this.autocomplete_index].value);
+                    const command = this.input.value.substring(1).split(" ")[0];
+                    const command_arg_count = try_get_command(command)?.usage?.length ?? 0;
+
+                    const should_send = this.fill_autocomplete(this.autocomplete_entries[this.autocomplete_index].value, command_arg_count);
                     if (!should_send) return;
                 }
 
@@ -67,6 +70,8 @@ class Chat {
 
         this.input.onkeyup = (_) => {
             if (this.input.value.charAt(0) === "/") {
+                const command = this.input.value.substring(1).split(" ")[0];
+                const command_arg_count = try_get_command(command)?.usage?.length ?? 0;
 
                 const entries = get_autocomplete(this.input.value);
 
@@ -74,7 +79,7 @@ class Chat {
                     this.hide_autocomplete();
                 }
                 else {
-                    this.show_autocomplete(entries);
+                    this.show_autocomplete(entries, command_arg_count);
                 }
             } else {
                 this.hide_autocomplete();
@@ -188,7 +193,7 @@ class Chat {
         this.autocomplete_display.classList.add("hidden");
     }
 
-    private show_autocomplete(entries: AutocompleteMatch[]) {
+    private show_autocomplete(entries: AutocompleteMatch[], arg_count: number) {
         this.autocomplete_entries = entries;
 
         this.autocomplete_display.classList.remove("hidden");
@@ -200,7 +205,7 @@ class Chat {
 
             button.textContent = entry.name;
             button.onclick = () => {
-                this.fill_autocomplete(entry.value);
+                this.fill_autocomplete(entry.value, arg_count);
             };
 
             this.autocomplete_display.appendChild(button);
@@ -245,7 +250,7 @@ class Chat {
         this.focus_autocomplete();
     }
 
-    private fill_autocomplete(entry: string): boolean {
+    private fill_autocomplete(entry: string, arg_count: number): boolean {
         if (entry === "") {
             this.hide_autocomplete();
             return true;
@@ -254,7 +259,7 @@ class Chat {
         const words = this.input.value.split(" ");
         const last_word = words[words.length - 1];
 
-        if (last_word.replace("/", "") === entry) {
+        if (last_word.replace("/", "") === entry && words.length >= arg_count) {
             this.hide_autocomplete();
             return true;
         }
