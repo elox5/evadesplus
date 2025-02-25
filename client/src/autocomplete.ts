@@ -23,7 +23,7 @@ function resolve_token(token: CommandAutocompleteToken, input: string): Autocomp
     if (token.name === "command") {
         let exact_match: AutocompleteMatch | null = null;
 
-        for (let command of cache.commands) {
+        for (const command of cache.commands) {
             if (input === undefined || input === "" || (command.name.toLowerCase().startsWith(input) && !matches.some(m => m.name == command.name))) {
                 matches.push({ name: command.name, value: command.name });
             }
@@ -40,16 +40,25 @@ function resolve_token(token: CommandAutocompleteToken, input: string): Autocomp
             matches.unshift(exact_match);
         }
     } else if (token.name === "player") {
-        for (let player of cache.current_players) {
+        for (const player of cache.current_players) {
             if (player.player_name.toLowerCase().startsWith(input) && !matches.some(m => m.name == player.player_name)) {
                 matches.push({ name: player.player_name, value: `@${player.player_id}` });
             }
         }
     } else if (token.name === "map") {
-        for (let map of cache.maps) {
+        let exact_match: AutocompleteMatch | null = null;
+
+        for (const map of cache.maps) {
             if (map.name.toLowerCase().startsWith(input) && !matches.some(m => m.value == map.id)) {
                 matches.push({ name: map.name, value: map.id });
             }
+            if (map.id.toLowerCase() === input && !matches.some(m => m.value == map.id)) {
+                exact_match = { name: map.name, value: map.id };
+            }
+        }
+
+        if (exact_match !== null) {
+            matches.unshift(exact_match);
         }
     }
 
