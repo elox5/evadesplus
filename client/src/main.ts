@@ -4,6 +4,7 @@ import { cache } from "./cache.js";
 const game_container = document.querySelector("#game-container") as HTMLDivElement;
 const connection_panel = document.querySelector("#connection-panel") as HTMLDivElement;
 const connect_button = document.querySelector("#connect-button") as HTMLButtonElement;
+const connection_message_display = document.querySelector("#connection-message") as HTMLDivElement;
 
 async function main() {
     await cache.init();
@@ -20,7 +21,7 @@ async function handle_connection() {
     console.log("Connecting...");
 
     if (name.length === 0) {
-        console.log("Name empty");
+        display_connection_message("Please enter a name", "#ffbf40");
         return;
     }
 
@@ -36,6 +37,11 @@ async function handle_connection() {
 function show_game() {
     game_container.classList.remove("hidden");
     connection_panel.classList.add("hidden");
+}
+
+function display_connection_message(message: string, color: string) {
+    connection_message_display.textContent = message;
+    connection_message_display.style.color = color;
 }
 
 class CleanupModule implements NetworkModule {
