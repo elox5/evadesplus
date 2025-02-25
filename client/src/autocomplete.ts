@@ -18,21 +18,23 @@ function resolve_token(token: CommandAutocompleteToken, input: string): Autocomp
         matches.push({ name: "", value: "" });
     }
 
+    input = input.toLowerCase();
+
     if (token.name === "command") {
         for (let command of cache.commands) {
-            if (input === undefined || input === "" || (command.name.startsWith(input) && !matches.some(m => m.name == command.name))) {
+            if (input === undefined || input === "" || (command.name.toLowerCase().startsWith(input) && !matches.some(m => m.name == command.name))) {
                 matches.push({ name: command.name, value: command.name });
             }
         }
     } else if (token.name === "player") {
         for (let player of cache.current_players) {
-            if (player.player_name.startsWith(input) && !matches.some(m => m.name == player.player_name)) {
+            if (player.player_name.toLowerCase().startsWith(input) && !matches.some(m => m.name == player.player_name)) {
                 matches.push({ name: player.player_name, value: `@${player.player_id}` });
             }
         }
     } else if (token.name === "map") {
         for (let map of cache.maps) {
-            if (map.name.startsWith(input) && !matches.some(m => m.value == map.id)) {
+            if (map.name.toLowerCase().startsWith(input) && !matches.some(m => m.value == map.id)) {
                 matches.push({ name: map.name, value: map.id });
             }
         }
@@ -40,7 +42,6 @@ function resolve_token(token: CommandAutocompleteToken, input: string): Autocomp
 
     return matches;
 }
-
 
 export function get_autocomplete(input: string): AutocompleteMatch[] | null {
     const words = input.substring(1).split(" ");

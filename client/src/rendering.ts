@@ -184,8 +184,6 @@ function render_area(width: number, height: number, color: string, walls: Rect[]
     }
 
     if (message !== null) {
-        console.log(message);
-
         area_message_display.innerHTML = message.text.replace(/\n/g, "<br>");
         area_message_display.style.color = message.color;
     }
