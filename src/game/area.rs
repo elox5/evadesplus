@@ -27,6 +27,8 @@ pub struct Area {
     pub background_color: Color,
     pub message: Option<AreaMessage>,
 
+    pub vp: Option<u8>,
+
     pub world: World,
 
     pub bounds: Rect,
@@ -64,6 +66,8 @@ impl Area {
             name: template.name.clone(),
             background_color: template.background_color.clone(),
             message: template.message.clone(),
+
+            vp: template.vp,
 
             bounds: Rect::new(0.0, 0.0, template.width, template.height),
             spawn_pos: template.spawn_pos,
@@ -278,6 +282,8 @@ pub struct AreaTemplate {
     pub background_color: Color,
     pub message: Option<AreaMessage>,
 
+    pub vp: Option<u8>,
+
     pub width: f32,
     pub height: f32,
 
@@ -330,7 +336,7 @@ impl AreaTemplate {
 
         let message = data
             .message
-            .map(|message| AreaMessage::new(message, data.message_config));
+            .map(|message| AreaMessage::new(message, data.message_config, data.vp));
 
         AreaTemplate {
             key,
@@ -338,6 +344,7 @@ impl AreaTemplate {
             name,
             background_color,
             message,
+            vp: data.vp,
             width,
             height,
             spawn_pos: data
@@ -364,6 +371,8 @@ pub struct AreaData {
     pub background_color: Option<String>,
     pub message: Option<String>,
     pub message_config: Option<MessageConfigData>,
+
+    pub vp: Option<u8>,
 
     pub width: Option<f32>,
     pub height: Option<f32>,
@@ -444,11 +453,17 @@ pub struct AreaMessage {
 }
 
 impl AreaMessage {
-    pub fn new(message: String, data: Option<MessageConfigData>) -> Self {
+    pub fn new(message: String, data: Option<MessageConfigData>, vp: Option<u8>) -> Self {
         let color = data
             .map(|data| data.color)
             .flatten()
             .unwrap_or("#7fff7f".to_owned());
+
+        let mut message = message;
+
+        if let Some(vp) = vp {
+            message.push_str(&format!("\n{vp} VP awarded!"));
+        }
 
         Self {
             message,

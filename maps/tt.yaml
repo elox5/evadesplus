@@ -54,6 +54,7 @@ areas:
     alias: "named_area"
     background_color: "#64C864"
     message: "This is a test message"
+    vp: 1
     enemy_groups:
       - color: "#c8c8c8"
         count: 10
