@@ -1,5 +1,5 @@
 import { network_controller, NetworkController, NetworkModule } from "./network_controller.js";
-import { cache } from "./cache.js";
+import { cache, init_cache } from "./cache.js";
 
 const game_container = document.querySelector("#game-container") as HTMLDivElement;
 const connection_panel = document.querySelector("#connection-panel") as HTMLDivElement;
@@ -14,7 +14,7 @@ async function main() {
     }, 5000);
 
     try {
-        await cache.init();
+        await init_cache();
 
         clear_connection_message();
         connect_button.disabled = false;

@@ -1,20 +1,19 @@
 
-class Cache {
-    maps: MapData[] = [];
-    commands: CommandData[] = [];
-    current_players: PlayerData[] = [];
-
-    async init() {
-        const json = await fetch("/cache").then((response) => response.json());
-
-        this.maps = json["maps"];
-        this.commands = json["commands"];
-
-        console.log("Cache loaded: ", this);
-    }
+export const cache = {
+    maps: new Array<MapData>(),
+    commands: new Array<CommandData>(),
+    current_players: new Array<PlayerData>(),
+    self_id: null as bigint | null,
 }
 
-export const cache = new Cache();
+export async function init_cache() {
+    const json = await fetch("/cache").then((response) => response.json());
+
+    cache.maps = json["maps"];
+    cache.commands = json["commands"];
+
+    console.log("Cache loaded: ", cache);
+}
 
 type MapData = {
     id: string,
