@@ -27,6 +27,5 @@ export type RenderNode = {
     has_outline: boolean;
     is_hero: boolean;
     downed: boolean;
-    own_hero: boolean;
-    name: string | null;
+    player_id: bigint | null;
 }

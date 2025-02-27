@@ -13,7 +13,7 @@ impl RenderPacket {
         Self { nodes: Vec::new() }
     }
 
-    pub fn to_datagrams(&self, max_size: u32, offset: Vec2, own_entity: Entity) -> Vec<Vec<u8>> {
+    pub fn to_datagrams(&self, max_size: u32, offset: Vec2) -> Vec<Vec<u8>> {
         let mut nodes = self.nodes.clone();
         let mut datagrams = Vec::new();
 
@@ -48,7 +48,7 @@ impl RenderPacket {
 
             datagram.extend_from_slice(&node_count.to_le_bytes());
             for node in &datagram_nodes {
-                datagram.extend_from_slice(&node.to_bytes(own_entity));
+                datagram.extend_from_slice(&node.to_bytes());
             }
 
             // println!(
@@ -79,32 +79,23 @@ pub struct RenderNode {
     pub is_hero: bool,
     pub downed: bool,
     pub entity: Entity,
-    pub name: Option<String>,
+    pub player_id: Option<u64>,
 }
 
 impl RenderNode {
-    pub fn to_bytes(&self, own_entity: Entity) -> Vec<u8> {
+    pub fn to_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
         bytes.extend_from_slice(&self.x.to_le_bytes());
         bytes.extend_from_slice(&self.y.to_le_bytes());
         bytes.extend_from_slice(&self.radius.to_le_bytes());
         bytes.extend_from_slice(&self.color.to_bytes());
 
-        let flags = (self.has_border as u8)
-            | (self.is_hero as u8) << 1
-            | (self.downed as u8) << 2
-            | ((self.entity == own_entity) as u8) << 3;
+        let flags = (self.has_border as u8) | (self.is_hero as u8) << 1 | (self.downed as u8) << 2;
+
         bytes.push(flags);
 
-        if let Some(name) = &self.name {
-            let length = name.len();
-            let capped_length = std::cmp::min(length, 255);
+        bytes.extend_from_slice(&self.player_id.unwrap_or(0u64).to_le_bytes());
 
-            bytes.push(capped_length as u8);
-            bytes.extend_from_slice(&name.as_bytes()[..capped_length]);
-        } else {
-            bytes.push(0u8);
-        }
         bytes
     }
 
@@ -114,15 +105,10 @@ impl RenderNode {
         // radius: 4 bytes
         // color: 4 bytes
         // flags: 1 byte
-        // name length: 1 byte
-        // name: (name length) bytes
+        // player_id: 8 bytes
 
-        let length = 4 + 4 + 4 + 4 + 1 + 1;
+        let length = 4 + 4 + 4 + 4 + 1 + 8;
 
-        if let Some(name) = &self.name {
-            length + name.len() as u32
-        } else {
-            length
-        }
+        length
     }
 }

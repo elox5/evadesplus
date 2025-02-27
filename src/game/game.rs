@@ -201,7 +201,7 @@ impl Game {
         let area = self.get_spawn_area();
         let mut area = area.lock().await;
 
-        let entity = area.spawn_player(id, name, connection);
+        let entity = area.spawn_player(id, connection);
 
         let player = Player {
             id,

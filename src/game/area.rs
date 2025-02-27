@@ -1,6 +1,6 @@
 use super::{
     components::{
-        BounceOffBounds, Bounded, Color, Direction, Enemy, Hero, Named, PlayerId, Position,
+        BounceOffBounds, Bounded, Color, Direction, Enemy, Hero, PlayerId, Position,
         RenderReceiver, Size, Speed, Velocity,
     },
     game::TransferRequest,
@@ -131,7 +131,7 @@ impl Area {
         self.world.spawn_batch(enemies);
     }
 
-    pub fn spawn_player(&mut self, id: u64, name: &str, connection: Connection) -> Entity {
+    pub fn spawn_player(&mut self, id: u64, connection: Connection) -> Entity {
         self.world.spawn((
             Position(self.spawn_pos),
             Velocity(Vec2::ZERO),
@@ -139,7 +139,6 @@ impl Area {
             Direction(Vec2::ZERO),
             Size(1.0),
             Color::rgb(rand::random(), rand::random(), rand::random()),
-            Named(name.to_owned()),
             RenderReceiver { connection },
             PlayerId(id),
             Hero,

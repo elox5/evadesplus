@@ -1,7 +1,7 @@
 use super::{
     area::Area,
     components::{
-        BounceOffBounds, Bounded, Color, CrossingPortal, Downed, Enemy, Hero, Named, PlayerId,
+        BounceOffBounds, Bounded, Color, CrossingPortal, Downed, Enemy, Hero, PlayerId,
         RenderReceiver, Size,
     },
     game::{TransferRequest, TransferTarget},
@@ -254,16 +254,15 @@ pub fn system_render(area: &mut Area) {
     area.render_packet = Some(RenderPacket::new());
     let nodes = &mut area.render_packet.as_mut().unwrap().nodes;
 
-    for (entity, (pos, size, color, named, hero, enemy, downed)) in area.world.query_mut::<(
+    for (entity, (pos, size, color, hero, enemy, downed, player_id)) in area.world.query_mut::<(
         &Position,
         &Size,
         &Color,
-        Option<&Named>,
         Option<&Hero>,
         Option<&Enemy>,
         Option<&Downed>,
+        Option<&PlayerId>,
     )>() {
-        let name = named.map(|n| n.0.clone());
         let mut color = color.clone();
 
         if downed.is_some() {
@@ -279,7 +278,7 @@ pub fn system_render(area: &mut Area) {
             is_hero: hero.is_some(),
             downed: downed.is_some(),
             entity,
-            name,
+            player_id: player_id.map(|p| p.0),
         };
         nodes.push(node);
     }
@@ -287,9 +286,9 @@ pub fn system_render(area: &mut Area) {
 
 pub fn system_send_render_packet(area: &mut Area) {
     if let Some(packet) = &area.render_packet {
-        for (entity, (render, pos)) in area.world.query_mut::<(&RenderReceiver, &Position)>() {
+        for (_, (render, pos)) in area.world.query_mut::<(&RenderReceiver, &Position)>() {
             if let Some(max_datagram_size) = render.connection.max_datagram_size() {
-                let datagrams = packet.to_datagrams(max_datagram_size as u32, pos.0, entity);
+                let datagrams = packet.to_datagrams(max_datagram_size as u32, pos.0);
 
                 for datagram in datagrams {
                     let _ = render.connection.send_datagram(datagram);

@@ -210,19 +210,17 @@ function render_frame(offset: Vector2, nodes: RenderNode[]) {
     let own_hero = null;
 
     for (const node of nodes) {
-        if (node.name !== null) {
-            named_nodes.push(node);
-        }
-
         if (node.is_hero) {
             draw_minimap_hero(node);
+
+            named_nodes.push(node);
 
             if (node.downed) {
                 draw_text(hero_minimap, node.x, node.y + 1, "!", "red", 16, "bold");
             }
         }
 
-        if (node.own_hero) {
+        if (node.player_id === cache.self_id) {
             own_hero = node;
             continue;
         }
@@ -242,7 +240,12 @@ function render_frame(offset: Vector2, nodes: RenderNode[]) {
 
     for (const node of named_nodes) {
         const nameColor = node.downed ? "red" : "black";
-        draw_text(main_canvas, node.x, node.y + 1, node.name!, nameColor, 16, "bold");
+
+        const player = cache.current_players.find(p => p.player_id === node.player_id);
+
+        if (player !== undefined) {
+            draw_text(main_canvas, node.x, node.y + node.radius + 0.3, player.player_name, nameColor, 16, "bold");
+        }
     }
 
     let range = input_settings.mouse_input_range;
@@ -375,9 +378,9 @@ class RenderingModule implements NetworkModule {
             const [r, g, b, a] = data.read_rgba();
             const color = `rgba(${r}, ${g}, ${b}, ${a / 255})`;
 
-            const [has_outline, is_hero, downed, own_hero] = data.read_flags();
+            const [has_outline, is_hero, downed] = data.read_flags();
 
-            const name = data.read_length_u8_string();
+            const player_id = data.read_u64();
 
             const node: RenderNode = {
                 x,
@@ -387,8 +390,7 @@ class RenderingModule implements NetworkModule {
                 has_outline,
                 is_hero,
                 downed,
-                own_hero,
-                name,
+                player_id: is_hero ? player_id : null,
             };
 
             this.nodes.push(node);
