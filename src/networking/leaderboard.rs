@@ -238,7 +238,6 @@ impl LeaderboardState {
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
 
-        bytes.extend_from_slice(b"LBST");
         bytes.push(self.entries.len() as u8);
 
         for entry in &self.entries {

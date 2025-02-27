@@ -45,7 +45,14 @@ async function handle_connection() {
     connect_button.disabled = true;
 
     try {
-        await network_controller.connect(name);
+        const connection_response = await network_controller.connect(name);
+
+        if (connection_response === "already_connected") {
+            display_connection_message("WebTransport connection already established", "#ffbf3f");
+            return;
+        }
+
+        cache.self_id = connection_response;
 
         show_game();
 

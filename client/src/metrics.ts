@@ -125,13 +125,13 @@ export class PingModule implements NetworkModule {
             const readable = ping_stream.readable;
             const writer = ping_stream.writable.getWriter();
 
-            await writer.write(new TextEncoder().encode("ping"));
+            await writer.write(new TextEncoder().encode("PING"));
             await writer.close();
 
             const { value } = await readable.getReader().read();
             const stream = new BinaryReader(value);
 
-            if (stream.read_string(4) !== "pong") {
+            if (stream.read_string(4) !== "PONG") {
                 console.error("Invalid ping response");
                 return;
             }

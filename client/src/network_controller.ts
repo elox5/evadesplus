@@ -22,21 +22,42 @@ export class NetworkController {
         return new Uint8Array(digest);
     }
 
-    private async send_init_packet(name: string) {
+    private async init(name: string): Promise<bigint> {
         const encoder = new TextEncoder();
 
-        const stream = await this.transport.createUnidirectionalStream();
-        const writer = stream.getWriter();
-        await writer.write(encoder.encode(`NAME${name}`));
+        const stream = await this.transport.createBidirectionalStream();
+        const writer = stream.writable.getWriter();
+        await writer.write(encoder.encode(`INIT${name}`));
         await writer.close();
 
-        console.log("Sent init packet");
+        const reader = stream.readable.getReader();
+        const { value } = await reader.read();
+
+        const response = value as Uint8Array;
+        const data = new BinaryReader(response.buffer);
+
+        const ok = data.read_u8() === 1;
+
+        if (!ok) {
+            const error = data.read_length_u8_string()!;
+            throw new Error(error);
+        }
+
+        const id = data.read_u64();
+
+        const modules = this.modules.filter((module) => module.init !== undefined).sort((a, b) => a.init!.order - b.init!.order);
+
+        for (const module of modules) {
+            module.init!.register(data);
+        }
+
+        return id;
     }
 
-    async connect(name: string) {
+    async connect(name: string): Promise<bigint | "already_connected"> {
         if (this.connected) {
             console.warn("WebTransport connection already established");
-            return;
+            return "already_connected";
         }
 
         const url = window.location.origin;
@@ -65,14 +86,16 @@ export class NetworkController {
 
         console.log("Modules registered.");
 
-        this.send_init_packet(name);
-
         this.init_uni_handler();
         this.init_datagram_handler();
+
+        const self_id = await this.init(name);
 
         window.onpagehide = () => {
             this.close_webtransport_connection();
         }
+
+        return self_id;
     }
 
     async disconnect() {
@@ -211,6 +234,11 @@ export class NetworkModule {
     pre_register?: () => void;
     register: (controller: NetworkController) => void;
     cleanup?: () => void;
+
+    init?: {
+        order: number;
+        register: (controller: BinaryReader) => void;
+    }
 }
 
 export const network_controller = new NetworkController();

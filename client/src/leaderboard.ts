@@ -177,7 +177,6 @@ export class LeaderboadModule implements NetworkModule {
         controller.register_uni_handler("LBRM", this.handle_remove.bind(this));
         controller.register_uni_handler("LBTR", this.handle_transfer.bind(this));
         controller.register_uni_handler("LBSD", this.handle_set_downed.bind(this));
-        controller.register_uni_handler("LBST", this.handle_state_update.bind(this));
     }
 
     cleanup() {
@@ -218,21 +217,24 @@ export class LeaderboadModule implements NetworkModule {
         leaderboard.set_downed(player_id, downed);
     }
 
-    private handle_state_update(data: BinaryReader) {
-        const entry_count = data.read_u8();
+    init = {
+        order: 0,
+        register: (data: BinaryReader) => {
+            const entry_count = data.read_u8();
 
-        for (let i = 0; i < entry_count; i++) {
-            const player_id = data.read_u64();
-            const area_order = data.read_u16();
-            const [downed] = data.read_flags();
+            for (let i = 0; i < entry_count; i++) {
+                const player_id = data.read_u64();
+                const area_order = data.read_u16();
+                const [downed] = data.read_flags();
 
-            const player_name = data.read_length_u8_string()!;
-            const area_name = data.read_length_u8_string()!;
-            const map_id = data.read_length_u8_string()!;
+                const player_name = data.read_length_u8_string()!;
+                const area_name = data.read_length_u8_string()!;
+                const map_id = data.read_length_u8_string()!;
 
-            leaderboard.add(player_id, player_name, area_order, area_name, map_id, downed);
+                leaderboard.add(player_id, player_name, area_order, area_name, map_id, downed);
+            }
         }
-    }
+    };
 }
 
 network_controller.register_module(new LeaderboadModule());

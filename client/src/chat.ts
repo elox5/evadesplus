@@ -18,7 +18,6 @@ class Chat {
     }
 
     reply_target?: bigint;
-    private self_id: bigint;
 
     private autocomplete_entries: AutocompleteMatch[] | null = null;
     private autocomplete_index: number = 0;
@@ -87,10 +86,6 @@ class Chat {
         }
     }
 
-    set_self_id(self_id: bigint) {
-        this.self_id = self_id;
-    }
-
     send_message(message: string) {
         if (this.message_timestamp_queue.length === 10) {
             const tenMessagesTime = Date.now() - this.message_timestamp_queue[0];
@@ -146,7 +141,7 @@ class Chat {
         if (message_type === MessageType.ServerAnnouncement) entry.classList.add("special", "server-announcement");
         if (message_type === MessageType.ServerError) entry.classList.add("special", "server-error");
 
-        if (message_type === MessageType.Whisper && sender_id !== null && sender_id !== this.self_id) {
+        if (message_type === MessageType.Whisper && sender_id !== null && sender_id !== cache.self_id) {
             this.reply_target = sender_id;
         }
 

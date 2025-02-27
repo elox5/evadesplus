@@ -3,7 +3,10 @@ use super::{
     commands::{handle_command, CommandRequest},
     leaderboard::LeaderboardUpdate,
 };
-use crate::{game::game::Game, physics::vec2::Vec2};
+use crate::{
+    game::{area::Area, game::Game},
+    physics::vec2::Vec2,
+};
 use anyhow::Result;
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
@@ -123,7 +126,7 @@ impl WebTransportServer {
                 streams = connection.accept_bi() => {
                     let streams = streams?;
                     let (send_stream, recv_stream) = streams;
-                    handle_bi_stream(send_stream, recv_stream, &mut buffer).await?;
+                    handle_bi_stream(send_stream, recv_stream, &mut buffer, &connection, &game, id).await?;
                 }
                 dgram = connection.receive_datagram() => {
                     let dgram = dgram?;
@@ -168,34 +171,6 @@ async fn handle_uni_stream(
     let data = &data[4..];
 
     match header {
-        b"NAME" => {
-            let name = std::str::from_utf8(data)?;
-
-            println!("Accepted name '{name}' from client {id}. Spawning hero...");
-
-            let mut game = game.lock().await;
-            let leaderboard_state = game.leaderboard_state.clone();
-
-            game.spawn_hero(id, name, connection.clone()).await;
-
-            let area_key = game.get_player(id)?.area_key.clone();
-            let area = game.get_or_create_area(&area_key)?;
-            let area = area.lock().await;
-
-            let definition = area.definition_packet();
-
-            if !leaderboard_state.is_empty() {
-                let mut state_stream = connection.open_uni().await?.await?;
-                state_stream
-                    .write_all(&leaderboard_state.to_bytes())
-                    .await?;
-                state_stream.finish().await?;
-            }
-
-            let mut def_stream = connection.open_uni().await?.await?;
-            def_stream.write_all(&definition).await?;
-            def_stream.finish().await?;
-        }
         b"CHAT" => {
             let text = std::str::from_utf8(data)?;
 
@@ -260,6 +235,9 @@ async fn handle_bi_stream(
     mut send_stream: SendStream,
     mut recv_stream: RecvStream,
     buffer: &mut Box<[u8]>,
+    connection: &Connection,
+    game: &Arc<Mutex<Game>>,
+    id: u64,
 ) -> Result<()> {
     let bytes_read = match recv_stream.read(buffer).await? {
         Some(bytes_read) => bytes_read,
@@ -267,10 +245,44 @@ async fn handle_bi_stream(
     };
 
     let data = &buffer[..bytes_read];
-    let text = std::str::from_utf8(data)?;
+    let header = &data[0..4];
+    let data = &data[4..];
 
-    if text == "ping" {
-        send_stream.write_all(b"pong").await?;
+    match header {
+        b"PING" => {
+            send_stream.write_all(b"PONG").await?;
+        }
+        b"INIT" => {
+            let name = std::str::from_utf8(data)?;
+
+            let spawn_result = spawn_hero(name, connection, game, id).await;
+
+            let mut response: Vec<u8> = Vec::new();
+
+            match spawn_result {
+                Ok(res) => {
+                    response.push(1);
+                    response.extend_from_slice(&res);
+                }
+                Err(err) => {
+                    response.push(0);
+
+                    let msg = err.to_string();
+                    let length = msg.len() as u16;
+
+                    response.extend_from_slice(&length.to_le_bytes());
+                    response.extend_from_slice(msg.as_bytes());
+                }
+            }
+
+            send_stream.write_all(&response).await?;
+        }
+        _ => {
+            println!(
+                "Received unknown packet from client {id} (header: {})",
+                std::str::from_utf8(header).unwrap_or(&format!("{header:x?}").clone())
+            );
+        }
     }
 
     send_stream.finish().await?;
@@ -324,6 +336,42 @@ async fn send_chat_message(request: ChatRequest, connection: &Connection) -> Res
     let mut stream = connection.open_uni().await?.await?;
     stream.write_all(&data).await?;
     stream.finish().await?;
+
+    Ok(())
+}
+
+async fn spawn_hero(
+    name: &str,
+    connection: &Connection,
+    game: &Arc<Mutex<Game>>,
+    id: u64,
+) -> Result<Vec<u8>> {
+    println!("Accepted name '{name}' from client {id}. Spawning hero...");
+
+    let mut game = game.lock().await;
+    let leaderboard_state = game.leaderboard_state.clone();
+
+    game.spawn_hero(id, name, connection.clone()).await;
+
+    let area_key = &game.get_player(id)?.area_key;
+    let area = game.get_or_create_area(area_key)?;
+
+    send_definition_stream(area, connection).await?;
+
+    let mut response = Vec::new();
+
+    response.extend_from_slice(&id.to_le_bytes());
+    response.extend_from_slice(&leaderboard_state.to_bytes());
+
+    Ok(response)
+}
+
+async fn send_definition_stream(area: Arc<Mutex<Area>>, connection: &Connection) -> Result<()> {
+    let definition = area.lock().await.definition_packet();
+
+    let mut definition_stream = connection.open_uni().await?.await?;
+    definition_stream.write_all(&definition).await?;
+    definition_stream.finish().await?;
 
     Ok(())
 }
