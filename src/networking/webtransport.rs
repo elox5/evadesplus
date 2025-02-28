@@ -253,26 +253,33 @@ async fn handle_bi_stream(
             send_stream.write_all(b"PONG").await?;
         }
         b"INIT" => {
-            let name = std::str::from_utf8(data)?;
-
-            let spawn_result = spawn_hero(name, connection, game, id).await;
-
             let mut response: Vec<u8> = Vec::new();
 
-            match spawn_result {
-                Ok(res) => {
-                    response.push(1);
-                    response.extend_from_slice(&res);
-                }
-                Err(err) => {
-                    response.push(0);
+            let name = std::str::from_utf8(data)?;
 
-                    let msg = err.to_string();
-                    let length = msg.len() as u16;
+            let valid = validate_player_name(name);
 
-                    response.extend_from_slice(&length.to_le_bytes());
-                    response.extend_from_slice(msg.as_bytes());
+            if valid {
+                let spawn_result = spawn_hero(name, connection, game, id).await;
+
+                match spawn_result {
+                    Ok(res) => {
+                        response.push(0);
+                        response.extend_from_slice(&res);
+                    }
+                    Err(err) => {
+                        response.push(2);
+
+                        let msg = err.to_string();
+                        let length = msg.len() as u16;
+
+                        response.extend_from_slice(&length.to_le_bytes());
+                        response.extend_from_slice(msg.as_bytes());
+                    }
                 }
+            } else {
+                println!("Rejected client {id} for invalid name '{name}'");
+                response.push(1);
             }
 
             send_stream.write_all(&response).await?;
@@ -329,6 +336,13 @@ async fn handle_chat_broadcast(
 }
 
 //
+
+const FORBIDDEN_PLAYER_NAME_CHARACTERS: [char; 8] = ['#', '@', '$', '^', ':', '/', '\\', '*'];
+
+fn validate_player_name(name: &str) -> bool {
+    name.chars()
+        .all(|c| !FORBIDDEN_PLAYER_NAME_CHARACTERS.contains(&c))
+}
 
 async fn send_chat_message(request: ChatRequest, connection: &Connection) -> Result<()> {
     let data = request.to_bytes();

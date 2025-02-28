@@ -42,13 +42,21 @@ async function handle_connection() {
         return;
     }
 
-    connect_button.disabled = true;
-
     try {
         const connection_response = await network_controller.connect(name);
 
         if (connection_response === "already_connected") {
             display_connection_message("WebTransport connection already established", "#ffbf3f");
+            return;
+        }
+
+        if (connection_response === "name_invalid") {
+            display_connection_message("Invalid name! Forbidden characters: #, @, $, ^, :, /, \\, *", "#ffbf3f");
+            return;
+        }
+
+        if (typeof connection_response === "object") {
+            display_connection_message(`Error encountered during initialization:\n ${connection_response.message}`, "#ff3f3f");
             return;
         }
 
@@ -59,6 +67,7 @@ async function handle_connection() {
         network_controller.run_game_load_callbacks();
 
         clear_connection_message();
+        connect_button.disabled = true;
     }
     catch (err) {
         display_connection_message("Failed to establish WebTransport connection. Check the console for more info", "#ff3f3f");

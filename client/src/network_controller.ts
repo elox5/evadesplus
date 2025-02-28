@@ -24,7 +24,7 @@ export class NetworkController {
         return new Uint8Array(digest);
     }
 
-    private async init(name: string): Promise<bigint> {
+    private async init(name: string): Promise<bigint | "name_invalid" | InitError> {
         const encoder = new TextEncoder();
 
         const stream = await this.transport.createBidirectionalStream();
@@ -38,11 +38,17 @@ export class NetworkController {
         const response = value as Uint8Array;
         const data = new BinaryReader(response.buffer);
 
-        const ok = data.read_u8() === 1;
+        const init_response = data.read_u8() as InitResponse;
 
-        if (!ok) {
-            const error = data.read_length_u8_string()!;
-            throw new Error(error);
+        if (init_response === InitResponse.InvalidName) {
+            return "name_invalid";
+        }
+
+        if (init_response === InitResponse.Error) {
+            const message = data.read_length_u8_string()!;
+            const error: InitError = { message };
+
+            return error;
         }
 
         const id = data.read_u64();
@@ -52,7 +58,7 @@ export class NetworkController {
         return id;
     }
 
-    async connect(name: string): Promise<bigint | "already_connected"> {
+    async connect(name: string): Promise<bigint | "name_invalid" | "already_connected" | InitError> {
         if (!this.is_closed()) {
             console.warn("WebTransport connection already established");
             return "already_connected";
@@ -87,13 +93,17 @@ export class NetworkController {
         this.init_uni_handler();
         this.init_datagram_handler();
 
-        const self_id = await this.init(name);
-
         window.onpagehide = () => {
             this.close_webtransport_connection();
         }
 
-        return self_id;
+        const init_response = await this.init(name);
+
+        if (typeof init_response !== "bigint") {
+            this.disconnect();
+        }
+
+        return init_response;
     }
 
     async disconnect() {
@@ -248,6 +258,16 @@ export class NetworkController {
             }
         }
     }
+}
+
+enum InitResponse {
+    Ok = 0,
+    InvalidName = 1,
+    Error = 2,
+}
+
+export type InitError = {
+    message: string
 }
 
 type StreamHandler = {
