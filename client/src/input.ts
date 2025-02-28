@@ -136,7 +136,10 @@ function setup_input() {
     };
 
     canvasContainer.onmousedown = (e) => {
+        if (e.button !== 0) return;
+
         mouse_input_active = !mouse_input_active;
+
         if (!mouse_input_active) {
             mouse_input.x = 0;
             mouse_input.y = 0;
