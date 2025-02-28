@@ -6,33 +6,47 @@ const bandwidthMeter = document.getElementById("bandwidth-meter") as HTMLSpanEle
 const fpsMeter = document.getElementById("fps-meter") as HTMLSpanElement;
 const renderMsMeter = document.getElementById("render-ms-meter") as HTMLSpanElement;
 
-type ColorLevel = [number, string];
+type ColorLevel = {
+    threshold: number,
+    color: string
+}
+
+type ColorMap = {
+    levels: ColorLevel[], // from worst to best
+    lower_is_better: boolean
+}
 
 type MetricSettings = {
     render_report_frequency: number;
     fps_report_window: number;
-    fps_color_levels: ColorLevel[];
+    fps_color_map: ColorMap;
     ping_frequency: number;
-    ping_color_levels: ColorLevel[];
+    ping_color_levels: ColorMap;
     bandwidth_report_window: number;
 }
 
 export const metric_settings: MetricSettings = {
     render_report_frequency: 10,
     fps_report_window: 1000,
-    fps_color_levels: [
-        [15, "#ff0000"],
-        [30, "#ff7700"],
-        [45, "#ffff00"],
-        [55, "#77ff00"],
-    ],
+    fps_color_map: {
+        levels: [
+            { threshold: 15, color: "#ff0000" },
+            { threshold: 30, color: "#ff7700" },
+            { threshold: 45, color: "#ffff00" },
+            { threshold: 55, color: "#77ff00" },
+        ],
+        lower_is_better: false
+    },
     ping_frequency: 500,
-    ping_color_levels: [
-        [300, "#ff0000"],
-        [200, "#ff7700"],
-        [100, "#ffff00"],
-        [50, "#77ff00"],
-    ],
+    ping_color_levels: {
+        levels: [
+            { threshold: 300, color: "#ff0000" },
+            { threshold: 200, color: "#ff7700" },
+            { threshold: 100, color: "#ffff00" },
+            { threshold: 50, color: "#77ff00" },
+        ],
+        lower_is_better: true
+    },
     bandwidth_report_window: 2000,
 }
 
@@ -78,16 +92,16 @@ export function report_frame_start() {
 
     fpsMeter.textContent = fps.toFixed(0);
 
-    set_meter_color(fpsMeter, fps, metric_settings.fps_color_levels, true);
+    set_meter_color(fpsMeter, fps, metric_settings.fps_color_map);
 }
 
 export function start_ping() {
     ping_start_time = performance.now();
 }
 
-function set_meter_color(meter: HTMLSpanElement, value: number, colorLevels: ColorLevel[], lower: boolean) {
-    for (const [threshold, color] of colorLevels) {
-        if ((lower && value < threshold) || (!lower && value > threshold)) {
+function set_meter_color(meter: HTMLSpanElement, value: number, color_map: ColorMap) {
+    for (const { threshold, color } of color_map.levels) {
+        if (color_map.lower_is_better ? value >= threshold : value <= threshold) {
             meter.style.color = color;
             break;
         }
@@ -159,7 +173,7 @@ export class PingModule implements NetworkModule {
         const pingTime = performance.now() - ping_start_time;
         pingMeter.textContent = pingTime.toFixed(2);
 
-        set_meter_color(pingMeter, pingTime, metric_settings.ping_color_levels, false);
+        set_meter_color(pingMeter, pingTime, metric_settings.ping_color_levels);
     }
 }
 
