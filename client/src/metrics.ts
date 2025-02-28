@@ -43,7 +43,12 @@ let frame_time_queue: number[] = [];
 
 let ping_start_time: number;
 
-let bandwidth_queue: number[][] = [];
+type BandwidthEntry = {
+    time: number,
+    bytes: number,
+}
+
+let bandwidth_queue: BandwidthEntry[] = [];
 
 export function report_render_start() {
     render_report_counter++;
@@ -91,23 +96,29 @@ function set_meter_color(meter: HTMLSpanElement, value: number, colorLevels: Col
     }
 }
 
-export function report_bandwidth(bandwidth: number) {
-    const entry = [performance.now(), bandwidth];
+export function report_bandwidth(bytes: number) {
+    const entry = {
+        time: performance.now(),
+        bytes
+    };
+
     bandwidth_queue.push(entry);
 
-    const timeDelta = performance.now() - bandwidth_queue[0][0];
+    const time_delta = performance.now() - bandwidth_queue[0].time;
 
-    if (timeDelta > metric_settings.bandwidth_report_window) {
+    if (time_delta > metric_settings.bandwidth_report_window) {
         bandwidth_queue.shift();
     }
 
-    let sum = 0;
+    let sum_bytes = 0;
 
-    for (const [_, bandwidth] of bandwidth_queue) {
-        sum += bandwidth;
+    for (const { bytes } of bandwidth_queue) {
+        sum_bytes += bytes;
     }
 
-    bandwidthMeter.textContent = (sum / timeDelta).toFixed(0);
+    const sum_bits = sum_bytes * 8;
+
+    bandwidthMeter.textContent = (sum_bits / time_delta).toFixed(0); // (sum_bits / 1000 [kb]) / (time_delta / 1000 [s]) = sum_bits / time_delta
 }
 
 export class PingModule implements NetworkModule {
