@@ -3,15 +3,17 @@ import { report_bandwidth } from "./metrics.js";
 
 export class NetworkController {
     private transport: WebTransport;
-    private connected = false;
+    private closed = true;
 
     private modules: NetworkModule[] = [];
+    private setup_handled = false;
+    private game_load_handled = false;
 
     private uni_handlers: StreamHandler[] = [];
     private datagram_handlers: StreamHandler[] = [];
 
-    is_connected(): boolean {
-        return this.connected;
+    is_closed(): boolean {
+        return this.closed;
     }
 
     private async get_certificate() {
@@ -45,17 +47,13 @@ export class NetworkController {
 
         const id = data.read_u64();
 
-        const modules = this.modules.filter((module) => module.init !== undefined).sort((a, b) => a.init!.order - b.init!.order);
-
-        for (const module of modules) {
-            module.init!.register(data);
-        }
+        this.run_init(data);
 
         return id;
     }
 
     async connect(name: string): Promise<bigint | "already_connected"> {
-        if (this.connected) {
+        if (!this.is_closed()) {
             console.warn("WebTransport connection already established");
             return "already_connected";
         }
@@ -72,19 +70,19 @@ export class NetworkController {
             ]
         });
 
+        this.closed = false;
+
+        this.transport.closed.then(() => {
+            this.closed = true;
+        })
+
         console.log(`Establishing WebTransport connection at ${url}...`);
 
         await this.transport.ready;
 
-        this.connected = true;
+        console.log("Connected.");
 
-        console.log("Connected. Registering modules...");
-
-        for (const module of this.modules) {
-            module.register(this);
-        }
-
-        console.log("Modules registered.");
+        this.run_setup();
 
         this.init_uni_handler();
         this.init_datagram_handler();
@@ -100,31 +98,22 @@ export class NetworkController {
 
     async disconnect() {
         await this.close_webtransport_connection();
-        this.connected = false;
     }
 
     register_module(module: NetworkModule) {
         this.modules.push(module);
-    }
 
-    run_module_pre_register() {
-        for (const module of this.modules) {
-            if (module.pre_register !== undefined) module.pre_register();
-        }
-    }
+        if (module.uni_handlers !== undefined) {
+            this.uni_handlers.push(...module.uni_handlers)
+        };
 
-    async register_uni_handler(header: string, callback: (data: BinaryReader) => void) {
-        const handler = { header, callback };
-        this.uni_handlers.push(handler);
-    }
-
-    async register_datagram_handler(header: string, callback: (data: BinaryReader) => void) {
-        const handler = { header, callback };
-        this.datagram_handlers.push(handler);
+        if (module.datagram_handlers !== undefined) {
+            this.datagram_handlers.push(...module.datagram_handlers)
+        };
     }
 
     private async init_datagram_handler() {
-        if (!this.connected) return;
+        if (this.is_closed()) return;
 
         const reader = this.transport.datagrams.readable.getReader();
 
@@ -132,7 +121,7 @@ export class NetworkController {
             const { value, done } = await reader.read();
             const data = value as Uint8Array;
 
-            if (done) {
+            if (done || this.is_closed()) {
                 break;
             }
 
@@ -147,13 +136,13 @@ export class NetworkController {
     }
 
     private async init_uni_handler() {
-        if (!this.connected) return;
+        if (this.is_closed()) return;
 
         const reader = this.transport.incomingUnidirectionalStreams.getReader();
         while (true) {
             const { value, done } = await reader.read();
 
-            if (done) {
+            if (done || this.is_closed()) {
                 break;
             }
 
@@ -168,7 +157,7 @@ export class NetworkController {
             const { value, done } = await reader.read();
             const data = value as Uint8Array;
 
-            if (done) {
+            if (done || this.is_closed()) {
                 break;
             }
 
@@ -186,25 +175,19 @@ export class NetworkController {
     }
 
     private async close_webtransport_connection() {
-        if (!this.connected) return;
+        if (this.is_closed()) return;
 
         this.transport.close({ closeCode: 1000, reason: "ClientDisconnected" });
 
         await this.transport.closed;
 
-        for (const module of this.modules) {
-            if (module.cleanup !== undefined) module.cleanup();
-        }
-
-        this.modules = [];
-        this.uni_handlers = [];
-        this.datagram_handlers = [];
+        this.run_cleanup();
 
         console.log("Closed WebTransport connection");
     }
 
     create_datagram_writer(): WritableStreamDefaultWriter | null {
-        if (!this.connected) return null;
+        if (this.is_closed()) return null;
 
         const stream = this.transport.datagrams.writable;
         const writer = stream.getWriter();
@@ -213,7 +196,7 @@ export class NetworkController {
     }
 
     async create_uni_writer(): Promise<WritableStreamDefaultWriter | null> {
-        if (!this.connected) return null;
+        if (this.is_closed()) return null;
 
         const stream = await this.transport.createUnidirectionalStream();
 
@@ -223,6 +206,48 @@ export class NetworkController {
     async create_bi_stream(): Promise<WebTransportBidirectionalStream> {
         return this.transport.createBidirectionalStream();
     }
+
+    private run_setup() {
+        for (const module of this.modules) {
+            if (module.setup !== undefined) {
+                if (this.setup_handled && module.setup.once) continue;
+
+                module.setup.callback(this);
+            }
+        }
+
+        this.setup_handled = true;
+    }
+
+    run_game_load_callbacks() {
+        for (const module of this.modules) {
+            if (module.on_game_load !== undefined) {
+                if (this.game_load_handled && module.on_game_load.once) continue;
+
+                module.on_game_load.callback();
+            }
+        }
+
+        this.game_load_handled = true;
+    }
+
+    private run_init(data: BinaryReader) {
+        const init_modules = this.modules
+            .filter(module => module.init !== undefined)
+            .sort((a, b) => a.init!.order - b.init!.order);
+
+        for (const module of init_modules) {
+            module.init!.callback(data);
+        }
+    }
+
+    private run_cleanup() {
+        for (const module of this.modules) {
+            if (module.cleanup !== undefined) {
+                module.cleanup();
+            }
+        }
+    }
 }
 
 type StreamHandler = {
@@ -231,14 +256,22 @@ type StreamHandler = {
 }
 
 export class NetworkModule {
-    pre_register?: () => void;
-    register: (controller: NetworkController) => void;
-    cleanup?: () => void;
+    uni_handlers?: StreamHandler[] = [];
+    datagram_handlers?: StreamHandler[] = [];
 
+    setup?: {
+        callback: (data: NetworkController) => void;
+        once: boolean,
+    };
+    on_game_load?: {
+        callback: () => void;
+        once: boolean,
+    };
     init?: {
-        order: number;
-        register: (controller: BinaryReader) => void;
-    }
+        callback: (data: BinaryReader) => void,
+        order: number
+    };
+    cleanup?: () => void;
 }
 
 export const network_controller = new NetworkController();

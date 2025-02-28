@@ -274,16 +274,20 @@ class RenderingModule implements NetworkModule {
         this.area_name_heading = document.querySelector("#area-name") as HTMLHeadingElement;
     }
 
-    pre_register() {
-        setup_canvas();
-    }
+    uni_handlers = [
+        { header: "ADEF", callback: this.handle_area_update.bind(this) }
+    ];
 
-    register(controller: NetworkController) {
-        controller.register_datagram_handler("REND", this.handle_render_update.bind(this));
-        controller.register_uni_handler("ADEF", this.handle_area_update.bind(this));
-    }
+    datagram_handlers = [
+        { header: "REND", callback: this.handle_render_update.bind(this) }
+    ];
 
-    cleanup() { }
+    on_game_load = {
+        callback: () => {
+            setup_canvas();
+        },
+        once: true,
+    }
 
     private handle_area_update(data: BinaryReader) {
         const width = data.read_f32();

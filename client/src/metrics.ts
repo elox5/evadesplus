@@ -138,31 +138,34 @@ export function report_bandwidth(bytes: number) {
 export class PingModule implements NetworkModule {
     private interval: number | undefined;
 
-    async register(controller: NetworkController) {
+    setup = {
+        callback: async (controller: NetworkController) => {
 
-        this.interval = setInterval(async () => {
-            if (!controller.is_connected()) return;
+            this.interval = setInterval(async () => {
+                if (controller.is_closed()) return;
 
-            start_ping();
+                start_ping();
 
-            const ping_stream = await controller.create_bi_stream();
+                const ping_stream = await controller.create_bi_stream();
 
-            const readable = ping_stream.readable;
-            const writer = ping_stream.writable.getWriter();
+                const readable = ping_stream.readable;
+                const writer = ping_stream.writable.getWriter();
 
-            await writer.write(new TextEncoder().encode("PING"));
-            await writer.close();
+                await writer.write(new TextEncoder().encode("PING"));
+                await writer.close();
 
-            const { value } = await readable.getReader().read();
-            const stream = new BinaryReader(value);
+                const { value } = await readable.getReader().read();
+                const stream = new BinaryReader(value);
 
-            if (stream.read_string(4) !== "PONG") {
-                console.error("Invalid ping response");
-                return;
-            }
+                if (stream.read_string(4) !== "PONG") {
+                    console.error("Invalid ping response");
+                    return;
+                }
 
-            this.report_ping();
-        }, metric_settings.ping_frequency);
+                this.report_ping();
+            }, metric_settings.ping_frequency);
+        },
+        once: false,
     }
 
     cleanup() {

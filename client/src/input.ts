@@ -197,21 +197,25 @@ class InputModule implements NetworkModule {
 
     private interval: number | undefined;
 
-    pre_register() {
-        setup_input();
+    setup = {
+        callback: (controller: NetworkController) => {
+            const input_writer = controller.create_datagram_writer();
+
+            if (input_writer === null) {
+                console.warn("Failed to register input module");
+                return;
+            }
+
+            this.interval = setInterval(async () => {
+                this.send_input(input_writer, input);
+            }, 1000 / 60);
+        },
+        once: false,
     }
 
-    register(controller: NetworkController) {
-        const input_writer = controller.create_datagram_writer();
-
-        if (input_writer === null) {
-            console.warn("Failed to register input module");
-            return;
-        }
-
-        this.interval = setInterval(async () => {
-            this.send_input(input_writer, input);
-        }, 1000 / 60);
+    on_game_load = {
+        callback: setup_input,
+        once: true,
     }
 
     cleanup() {

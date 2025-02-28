@@ -56,7 +56,9 @@ async function handle_connection() {
 
         show_game();
 
-        network_controller.run_module_pre_register();
+        network_controller.run_game_load_callbacks();
+
+        clear_connection_message();
     }
     catch (err) {
         display_connection_message("Failed to establish WebTransport connection. Check the console for more info", "#ff3f3f");
@@ -79,11 +81,10 @@ function clear_connection_message() {
 }
 
 class CleanupModule implements NetworkModule {
-    register(_: NetworkController) { }
-
     cleanup() {
         this.return_to_menu();
         cache.current_players = [];
+        cache.self_id = null;
     }
 
     private return_to_menu() {

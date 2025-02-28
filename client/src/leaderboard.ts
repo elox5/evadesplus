@@ -172,12 +172,31 @@ const leaderboard = new Leaderboard();
 
 export class LeaderboadModule implements NetworkModule {
 
-    register(controller: NetworkController) {
-        controller.register_uni_handler("LBAD", this.handle_add.bind(this));
-        controller.register_uni_handler("LBRM", this.handle_remove.bind(this));
-        controller.register_uni_handler("LBTR", this.handle_transfer.bind(this));
-        controller.register_uni_handler("LBSD", this.handle_set_downed.bind(this));
-    }
+    uni_handlers = [
+        { header: "LBAD", callback: this.handle_add.bind(this) },
+        { header: "LBRM", callback: this.handle_remove.bind(this) },
+        { header: "LBTR", callback: this.handle_transfer.bind(this) },
+        { header: "LBSD", callback: this.handle_set_downed.bind(this) },
+    ];
+
+    init = {
+        callback: (data: BinaryReader) => {
+            const entry_count = data.read_u8();
+
+            for (let i = 0; i < entry_count; i++) {
+                const player_id = data.read_u64();
+                const area_order = data.read_u16();
+                const [downed] = data.read_flags();
+
+                const player_name = data.read_length_u8_string()!;
+                const area_name = data.read_length_u8_string()!;
+                const map_id = data.read_length_u8_string()!;
+
+                leaderboard.add(player_id, player_name, area_order, area_name, map_id, downed);
+            }
+        },
+        order: 0,
+    };
 
     cleanup() {
         leaderboard.clear();
@@ -216,25 +235,6 @@ export class LeaderboadModule implements NetworkModule {
 
         leaderboard.set_downed(player_id, downed);
     }
-
-    init = {
-        order: 0,
-        register: (data: BinaryReader) => {
-            const entry_count = data.read_u8();
-
-            for (let i = 0; i < entry_count; i++) {
-                const player_id = data.read_u64();
-                const area_order = data.read_u16();
-                const [downed] = data.read_flags();
-
-                const player_name = data.read_length_u8_string()!;
-                const area_name = data.read_length_u8_string()!;
-                const map_id = data.read_length_u8_string()!;
-
-                leaderboard.add(player_id, player_name, area_order, area_name, map_id, downed);
-            }
-        }
-    };
 }
 
 network_controller.register_module(new LeaderboadModule());

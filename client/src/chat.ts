@@ -307,9 +307,9 @@ export enum MessageType {
 export const chat = new Chat();
 
 export class ChatModule implements NetworkModule {
-    async register(controller: NetworkController) {
-        controller.register_uni_handler("CHBR", this.handle_broadcast.bind(this));
-    }
+    uni_handlers = [
+        { header: "CHBR", callback: this.handle_broadcast.bind(this) }
+    ]
 
     async cleanup() {
         chat.clear();
