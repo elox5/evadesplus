@@ -150,7 +150,7 @@ class LeaderboardEntry {
 
         const nameDiv = document.createElement("div");
         nameDiv.classList.add("leaderboard-entry-name");
-        nameDiv.textContent = player?.name ?? "Unknown Player";
+        nameDiv.appendChild(player_info.get_player_name_span(player.id));
         this.element.appendChild(nameDiv);
 
         const areaDiv = document.createElement("div");
