@@ -31,3 +31,46 @@ main {
 .hidden {
     display: none !important;
 }
+
+#context-menu {
+    position: absolute;
+    z-index: 1000;
+    top: 0;
+    left: 0;
+
+    width: fit-content;
+    height: fit-content;
+
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+
+    padding: 5px;
+
+    background-color: #000000aa;
+    border-radius: 5px;
+}
+
+.context-menu-header {
+    margin: 0;
+    text-align: center;
+    font-size: 18px;
+}
+
+.context-menu-button {
+    background-color: #dddddd;
+
+    padding: 5px;
+
+    border: none;
+    border-radius: 2px;
+
+    color: black;
+    font-size: 12px;
+
+    transition: background-color 0.2s ease-in-out;
+
+    &:hover {
+        background-color: #ffffff;
+    }
+}

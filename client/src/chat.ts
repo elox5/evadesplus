@@ -2,7 +2,7 @@ import { AutocompleteMatch, get_autocomplete } from "./autocomplete.js";
 import { BinaryReader } from "./binary_reader.js";
 import { cache } from "./cache.js";
 import { try_execute_command, try_get_command } from "./commands.js";
-import { network_controller, NetworkController, NetworkModule } from "./network_controller.js";
+import { network_controller, NetworkModule } from "./network_controller.js";
 
 class Chat {
     private messages: ChatMessage[];
@@ -11,6 +11,8 @@ class Chat {
     private list: HTMLDivElement;
     private input: HTMLInputElement;
     private autocomplete_display: HTMLDivElement;
+
+    private context_menu: HTMLDivElement;
 
     settings = {
         max_messages: 100,
@@ -31,6 +33,7 @@ class Chat {
         const send_button = document.getElementById("chat-send-button") as HTMLButtonElement;
 
         this.autocomplete_display = document.getElementById("chat-autocomplete") as HTMLDivElement;
+        this.context_menu = document.getElementById("context-menu") as HTMLDivElement;
 
         send_button.onclick = () => {
             this.send_message(this.input.value);
@@ -122,18 +125,22 @@ class Chat {
         const entry = document.createElement("div");
         entry.classList.add("chat-entry");
 
-        message = message.replace(/\n/g, "\r\n");
-
-        entry.textContent = message;
-
-        entry.innerHTML = entry.innerHTML.replace(/\*([^*]*)\*/g, "<strong>$1</strong>");
-
         if (message_type === MessageType.Normal && sender_id !== null) {
-            entry.innerHTML = `${this.get_player_colored_name(sender_id)}: ${entry.innerHTML}`;
+            entry.appendChild(this.get_player_name_span(sender_id));
+            entry.appendChild(document.createTextNode(": "));
         }
         if (message_type === MessageType.Whisper && sender_id !== null && properties !== undefined && properties.target_id !== undefined) {
-            entry.innerHTML = `${this.get_player_colored_name(sender_id)} -> ${this.get_player_colored_name(properties.target_id)}: ${entry.innerHTML}`;
+            entry.appendChild(this.get_player_name_span(sender_id));
+            entry.appendChild(document.createTextNode(" -> "));
+
+            entry.appendChild(this.get_player_name_span(properties.target_id));
+            entry.appendChild(document.createTextNode(": "));
         }
+
+        message = message.replace(/\n/g, "\r\n");
+        message = message.replace(/\*([^*]*)\*/g, "<strong>$1</strong>");
+
+        entry.appendChild(document.createTextNode(message));
 
         if (message_type === MessageType.Normal) entry.classList.add("normal");
         if (message_type === MessageType.Whisper) entry.classList.add("special", "whisper");
@@ -144,14 +151,6 @@ class Chat {
         if (message_type === MessageType.Whisper && sender_id !== null && sender_id !== cache.self_id) {
             this.reply_target = sender_id;
         }
-
-        entry.onmousedown = (e) => {
-            if (e.button === 2) {
-                navigator.clipboard.writeText(`@${sender_id}`);
-                e.preventDefault();
-            }
-        }
-        entry.oncontextmenu = (e) => { e.preventDefault(); }
 
         this.list.appendChild(entry);
 
@@ -278,12 +277,58 @@ class Chat {
         return false;
     }
 
-    private get_player_colored_name(player_id: bigint) {
+    private get_player_name_span(player_id: bigint): HTMLSpanElement {
         const player = cache.current_players.find(p => p.player_id === player_id)!;
         const map = cache.maps.find(m => m.id === player.map_id)!;
         const map_color = map.text_color;
 
-        return `<span style="color: ${map_color}">${player.player_name}</span>`;
+        const span = document.createElement("span");
+        span.style.color = map_color;
+        span.textContent = player.player_name;
+        span.oncontextmenu = (e) => this.show_name_context_menu(player_id, e);
+
+        return span;
+    }
+
+    private show_name_context_menu(player_id: bigint, e: MouseEvent) {
+        const player = cache.current_players.find(p => p.player_id === player_id);
+
+        if (player === undefined) {
+            return;
+        }
+
+        this.context_menu.innerHTML = "";
+
+        const header = document.createElement("h3");
+        header.classList.add("context-menu-header");
+        header.textContent = player.player_name;
+        this.context_menu.appendChild(header);
+
+        const copy_name_button = document.createElement("button");
+        copy_name_button.classList.add("context-menu-button");
+        copy_name_button.textContent = "Copy Name";
+        copy_name_button.onclick = () => {
+            navigator.clipboard.writeText(player.player_name);
+            this.hide_context_menu();
+        }
+        this.context_menu.appendChild(copy_name_button);
+
+        const copy_id_button = document.createElement("button");
+        copy_id_button.classList.add("context-menu-button");
+        copy_id_button.textContent = "Copy Player ID";
+        copy_id_button.onclick = () => {
+            navigator.clipboard.writeText(`@${player_id}`);
+            this.hide_context_menu();
+        }
+        this.context_menu.appendChild(copy_id_button);
+
+        this.context_menu.style.left = `${e.clientX}px`;
+        this.context_menu.style.top = `${e.clientY}px`;
+        this.context_menu.classList.remove("hidden");
+    }
+
+    private hide_context_menu() {
+        this.context_menu.classList.add("hidden");
     }
 }
 

@@ -1,4 +1,4 @@
-import { network_controller, NetworkController, NetworkModule } from "./network_controller.js";
+import { network_controller, NetworkModule } from "./network_controller.js";
 import { cache, init_cache } from "./cache.js";
 
 const game_container = document.querySelector("#game-container") as HTMLDivElement;
@@ -7,6 +7,8 @@ const connect_button = document.querySelector("#connect-button") as HTMLButtonEl
 const connection_message_display = document.querySelector("#connection-message") as HTMLDivElement;
 
 async function main() {
+    window.oncontextmenu = (e) => e.preventDefault();
+
     display_connection_message("Fetching cache...", "#dddddd");
 
     const warning_timeout = setTimeout(() => {
