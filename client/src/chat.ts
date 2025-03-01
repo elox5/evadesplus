@@ -2,7 +2,7 @@ import { AutocompleteMatch, get_autocomplete } from "./autocomplete.js";
 import { BinaryReader } from "./binary_reader.js";
 import { try_execute_command, try_get_command } from "./commands.js";
 import { network_controller, NetworkModule } from "./network_controller.js";
-import { get_player_name_span, player_info } from "./player_info.js";
+import { player_info } from "./player_info.js";
 
 class Chat {
     private messages: ChatMessage[];
@@ -126,14 +126,14 @@ class Chat {
         entry.classList.add("chat-entry");
 
         if (message_type === MessageType.Normal && sender_id !== null) {
-            entry.appendChild(get_player_name_span(sender_id));
+            entry.appendChild(player_info.get_player_name_span(sender_id));
             entry.appendChild(document.createTextNode(": "));
         }
         if (message_type === MessageType.Whisper && sender_id !== null && properties !== undefined && properties.target_id !== undefined) {
-            entry.appendChild(get_player_name_span(sender_id));
+            entry.appendChild(player_info.get_player_name_span(sender_id));
             entry.appendChild(document.createTextNode(" -> "));
 
-            entry.appendChild(get_player_name_span(properties.target_id));
+            entry.appendChild(player_info.get_player_name_span(properties.target_id));
             entry.appendChild(document.createTextNode(": "));
         }
 
@@ -148,7 +148,7 @@ class Chat {
         if (message_type === MessageType.ServerAnnouncement) entry.classList.add("special", "server-announcement");
         if (message_type === MessageType.ServerError) entry.classList.add("special", "server-error");
 
-        if (message_type === MessageType.Whisper && sender_id !== null && sender_id !== player_info.self_id) {
+        if (message_type === MessageType.Whisper && sender_id !== null && sender_id !== player_info.get_self_id()) {
             this.reply_target = sender_id;
         }
 
@@ -279,9 +279,9 @@ class Chat {
 
 
     private show_name_context_menu(player_id: bigint, e: MouseEvent) {
-        const player = player_info.players.find(p => p.id === player_id);
+        const player = player_info.get_player(player_id);
 
-        if (player === undefined) {
+        if (player === null) {
             return;
         }
 
@@ -364,7 +364,7 @@ export class ChatModule implements NetworkModule {
     async send_chat_message(msg: string) {
         if (chat.settings.auto_reply
             && chat.reply_target !== undefined
-            && player_info.players.some(p => p.id === chat.reply_target)
+            && player_info.player_exists(chat.reply_target)
             && !msg.startsWith("/")
         ) {
             msg = `/reply ${msg}`;

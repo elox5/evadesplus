@@ -221,7 +221,7 @@ function render_frame(offset: Vector2, nodes: RenderNode[]) {
             }
         }
 
-        if (node.player_id === player_info.self_id) {
+        if (node.player_id !== null && node.player_id === player_info.get_self_id()) {
             own_hero = node;
             continue;
         }
@@ -240,12 +240,13 @@ function render_frame(offset: Vector2, nodes: RenderNode[]) {
     }
 
     for (const node of named_nodes) {
-        const nameColor = node.downed ? "red" : "black";
+        if (node.player_id !== null) {
+            const player = player_info.get_player(node.player_id);
 
-        const player = player_info.players.find(p => p.id === node.player_id);
+            const name = player?.name ?? "Unknown Player";
+            const name_color = node.downed ? "red" : "black";
 
-        if (player !== undefined) {
-            draw_text(main_canvas, node.x, node.y + node.radius + 0.3, player.name, nameColor, 16, "bold");
+            draw_text(main_canvas, node.x, node.y + node.radius + 0.3, name, name_color, 16, "bold");
         }
     }
 

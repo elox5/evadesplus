@@ -1,6 +1,5 @@
 import { try_get_command } from "./commands.js";
 import { cache } from "./cache.js";
-import { player_info } from "./player_info.js";
 
 export type CommandAutocompleteToken = {
     name: string,

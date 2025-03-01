@@ -77,10 +77,10 @@ impl LeaderboardUpdate {
         let mut bytes = Vec::new();
 
         let header = match &self.mode {
-            LeaderboardUpdateMode::Add { .. } => "LBAD",
-            LeaderboardUpdateMode::Remove => "LBRM",
-            LeaderboardUpdateMode::Transfer { .. } => "LBTR",
-            LeaderboardUpdateMode::SetDowned(_) => "LBSD",
+            LeaderboardUpdateMode::Add { .. } => "PADD",
+            LeaderboardUpdateMode::Remove => "PRMV",
+            LeaderboardUpdateMode::Transfer { .. } => "PTRF",
+            LeaderboardUpdateMode::SetDowned(_) => "PSDN",
         };
 
         bytes.extend_from_slice(header.as_bytes()); // 4 bytes

@@ -44,7 +44,7 @@ export function try_execute_command(message: string): boolean {
 
             return true;
         }
-        if (!player_info.players.some(p => p.id === chat.reply_target)) {
+        if (!player_info.player_exists(chat.reply_target)) {
             chat.mock_server_response("The target player is no longer available.");
 
             return true;

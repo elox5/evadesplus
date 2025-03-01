@@ -1,9 +1,8 @@
-import { BinaryReader } from "./binary_reader.js";
 import { cache } from "./cache.js";
 import { network_controller, NetworkModule } from "./network_controller.js";
-import { player_info } from "./player_info.js";
+import { player_info, PlayerData } from "./player_info.js";
 
-class Leaderboard {
+class Leaderboard implements NetworkModule {
     private maps: Map<string, LeaderboardMap>;
     private element: HTMLElement;
 
@@ -11,67 +10,62 @@ class Leaderboard {
         this.element = document.getElementById("leaderboard") as HTMLElement;
 
         this.maps = new Map();
+
+        player_info.on_player_add = this.add.bind(this);
+        player_info.on_player_remove = this.remove.bind(this);
+        player_info.on_player_transfer = this.transfer.bind(this);
+        player_info.on_player_set_downed = this.set_downed.bind(this);
     }
 
-    add(id: bigint, name: string, area_order: number, area_name: string, map_id: string, downed: boolean) {
-        if (!this.maps.get(map_id)) {
-            const map = new LeaderboardMap(map_id);
+    private add(player: PlayerData) {
+        if (!this.maps.get(player.location_info.map_id)) {
+            const map = new LeaderboardMap(player.location_info.map_id);
 
-            this.maps.set(map_id, map);
+            this.maps.set(player.location_info.map_id, map);
             this.element.appendChild(map.element);
         }
 
-        this.maps.get(map_id)!.add(id, name, area_order, area_name, downed);
-
-        player_info.players.push({
-            id,
-            name,
-            map_id
-        });
+        this.maps.get(player.location_info.map_id)!.add(player);
     }
 
-    remove(id: bigint) {
+    private remove(player: PlayerData) {
         for (const map of this.maps.values()) {
-            map.remove(id);
+            map.remove(player.id);
 
             if (map.entries.length === 0) {
                 this.element.removeChild(map.element);
                 this.maps.delete(map.id);
             }
         }
-
-        player_info.players.splice(player_info.players.findIndex(p => p.id === id), 1);
     }
 
-    transfer(id: bigint, area_order: number, area_name: string, map_id: string) {
+    private transfer(player: PlayerData) {
         for (const map of this.maps.values()) {
-            let old_entry_index = map.entries.findIndex(entry => entry.player_id === id);
+            let old_entry_index = map.entries.findIndex(entry => entry.id === player.id);
 
             if (old_entry_index === -1) {
                 continue;
             }
 
-            let old_entry = map.entries[old_entry_index];
-            map.remove(id);
-
-            this.add(id, old_entry.player_name, area_order, area_name, map_id, old_entry.downed);
+            map.remove(player.id);
+            this.add(player);
 
             if (map.entries.length === 0) {
                 this.element.removeChild(map.element);
                 this.maps.delete(map.id);
             }
         }
-
-        player_info.players.find(p => p.id === id)!.map_id = map_id;
     }
 
-    set_downed(player_id: bigint, downed: boolean) {
+    private set_downed(player: PlayerData) {
         for (const map of this.maps.values()) {
-            map.set_downed(player_id, downed);
+            map.set_downed(player.id, player.downed);
         }
     }
 
-    clear() {
+    // NetworkModule implementation
+
+    cleanup() {
         this.maps.clear();
         this.element.innerHTML = "";
     }
@@ -105,29 +99,29 @@ class LeaderboardMap {
         this.entries = [];
     }
 
-    add(player_id: bigint, player_name: string, area_order: number, area_name: string, downed: boolean) {
-        this.entries.push(new LeaderboardEntry(player_id, player_name, area_order, area_name, downed));
-        this.entries.sort((a, b) => b.area_order - a.area_order);
+    add(player: PlayerData) {
+        this.entries.push(new LeaderboardEntry(player));
+        this.entries.sort((a, b) => b.order - a.order);
 
         this.update_list();
     }
 
     remove(player_id: bigint) {
-        this.entries = this.entries.filter(entry => entry.player_id !== player_id);
+        this.entries = this.entries.filter(entry => entry.id !== player_id);
 
         this.update_list();
     }
 
     set_downed(player_id: bigint, downed: boolean) {
         for (const entry of this.entries) {
-            if (entry.player_id === player_id) {
+            if (entry.id === player_id) {
                 entry.element.classList.toggle("downed", downed);
                 break;
             }
         }
     }
 
-    update_list() {
+    private update_list() {
         this.list.textContent = "";
         for (const entry of this.entries) {
             this.list.appendChild(entry.element);
@@ -136,106 +130,33 @@ class LeaderboardMap {
 }
 
 class LeaderboardEntry {
-    player_id: bigint;
-    player_name: string;
-    downed: boolean;
+    id: bigint;
+    order: number;
+    element: HTMLDivElement;
 
-    area_order: number;
-
-    element: HTMLElement;
-
-    constructor(player_id: bigint, player_name: string, area_order: number, area_name: string, downed: boolean) {
-        this.player_id = player_id;
-        this.player_name = player_name;
-        this.area_order = area_order;
-        this.downed = downed;
+    constructor(player: PlayerData) {
+        this.id = player.id;
+        this.order = player.location_info.area_order;
 
         this.element = document.createElement("div");
         this.element.classList.add("leaderboard-entry");
 
-        if (downed) {
+        if (player.downed) {
             this.element.classList.add("downed");
         }
 
         const nameDiv = document.createElement("div");
         nameDiv.classList.add("leaderboard-entry-name");
-        nameDiv.textContent = player_name;
+        nameDiv.textContent = player?.name ?? "Unknown Player";
         this.element.appendChild(nameDiv);
 
         const areaDiv = document.createElement("div");
         areaDiv.classList.add("leaderboard-entry-area");
-        areaDiv.textContent = `${area_name}`;
+        areaDiv.textContent = player?.location_info.area_name ?? "Unknown Area";
         this.element.appendChild(areaDiv);
     }
 }
 
 const leaderboard = new Leaderboard();
 
-export class LeaderboadModule implements NetworkModule {
-
-    uni_handlers = [
-        { header: "LBAD", callback: this.handle_add.bind(this) },
-        { header: "LBRM", callback: this.handle_remove.bind(this) },
-        { header: "LBTR", callback: this.handle_transfer.bind(this) },
-        { header: "LBSD", callback: this.handle_set_downed.bind(this) },
-    ];
-
-    init = {
-        callback: (data: BinaryReader) => {
-            const entry_count = data.read_u8();
-
-            for (let i = 0; i < entry_count; i++) {
-                const player_id = data.read_u64();
-                const area_order = data.read_u16();
-                const [downed] = data.read_flags();
-
-                const player_name = data.read_length_u8_string()!;
-                const area_name = data.read_length_u8_string()!;
-                const map_id = data.read_length_u8_string()!;
-
-                leaderboard.add(player_id, player_name, area_order, area_name, map_id, downed);
-            }
-        },
-        order: 1,
-    };
-
-    cleanup() {
-        leaderboard.clear();
-    }
-
-    private handle_add(data: BinaryReader) {
-        const player_id = data.read_u64();
-        const area_order = data.read_u16();
-        const [downed] = data.read_flags();
-
-        const player_name = data.read_length_u8_string()!;
-        const area_name = data.read_length_u8_string()!;
-        const map_id = data.read_length_u8_string()!;
-
-        leaderboard.add(player_id, player_name, area_order, area_name, map_id, downed);
-    }
-
-    private handle_remove(data: BinaryReader) {
-        const player_id = data.read_u64();
-        leaderboard.remove(player_id);
-    }
-
-    private handle_transfer(data: BinaryReader) {
-        const player_id = data.read_u64();
-        const area_order = data.read_u16();
-
-        const area_name = data.read_length_u8_string()!;
-        const map_id = data.read_length_u8_string()!;
-
-        leaderboard.transfer(player_id, area_order, area_name, map_id);
-    }
-
-    private handle_set_downed(data: BinaryReader) {
-        const player_id = data.read_u64();
-        const [downed] = data.read_flags();
-
-        leaderboard.set_downed(player_id, downed);
-    }
-}
-
-network_controller.register_module(new LeaderboadModule());
+network_controller.register_module(leaderboard);
