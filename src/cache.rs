@@ -1,8 +1,10 @@
+use std::hash::{DefaultHasher, Hash, Hasher};
+
 use serde::Serialize;
 
 use crate::{game::map::MapTemplate, networking::commands::get_command_cache};
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, Hash)]
 pub struct MapCache {
     id: String,
     name: String,
@@ -21,7 +23,7 @@ impl MapCache {
     }
 }
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, Hash)]
 pub struct CommandCache {
     name: String,
     description: String,
@@ -58,5 +60,14 @@ impl Cache {
         let commands = get_command_cache();
 
         Self { maps, commands }
+    }
+
+    pub fn get_hash(&self) -> String {
+        let mut hasher = DefaultHasher::new();
+
+        self.maps.hash(&mut hasher);
+        self.commands.hash(&mut hasher);
+
+        format!("{:x}", hasher.finish())
     }
 }

@@ -34,6 +34,7 @@ async fn main() -> Result<()> {
     }
 
     let cache = Cache::new(get_map_list());
+    let cache_hash = cache.get_hash();
 
     let start_map_id = get_env_var("START_MAP");
 
@@ -59,8 +60,15 @@ async fn main() -> Result<()> {
         let cache = cache.clone();
         async move { warp::reply::json(&cache) }
     });
+    let cache_hash_route = warp::path("cache_hash").and(warp::get()).then(move || {
+        let hash = cache_hash.clone();
+        async move { warp::reply::json(&hash) }
+    });
 
-    let routes = root_route.or(cert_route).or(cache_route);
+    let routes = root_route
+        .or(cert_route)
+        .or(cache_route)
+        .or(cache_hash_route);
     let addr = webtransport_server.local_addr();
 
     let http_redirect_uri =
