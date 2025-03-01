@@ -389,7 +389,7 @@ class RenderingModule implements NetworkModule {
 
             const [has_outline, is_hero, downed] = data.read_flags();
 
-            const player_id = data.read_u64();
+            const player_id = is_hero ? data.read_u64() : null;
 
             const node: RenderNode = {
                 x,
@@ -399,7 +399,7 @@ class RenderingModule implements NetworkModule {
                 has_outline,
                 is_hero,
                 downed,
-                player_id: is_hero ? player_id : null,
+                player_id,
             };
 
             this.nodes.push(node);

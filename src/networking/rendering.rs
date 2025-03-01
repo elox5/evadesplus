@@ -94,7 +94,9 @@ impl RenderNode {
 
         bytes.push(flags);
 
-        bytes.extend_from_slice(&self.player_id.unwrap_or(0u64).to_le_bytes());
+        if let Some(id) = &self.player_id {
+            bytes.extend_from_slice(&id.to_le_bytes());
+        }
 
         bytes
     }
