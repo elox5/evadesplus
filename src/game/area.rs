@@ -325,7 +325,7 @@ impl AreaTemplate {
         let text_color = match data.text_color {
             Some(color) => Some(Color::from_hex(&color)),
             None => match data.flags.as_ref().map(|f| f.victory).flatten() {
-                Some(true) => Some(Color::from_hex("#ffff50")),
+                Some(true) => Some(Color::from_hex("#ffff00")),
                 _ => None,
             },
         };

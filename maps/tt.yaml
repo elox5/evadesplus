@@ -48,8 +48,8 @@ areas:
           w: 1
           h: 1
         target: !Map lm
-        target_x: !FromLeft 2
-        target_y: KeepPlayer
+        target_x: !FromLeft 5
+        target_y: Center
   - name: "Named Area"
     alias: "named_area"
     background_color: "#64C864"

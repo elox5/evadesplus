@@ -51,13 +51,17 @@ class PlayerInfo implements NetworkModule {
         const area_name = data.read_length_u8_string()!;
         const map_id = data.read_length_u8_string()!;
 
+        const has_color = data.read_bool();
+        const area_color = has_color ? data.read_string(7) : null;
+
         player_info.players.push({
             id: player_id,
             name: player_name,
             location_info: {
                 map_id,
                 area_order,
-                area_name
+                area_name,
+                area_color,
             },
             downed,
         });
@@ -86,12 +90,16 @@ class PlayerInfo implements NetworkModule {
         const area_name = data.read_length_u8_string()!;
         const map_id = data.read_length_u8_string()!;
 
+        const has_color = data.read_bool();
+        const area_color = has_color ? data.read_string(7) : null;
+
         const player = this.get_player(player_id)!;
 
         player.location_info = {
             map_id,
             area_order,
             area_name,
+            area_color,
         };
 
         for (const handler of this.on_player_transfer) {
@@ -150,6 +158,7 @@ type LocationInfo = {
     map_id: string,
     area_order: number,
     area_name: string,
+    area_color: string | null,
 };
 
 export const player_info = new PlayerInfo();

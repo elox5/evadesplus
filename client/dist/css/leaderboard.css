@@ -45,6 +45,10 @@
     align-items: center;
 }
 
+.leaderboard-entry-area {
+    font-weight: bold;
+}
+
 .leaderboard-entry.downed>.leaderboard-entry-name {
     color: red;
 }

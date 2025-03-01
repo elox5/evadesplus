@@ -11,12 +11,14 @@ pub enum LeaderboardUpdateMode {
         downed: bool,
         area_order: u16,
         area_name: String,
+        area_color: Option<String>,
         map_id: String,
     },
     Remove,
     Transfer {
         area_order: u16,
         area_name: String,
+        area_color: Option<String>,
         map_id: String,
     },
     SetDowned(bool),
@@ -29,6 +31,7 @@ impl LeaderboardUpdate {
         downed: bool,
         area_order: u16,
         area_name: String,
+        area_color: Option<String>,
         map_id: String,
     ) -> Self {
         Self {
@@ -38,6 +41,7 @@ impl LeaderboardUpdate {
                 downed,
                 area_order,
                 area_name,
+                area_color,
                 map_id,
             },
         }
@@ -54,6 +58,7 @@ impl LeaderboardUpdate {
         player_id: u64,
         target_area_order: u16,
         target_area_name: String,
+        target_area_color: Option<String>,
         target_map_id: String,
     ) -> Self {
         Self {
@@ -61,6 +66,7 @@ impl LeaderboardUpdate {
             mode: LeaderboardUpdateMode::Transfer {
                 area_order: target_area_order,
                 area_name: target_area_name,
+                area_color: target_area_color,
                 map_id: target_map_id,
             },
         }
@@ -92,6 +98,7 @@ impl LeaderboardUpdate {
                 downed,
                 area_order,
                 area_name,
+                area_color,
                 map_id,
             } => {
                 bytes.extend_from_slice(&area_order.to_le_bytes()); // 2 bytes
@@ -102,11 +109,19 @@ impl LeaderboardUpdate {
                 bytes.extend_from_slice(area_name.as_bytes()); // area_name.len() bytes
                 bytes.push(map_id.len().to_le_bytes()[0]); // 1 byte
                 bytes.extend_from_slice(map_id.as_bytes()); // map_id.len() bytes
+
+                if let Some(area_color) = area_color {
+                    bytes.push(1); // 1 byte
+                    bytes.extend_from_slice(area_color.as_bytes()); // 7 bytes
+                } else {
+                    bytes.push(0);
+                }
             }
             LeaderboardUpdateMode::Remove => {}
             LeaderboardUpdateMode::Transfer {
                 area_order,
                 area_name,
+                area_color,
                 map_id,
             } => {
                 bytes.extend_from_slice(&area_order.to_le_bytes()); // 2 bytes
@@ -114,6 +129,13 @@ impl LeaderboardUpdate {
                 bytes.extend_from_slice(area_name.as_bytes()); // area_name.len() bytes
                 bytes.push(map_id.len().to_le_bytes()[0]); // 1 byte
                 bytes.extend_from_slice(map_id.as_bytes()); // map_name.len() bytes
+
+                if let Some(area_color) = area_color {
+                    bytes.push(1); // 1 byte
+                    bytes.extend_from_slice(area_color.as_bytes()); // 7 bytes
+                } else {
+                    bytes.push(0);
+                }
             }
             LeaderboardUpdateMode::SetDowned(downed) => {
                 bytes.push(*downed as u8); // 1 byte
@@ -131,6 +153,7 @@ struct LeaderboardStateEntry {
     downed: bool,
     area_order: u16,
     area_name: String,
+    area_color: Option<String>,
     map_id: String,
 }
 
@@ -147,6 +170,13 @@ impl LeaderboardStateEntry {
         bytes.extend_from_slice(self.area_name.as_bytes()); // area_name.len() bytes
         bytes.push(self.map_id.len() as u8); // 1 byte
         bytes.extend_from_slice(self.map_id.as_bytes()); // map_name.len() bytes
+
+        if let Some(area_color) = &self.area_color {
+            bytes.push(1); // 1 byte
+            bytes.extend_from_slice(area_color.as_bytes()); // 7 bytes
+        } else {
+            bytes.push(0);
+        }
 
         bytes
     }
@@ -171,6 +201,7 @@ impl LeaderboardState {
                 downed,
                 area_order,
                 area_name,
+                area_color,
                 map_id,
             } => self.add(LeaderboardStateEntry {
                 player_id: update.player_id,
@@ -178,13 +209,15 @@ impl LeaderboardState {
                 downed,
                 area_order,
                 area_name,
+                area_color,
                 map_id,
             }),
             LeaderboardUpdateMode::Transfer {
                 area_order,
                 area_name,
+                area_color,
                 map_id,
-            } => self.transfer(update.player_id, area_order, area_name, map_id),
+            } => self.transfer(update.player_id, area_order, area_name, area_color, map_id),
             LeaderboardUpdateMode::Remove => self.remove(update.player_id),
             LeaderboardUpdateMode::SetDowned(downed) => self.set_downed(update.player_id, downed),
         }
@@ -204,7 +237,14 @@ impl LeaderboardState {
         self.entries.swap_remove(index);
     }
 
-    fn transfer(&mut self, player_id: u64, area_order: u16, area_name: String, map_id: String) {
+    fn transfer(
+        &mut self,
+        player_id: u64,
+        area_order: u16,
+        area_name: String,
+        area_color: Option<String>,
+        map_id: String,
+    ) {
         let old_entry_index = self
             .entries
             .iter()
@@ -219,6 +259,7 @@ impl LeaderboardState {
             downed: old_entry.downed,
             area_order,
             area_name,
+            area_color,
             map_id,
         });
     }

@@ -218,6 +218,7 @@ impl Game {
             false,
             area.key.order(),
             area.name.clone(),
+            area.text_color.clone().map(|c| c.to_hex()),
             area.key.map_id().to_owned(),
         ));
 
@@ -311,6 +312,7 @@ impl Game {
             req.player_id,
             target_area.key.order(),
             target_area.name.clone(),
+            target_area.text_color.clone().map(|c| c.to_hex()),
             target_area.key.map_id().to_owned(),
         ));
 

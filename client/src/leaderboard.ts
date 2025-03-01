@@ -79,7 +79,9 @@ class LeaderboardMap {
     private list: HTMLElement;
 
     constructor(id: string) {
-        const name = cache.maps.find(map => map.id === id)!.name;
+        const map = cache.maps.find(map => map.id === id);
+
+        if (map === undefined) return;
 
         this.id = id;
 
@@ -91,7 +93,8 @@ class LeaderboardMap {
 
         const header = document.createElement("h3");
         header.classList.add("leaderboard-map-name");
-        header.textContent = name;
+        header.textContent = map.name;
+        header.style.color = map.text_color;
 
         this.element.appendChild(header);
         this.element.appendChild(this.list);
@@ -153,6 +156,8 @@ class LeaderboardEntry {
         const areaDiv = document.createElement("div");
         areaDiv.classList.add("leaderboard-entry-area");
         areaDiv.textContent = player?.location_info.area_name ?? "Unknown Area";
+        areaDiv.style.color = player.location_info.area_color ?? cache.maps.find(m => m.id === player.location_info.map_id)!.text_color;
+
         this.element.appendChild(areaDiv);
     }
 }
