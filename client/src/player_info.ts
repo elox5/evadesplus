@@ -42,7 +42,7 @@ class PlayerInfo implements NetworkModule {
 
     // Handlers
 
-    private handle_add(data: BinaryReader, trigger_events: boolean = true) {
+    private handle_add(data: BinaryReader) {
         const player_id = data.read_u64();
         const area_order = data.read_u16();
         const [downed] = data.read_flags();
@@ -62,10 +62,8 @@ class PlayerInfo implements NetworkModule {
             downed,
         });
 
-        if (trigger_events) {
-            for (const handler of this.on_player_add) {
-                handler(player_info.players[player_info.players.length - 1]);
-            }
+        for (const handler of this.on_player_add) {
+            handler(player_info.players[player_info.players.length - 1]);
         }
     }
 
@@ -129,7 +127,7 @@ class PlayerInfo implements NetworkModule {
             const entry_count = data.read_u8();
 
             for (let i = 0; i < entry_count; i++) {
-                this.handle_add(data, false);
+                this.handle_add(data);
             }
         },
         order: 0,
