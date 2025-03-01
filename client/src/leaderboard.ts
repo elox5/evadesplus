@@ -1,6 +1,7 @@
 import { BinaryReader } from "./binary_reader.js";
 import { cache } from "./cache.js";
-import { network_controller, NetworkController, NetworkModule } from "./network_controller.js";
+import { network_controller, NetworkModule } from "./network_controller.js";
+import { player_info } from "./player_info.js";
 
 class Leaderboard {
     private maps: Map<string, LeaderboardMap>;
@@ -12,7 +13,7 @@ class Leaderboard {
         this.maps = new Map();
     }
 
-    add(player_id: bigint, player_name: string, area_order: number, area_name: string, map_id: string, downed: boolean) {
+    add(id: bigint, name: string, area_order: number, area_name: string, map_id: string, downed: boolean) {
         if (!this.maps.get(map_id)) {
             const map = new LeaderboardMap(map_id);
 
@@ -20,18 +21,18 @@ class Leaderboard {
             this.element.appendChild(map.element);
         }
 
-        this.maps.get(map_id)!.add(player_id, player_name, area_order, area_name, downed);
+        this.maps.get(map_id)!.add(id, name, area_order, area_name, downed);
 
-        cache.current_players.push({
-            player_id,
-            player_name,
+        player_info.players.push({
+            id,
+            name,
             map_id
         });
     }
 
-    remove(player_id: bigint) {
+    remove(id: bigint) {
         for (const map of this.maps.values()) {
-            map.remove(player_id);
+            map.remove(id);
 
             if (map.entries.length === 0) {
                 this.element.removeChild(map.element);
@@ -39,21 +40,21 @@ class Leaderboard {
             }
         }
 
-        cache.current_players.splice(cache.current_players.findIndex(entry => entry.player_id === player_id), 1);
+        player_info.players.splice(player_info.players.findIndex(p => p.id === id), 1);
     }
 
-    transfer(player_id: bigint, area_order: number, area_name: string, map_id: string) {
+    transfer(id: bigint, area_order: number, area_name: string, map_id: string) {
         for (const map of this.maps.values()) {
-            let old_entry_index = map.entries.findIndex(entry => entry.player_id === player_id);
+            let old_entry_index = map.entries.findIndex(entry => entry.player_id === id);
 
             if (old_entry_index === -1) {
                 continue;
             }
 
             let old_entry = map.entries[old_entry_index];
-            map.remove(player_id);
+            map.remove(id);
 
-            this.add(player_id, old_entry.player_name, area_order, area_name, map_id, old_entry.downed);
+            this.add(id, old_entry.player_name, area_order, area_name, map_id, old_entry.downed);
 
             if (map.entries.length === 0) {
                 this.element.removeChild(map.element);
@@ -61,7 +62,7 @@ class Leaderboard {
             }
         }
 
-        cache.current_players.find(entry => entry.player_id === player_id)!.map_id = map_id;
+        player_info.players.find(p => p.id === id)!.map_id = map_id;
     }
 
     set_downed(player_id: bigint, downed: boolean) {
@@ -195,7 +196,7 @@ export class LeaderboadModule implements NetworkModule {
                 leaderboard.add(player_id, player_name, area_order, area_name, map_id, downed);
             }
         },
-        order: 0,
+        order: 1,
     };
 
     cleanup() {

@@ -2,9 +2,10 @@ import { input, input_settings } from "./input.js";
 import Canvas from "./canvas.js";
 import { report_frame_start, report_render_end, report_render_start } from "./metrics.js";
 import { Portal, Rect, RenderNode, Vector2 } from "./types.js";
-import { network_controller, NetworkController, NetworkModule } from "./network_controller.js";
+import { network_controller, NetworkModule } from "./network_controller.js";
 import { BinaryReader } from "./binary_reader.js";
 import { cache } from "./cache.js";
+import { player_info } from "./player_info.js";
 
 export let render_settings = {
     tile_size: 40,
@@ -220,7 +221,7 @@ function render_frame(offset: Vector2, nodes: RenderNode[]) {
             }
         }
 
-        if (node.player_id === cache.self_id) {
+        if (node.player_id === player_info.self_id) {
             own_hero = node;
             continue;
         }
@@ -241,10 +242,10 @@ function render_frame(offset: Vector2, nodes: RenderNode[]) {
     for (const node of named_nodes) {
         const nameColor = node.downed ? "red" : "black";
 
-        const player = cache.current_players.find(p => p.player_id === node.player_id);
+        const player = player_info.players.find(p => p.id === node.player_id);
 
         if (player !== undefined) {
-            draw_text(main_canvas, node.x, node.y + node.radius + 0.3, player.player_name, nameColor, 16, "bold");
+            draw_text(main_canvas, node.x, node.y + node.radius + 0.3, player.name, nameColor, 16, "bold");
         }
     }
 

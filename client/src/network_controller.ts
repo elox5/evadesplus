@@ -24,7 +24,7 @@ export class NetworkController {
         return new Uint8Array(digest);
     }
 
-    private async init(name: string): Promise<bigint | "name_invalid" | InitError> {
+    private async init(name: string): Promise<"ok" | "name_invalid" | InitError> {
         const encoder = new TextEncoder();
 
         const stream = await this.transport.createBidirectionalStream();
@@ -51,14 +51,12 @@ export class NetworkController {
             return error;
         }
 
-        const id = data.read_u64();
-
         this.run_init(data);
 
-        return id;
+        return "ok";
     }
 
-    async connect(name: string): Promise<bigint | "name_invalid" | "already_connected" | InitError> {
+    async connect(name: string): Promise<"ok" | "name_invalid" | "already_connected" | InitError> {
         if (!this.is_closed()) {
             console.warn("WebTransport connection already established");
             return "already_connected";
@@ -99,7 +97,7 @@ export class NetworkController {
 
         const init_response = await this.init(name);
 
-        if (typeof init_response !== "bigint") {
+        if (init_response !== "ok") {
             this.disconnect();
         }
 

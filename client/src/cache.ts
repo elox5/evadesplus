@@ -2,8 +2,6 @@
 export const cache = {
     maps: new Array<MapData>(),
     commands: new Array<CommandData>(),
-    current_players: new Array<PlayerData>(),
-    self_id: null as bigint | null,
 }
 
 export async function init_cache() {
@@ -28,8 +26,3 @@ export type CommandData = {
     aliases: string[],
 }
 
-type PlayerData = {
-    player_id: bigint,
-    player_name: string,
-    map_id: string,
-};

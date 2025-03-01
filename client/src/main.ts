@@ -1,5 +1,5 @@
 import { network_controller, NetworkModule } from "./network_controller.js";
-import { cache, init_cache } from "./cache.js";
+import { init_cache } from "./cache.js";
 
 const game_container = document.querySelector("#game-container") as HTMLDivElement;
 const connection_panel = document.querySelector("#connection-panel") as HTMLDivElement;
@@ -62,8 +62,6 @@ async function handle_connection() {
             return;
         }
 
-        cache.self_id = connection_response;
-
         show_game();
 
         network_controller.run_game_load_callbacks();
@@ -93,12 +91,6 @@ function clear_connection_message() {
 
 class CleanupModule implements NetworkModule {
     cleanup() {
-        this.return_to_menu();
-        cache.current_players = [];
-        cache.self_id = null;
-    }
-
-    private return_to_menu() {
         game_container.classList.add("hidden");
         connection_panel.classList.remove("hidden");
 

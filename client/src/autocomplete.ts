@@ -1,5 +1,6 @@
 import { try_get_command } from "./commands.js";
 import { cache } from "./cache.js";
+import { player_info } from "./player_info.js";
 
 export type CommandAutocompleteToken = {
     name: string,
@@ -40,9 +41,9 @@ function resolve_token(token: CommandAutocompleteToken, input: string): Autocomp
             matches.unshift(exact_match);
         }
     } else if (token.name === "player") {
-        for (const player of cache.current_players) {
-            if (player.player_name.toLowerCase().startsWith(input) && !matches.some(m => m.name == player.player_name)) {
-                matches.push({ name: player.player_name, value: `@${player.player_id}` });
+        for (const player of player_info.players) {
+            if (player.name.toLowerCase().startsWith(input) && !matches.some(m => m.name == player.name)) {
+                matches.push({ name: player.name, value: `@${player.id}` });
             }
         }
     } else if (token.name === "map") {

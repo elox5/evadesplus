@@ -1,8 +1,8 @@
 import { AutocompleteMatch, get_autocomplete } from "./autocomplete.js";
 import { BinaryReader } from "./binary_reader.js";
-import { cache } from "./cache.js";
 import { try_execute_command, try_get_command } from "./commands.js";
 import { network_controller, NetworkModule } from "./network_controller.js";
+import { get_player_name_span, player_info } from "./player_info.js";
 
 class Chat {
     private messages: ChatMessage[];
@@ -126,14 +126,14 @@ class Chat {
         entry.classList.add("chat-entry");
 
         if (message_type === MessageType.Normal && sender_id !== null) {
-            entry.appendChild(this.get_player_name_span(sender_id));
+            entry.appendChild(get_player_name_span(sender_id));
             entry.appendChild(document.createTextNode(": "));
         }
         if (message_type === MessageType.Whisper && sender_id !== null && properties !== undefined && properties.target_id !== undefined) {
-            entry.appendChild(this.get_player_name_span(sender_id));
+            entry.appendChild(get_player_name_span(sender_id));
             entry.appendChild(document.createTextNode(" -> "));
 
-            entry.appendChild(this.get_player_name_span(properties.target_id));
+            entry.appendChild(get_player_name_span(properties.target_id));
             entry.appendChild(document.createTextNode(": "));
         }
 
@@ -148,7 +148,7 @@ class Chat {
         if (message_type === MessageType.ServerAnnouncement) entry.classList.add("special", "server-announcement");
         if (message_type === MessageType.ServerError) entry.classList.add("special", "server-error");
 
-        if (message_type === MessageType.Whisper && sender_id !== null && sender_id !== cache.self_id) {
+        if (message_type === MessageType.Whisper && sender_id !== null && sender_id !== player_info.self_id) {
             this.reply_target = sender_id;
         }
 
@@ -277,21 +277,9 @@ class Chat {
         return false;
     }
 
-    private get_player_name_span(player_id: bigint): HTMLSpanElement {
-        const player = cache.current_players.find(p => p.player_id === player_id)!;
-        const map = cache.maps.find(m => m.id === player.map_id)!;
-        const map_color = map.text_color;
-
-        const span = document.createElement("span");
-        span.style.color = map_color;
-        span.textContent = player.player_name;
-        span.oncontextmenu = (e) => this.show_name_context_menu(player_id, e);
-
-        return span;
-    }
 
     private show_name_context_menu(player_id: bigint, e: MouseEvent) {
-        const player = cache.current_players.find(p => p.player_id === player_id);
+        const player = player_info.players.find(p => p.id === player_id);
 
         if (player === undefined) {
             return;
@@ -301,14 +289,14 @@ class Chat {
 
         const header = document.createElement("h3");
         header.classList.add("context-menu-header");
-        header.textContent = player.player_name;
+        header.textContent = player.name;
         this.context_menu.appendChild(header);
 
         const copy_name_button = document.createElement("button");
         copy_name_button.classList.add("context-menu-button");
         copy_name_button.textContent = "Copy Name";
         copy_name_button.onclick = () => {
-            navigator.clipboard.writeText(player.player_name);
+            navigator.clipboard.writeText(player.name);
             this.hide_context_menu();
         }
         this.context_menu.appendChild(copy_name_button);
@@ -376,7 +364,7 @@ export class ChatModule implements NetworkModule {
     async send_chat_message(msg: string) {
         if (chat.settings.auto_reply
             && chat.reply_target !== undefined
-            && cache.current_players.some(p => p.player_id === chat.reply_target)
+            && player_info.players.some(p => p.id === chat.reply_target)
             && !msg.startsWith("/")
         ) {
             msg = `/reply ${msg}`;
