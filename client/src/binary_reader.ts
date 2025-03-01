@@ -87,6 +87,12 @@ export class BinaryReader {
         return bytes;
     }
 
+    read_bool(): boolean {
+        const value = new Uint8Array(this.buffer.slice(this.index, this.index + 1))[0];
+        this.index += 1;
+        return value !== 0;
+    }
+
     read_flags(): boolean[] {
         const byte = this.read_u8();
         const flags = [];
