@@ -6,18 +6,14 @@ class PlayerInfo implements NetworkModule {
     private players: PlayerData[];
     private self_id: bigint | null;
 
-    public on_player_add: (player: PlayerData) => void;
-    public on_player_remove: (player: PlayerData) => void;
-    public on_player_transfer: (player: PlayerData) => void;
-    public on_player_set_downed: (player: PlayerData) => void;
+    public on_player_add: ((player: PlayerData) => void)[] = [];
+    public on_player_remove: ((player: PlayerData) => void)[] = [];
+    public on_player_transfer: ((player: PlayerData) => void)[] = [];
+    public on_player_set_downed: ((player: PlayerData) => void)[] = [];
 
     constructor() {
         this.players = [];
         this.self_id = null;
-
-        this.on_player_add = () => { };
-        this.on_player_remove = () => { };
-        this.on_player_transfer = () => { };
     }
 
     get_self_id(): bigint | null {
@@ -46,7 +42,7 @@ class PlayerInfo implements NetworkModule {
 
     // Handlers
 
-    private handle_add(data: BinaryReader) {
+    private handle_add(data: BinaryReader, trigger_events: boolean = true) {
         const player_id = data.read_u64();
         const area_order = data.read_u16();
         const [downed] = data.read_flags();
@@ -66,7 +62,11 @@ class PlayerInfo implements NetworkModule {
             downed,
         });
 
-        this.on_player_add(player_info.players[player_info.players.length - 1]);
+        if (trigger_events) {
+            for (const handler of this.on_player_add) {
+                handler(player_info.players[player_info.players.length - 1]);
+            }
+        }
     }
 
     private handle_remove(data: BinaryReader) {
@@ -76,10 +76,9 @@ class PlayerInfo implements NetworkModule {
             player_info.players.findIndex(p => p.id === player_id), 1
         );
 
-        console.log(removed_player);
-
-
-        this.on_player_remove(removed_player);
+        for (const handler of this.on_player_remove) {
+            handler(removed_player);
+        }
     }
 
     private handle_transfer(data: BinaryReader) {
@@ -97,7 +96,9 @@ class PlayerInfo implements NetworkModule {
             area_name,
         };
 
-        this.on_player_transfer(player);
+        for (const handler of this.on_player_transfer) {
+            handler(player);
+        }
     }
 
     private handle_set_downed(data: BinaryReader) {
@@ -107,7 +108,9 @@ class PlayerInfo implements NetworkModule {
         const player = this.get_player(player_id)!;
         player.downed = downed;
 
-        this.on_player_set_downed(player);
+        for (const handler of this.on_player_set_downed) {
+            handler(player);
+        }
     }
 
     // NetworkModule implementation
@@ -121,12 +124,12 @@ class PlayerInfo implements NetworkModule {
 
     init = {
         callback: (data: BinaryReader) => {
-            const self_id = data.read_u64();
+            player_info.self_id = data.read_u64();
 
             const entry_count = data.read_u8();
 
             for (let i = 0; i < entry_count; i++) {
-                this.handle_add(data);
+                this.handle_add(data, false);
             }
         },
         order: 0,

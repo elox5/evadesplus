@@ -11,10 +11,10 @@ class Leaderboard implements NetworkModule {
 
         this.maps = new Map();
 
-        player_info.on_player_add = this.add.bind(this);
-        player_info.on_player_remove = this.remove.bind(this);
-        player_info.on_player_transfer = this.transfer.bind(this);
-        player_info.on_player_set_downed = this.set_downed.bind(this);
+        player_info.on_player_add.push(this.add.bind(this));
+        player_info.on_player_remove.push(this.remove.bind(this));
+        player_info.on_player_transfer.push(this.transfer.bind(this));
+        player_info.on_player_set_downed.push(this.set_downed.bind(this));
     }
 
     private add(player: PlayerData) {

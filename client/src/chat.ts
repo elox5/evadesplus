@@ -2,7 +2,7 @@ import { AutocompleteMatch, get_autocomplete } from "./autocomplete.js";
 import { BinaryReader } from "./binary_reader.js";
 import { try_execute_command, try_get_command } from "./commands.js";
 import { network_controller, NetworkModule } from "./network_controller.js";
-import { player_info } from "./player_info.js";
+import { player_info, PlayerData } from "./player_info.js";
 
 class Chat {
     private messages: ChatMessage[];
@@ -167,6 +167,10 @@ class Chat {
         if (atBottom) {
             this.list.scrollTo(0, this.list.scrollHeight);
         }
+    }
+
+    mock_server_announcement(message: string) {
+        this.receive_message(message, null, MessageType.ServerAnnouncement);
     }
 
     mock_server_response(message: string) {
