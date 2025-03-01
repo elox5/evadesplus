@@ -25,6 +25,7 @@ pub struct Area {
 
     pub name: String,
     pub background_color: Color,
+    pub text_color: Option<Color>,
     pub message: Option<AreaMessage>,
 
     pub vp: Option<u8>,
@@ -63,6 +64,7 @@ impl Area {
 
             name: template.name.clone(),
             background_color: template.background_color.clone(),
+            text_color: template.text_color.clone(),
             message: template.message.clone(),
 
             vp: template.vp,
@@ -173,7 +175,6 @@ impl Area {
         packet.extend_from_slice(b"ADEF"); // area definition
         packet.extend_from_slice(&self.bounds.w.to_le_bytes());
         packet.extend_from_slice(&self.bounds.h.to_le_bytes());
-        packet.extend_from_slice(&self.background_color.to_bytes());
 
         packet.extend_from_slice(&(self.inner_walls.len() as u16).to_le_bytes());
         packet.extend_from_slice(&(self.safe_zones.len() as u16).to_le_bytes());
@@ -192,13 +193,23 @@ impl Area {
             packet.extend_from_slice(&portal.color.to_bytes());
         }
 
-        packet.push(self.flags.to_byte());
+        let flags = self.flags.boss as u8
+            | (self.flags.victory as u8) << 1
+            | (self.text_color.is_some() as u8) << 2;
+
+        packet.push(flags);
+
+        packet.extend_from_slice(&self.background_color.to_bytes());
 
         packet.push(self.name.len() as u8);
         packet.extend_from_slice(self.name.as_bytes());
 
         packet.push(self.key.map_id.len() as u8);
         packet.extend_from_slice(self.key.map_id.as_bytes());
+
+        if let Some(color) = &self.text_color {
+            packet.extend_from_slice(&color.to_bytes());
+        }
 
         if let Some(message) = &self.message {
             packet.extend_from_slice(&message.to_bytes());
@@ -277,6 +288,7 @@ pub struct AreaTemplate {
 
     pub name: String,
     pub background_color: Color,
+    pub text_color: Option<Color>,
     pub message: Option<AreaMessage>,
 
     pub vp: Option<u8>,
@@ -300,10 +312,24 @@ impl AreaTemplate {
         let key = AreaKey::new(ctx.map_id.clone(), order as u16);
 
         let name = data.name.unwrap_or_else(|| format!("Area {}", order + 1));
-        let background_color = data
-            .background_color
-            .unwrap_or(ctx.background_color.clone())
-            .into();
+
+        let background_color = match data.background_color {
+            Some(color) => color,
+            None => match data.flags.as_ref().map(|f| f.victory).flatten() {
+                Some(true) => "ffff50".to_owned(),
+                _ => ctx.background_color.clone(),
+            },
+        }
+        .into();
+
+        let text_color = match data.text_color {
+            Some(color) => Some(Color::from_hex(&color)),
+            None => match data.flags.as_ref().map(|f| f.victory).flatten() {
+                Some(true) => Some(Color::from_hex("#ffff50")),
+                _ => None,
+            },
+        };
+
         let width = data.width.unwrap_or(100.0);
         let height = data.height.unwrap_or(15.0);
 
@@ -340,6 +366,7 @@ impl AreaTemplate {
             alias: data.alias,
             name,
             background_color,
+            text_color,
             message,
             vp: data.vp,
             width,
@@ -366,6 +393,7 @@ pub struct AreaData {
     pub alias: Option<String>,
     pub name: Option<String>,
     pub background_color: Option<String>,
+    pub text_color: Option<String>,
     pub message: Option<String>,
     pub message_config: Option<MessageConfigData>,
 
@@ -403,10 +431,6 @@ impl AreaFlags {
                 victory: false,
             },
         }
-    }
-
-    pub fn to_byte(&self) -> u8 {
-        self.boss as u8 | (self.victory as u8) << 1
     }
 }
 

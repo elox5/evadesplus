@@ -293,10 +293,6 @@ class RenderingModule implements NetworkModule {
         const width = data.read_f32();
         const height = data.read_f32();
 
-        const [r, g, b, a] = data.read_rgba();
-
-        const color = `rgba(${r}, ${g}, ${b}, ${a / 255})`;
-
         const walls_length = data.read_u16();
         const safe_zones_length = data.read_u16();
         const portals_length = data.read_u16();
@@ -328,7 +324,10 @@ class RenderingModule implements NetworkModule {
             portals.push({ x, y, w, h, color });
         }
 
-        const [boss, victory] = data.read_flags();
+        const [boss, victory, has_custom_text_color] = data.read_flags();
+
+        const [r, g, b, a] = data.read_rgba();
+        const background_color = `rgba(${r}, ${g}, ${b}, ${a / 255})`;
 
         let area_name = data.read_length_u8_string();
 
@@ -343,6 +342,17 @@ class RenderingModule implements NetworkModule {
             console.error(`Map '${map_id}' not found in cache`);
             return;
         }
+
+        if (has_custom_text_color) {
+            const [r, g, b, a] = data.read_rgba();
+            const text_color = `rgba(${r}, ${g}, ${b}, ${a / 255})`;
+            this.area_name_heading.style.color = text_color;
+        } else {
+            this.area_name_heading.style.color = map.text_color;
+        }
+
+        const name = `${map.name} - ${area_name}`;
+        this.area_name_heading.innerHTML = name;
 
         let message: AreaMessage | null = null;
 
@@ -359,12 +369,7 @@ class RenderingModule implements NetworkModule {
             }
         }
 
-        const name = `${map.name} - ${area_name}`;
-
-        this.area_name_heading.innerHTML = name;
-        this.area_name_heading.style.color = map.text_color;
-
-        render_area(width, height, color, walls, safe_zones, portals, message);
+        render_area(width, height, background_color, walls, safe_zones, portals, message);
     }
 
     private handle_render_update(data: BinaryReader) {
