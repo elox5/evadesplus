@@ -6,21 +6,11 @@ use super::core_types::{EffectId, PriorityGroup};
 
 pub static GROUP_TABLE: StaticStringTable<PriorityGroup> = StaticStringTable::new(
     || ArcSwap::new(HashMap::from([]).into()),
-    |group| {
-        #[cfg(debug_assertions)]
-        panic!("Effect group '{group}' not found in initial group table");
-        #[cfg(not(debug_assertions))]
-        hint::unreachable_unchecked();
-    },
+    |group| unreachable!("Effect group '{group}' not found in initial group table"),
 );
 pub static ID_TABLE: StaticStringTable<EffectId> = StaticStringTable::new(
     || ArcSwap::new(HashMap::from([]).into()),
-    |id| {
-        #[cfg(debug_assertions)]
-        panic!("Effect id '{id}' not found in initial id table");
-        #[cfg(not(debug_assertions))]
-        hint::unreachable_unchecked();
-    },
+    |id| unreachable!("Effect id '{id}' not found in initial id table"),
 );
 
 pub struct StaticStringTable<T>(
