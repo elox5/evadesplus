@@ -19,11 +19,11 @@ where
     TAdd: Copy + Send + Sync + Mul<f32, Output = TAdd>,
     TMul: Copy + Send + Sync + Mul<f32, Output = TMul>,
 {
-    pub fn apply_to(&self, value: &mut T, receptivity: f32) {
+    pub fn apply(&self, value: &mut T, receptivity: f32) {
         match *self {
             EffectAction::None => {}
             EffectAction::Overwrite(applied) => {
-                if receptivity < 0.5 {
+                if receptivity != 0. {
                     *value = applied
                 }
             }
@@ -32,7 +32,7 @@ where
         }
     }
 
-    pub fn apply_without_receptivity_to(&self, value: &mut T) {
+    pub fn apply_raw(&self, value: &mut T) {
         match *self {
             EffectAction::None => {}
             EffectAction::Overwrite(applied) => *value = applied,

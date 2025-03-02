@@ -88,8 +88,7 @@ where
 
     fn recalculate(&mut self) {
         self.value = self.base;
-        self.base_effect
-            .apply_without_receptivity_to(&mut self.value);
+        self.base_effect.apply_raw(&mut self.value);
         let mut groups: Vec<EffectPriority> = Vec::new();
         let mut ids: Vec<EffectId> = Vec::new();
         for effect in self.effects.iter() {
@@ -103,11 +102,9 @@ where
                 if let Some(effect_ref) = effect.action.upgrade() {
                     let effect_ref = effect_ref.load();
                     if effect_ref.0 {
-                        effect_ref
-                            .1
-                            .apply_to(&mut self.value, self.effect_receptivity);
+                        effect_ref.1.apply(&mut self.value, self.effect_receptivity);
                     } else {
-                        effect_ref.1.apply_without_receptivity_to(&mut self.value);
+                        effect_ref.1.apply_raw(&mut self.value);
                     }
                     drop(effect_ref);
                     ids.push(effect.id);
@@ -115,11 +112,9 @@ where
             } else if let Some(effect_ref) = effect.action.upgrade() {
                 let effect_ref = effect_ref.load();
                 if effect_ref.0 {
-                    effect_ref
-                        .1
-                        .apply_to(&mut self.value, self.effect_receptivity);
+                    effect_ref.1.apply(&mut self.value, self.effect_receptivity);
                 } else {
-                    effect_ref.1.apply_without_receptivity_to(&mut self.value);
+                    effect_ref.1.apply_raw(&mut self.value);
                 }
                 drop(effect_ref);
                 groups.push(effect.priority);
