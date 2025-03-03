@@ -24,6 +24,8 @@ pub struct Area {
     pub alias: Option<String>,
 
     pub name: String,
+    pub full_name: String,
+
     pub background_color: Color,
     pub text_color: Option<Color>,
     pub message: Option<AreaMessage>,
@@ -63,6 +65,7 @@ impl Area {
             alias: template.alias.clone(),
 
             name: template.name.clone(),
+            full_name: template.full_name.clone(),
             background_color: template.background_color.clone(),
             text_color: template.text_color.clone(),
             message: template.message.clone(),
@@ -287,6 +290,7 @@ pub struct AreaTemplate {
     pub alias: Option<String>,
 
     pub name: String,
+    pub full_name: String,
     pub background_color: Color,
     pub text_color: Option<Color>,
     pub message: Option<AreaMessage>,
@@ -364,7 +368,8 @@ impl AreaTemplate {
         AreaTemplate {
             key,
             alias: data.alias,
-            name,
+            name: name.clone(),
+            full_name: format!("{} - {}", ctx.map_name, name),
             background_color,
             text_color,
             message,
@@ -385,6 +390,7 @@ impl AreaTemplate {
 
 pub struct AreaCreationContext {
     pub map_id: String,
+    pub map_name: String,
     pub background_color: String,
 }
 

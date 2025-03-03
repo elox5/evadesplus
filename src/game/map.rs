@@ -22,6 +22,7 @@ impl MapTemplate {
     pub fn new(data: MapData) -> Self {
         let area_ctx = AreaCreationContext {
             map_id: data.id.clone(),
+            map_name: data.name.clone(),
             background_color: data.background_color.clone(),
         };
 

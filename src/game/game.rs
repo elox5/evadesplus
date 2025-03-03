@@ -203,13 +203,7 @@ impl Game {
 
         let entity = area.spawn_player(id, connection);
 
-        let player = Player {
-            id,
-            entity,
-            area_key: area.key.clone(),
-            name: name.to_owned(),
-        };
-
+        let player = Player::new(id, name.to_owned(), entity, area.key.clone());
         self.players.insert(id, ArcSwap::new(Arc::new(player)));
 
         let _ = self.leaderboard_tx.send(LeaderboardUpdate::add(
@@ -318,12 +312,22 @@ impl Game {
 
         let target_pos = req.target_pos.unwrap_or(target_area.spawn_pos);
 
-        let new_player = Player {
+        let mut new_player = Player {
             id: player.id,
+            name: player.name.clone(),
             entity,
             area_key: target_area.key.clone(),
-            name: player.name.clone(),
+            victories: player.victories.clone(),
         };
+
+        if target_area.flags.victory && !new_player.victories.contains(&target_area.key) {
+            new_player.victories.push(target_area.key.clone());
+
+            self.send_server_announcement(format!(
+                "{} just completed {}!",
+                player.name, target_area.full_name
+            ));
+        }
 
         let player_arcswap = self.get_player_arcswap(req.player_id)?;
         player_arcswap.store(Arc::new(new_player));
@@ -429,9 +433,22 @@ impl Game {
 
 pub struct Player {
     pub id: u64,
+    pub name: String,
     pub entity: Entity,
     pub area_key: AreaKey,
-    pub name: String,
+    pub victories: Vec<AreaKey>,
+}
+
+impl Player {
+    pub fn new(id: u64, name: String, entity: Entity, area_key: AreaKey) -> Self {
+        Self {
+            id,
+            entity,
+            area_key,
+            name,
+            victories: Vec::new(),
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
