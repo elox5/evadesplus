@@ -4,6 +4,7 @@ Cargo.lock
 TODO
 
 .env
+/ssl
 
 /client/node_modules/
 /client/dist/scripts

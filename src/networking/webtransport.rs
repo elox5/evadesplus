@@ -32,11 +32,11 @@ impl WebTransportServer {
     pub fn new(
         identity: Identity,
         game_arc: Arc<Mutex<Game>>,
-        local_ip: Ipv4Addr,
+        host_ip: Ipv4Addr,
         port: u16,
     ) -> Result<Self> {
         let config = ServerConfig::builder()
-            .with_bind_address(SocketAddr::new(IpAddr::V4(local_ip), port))
+            .with_bind_address(SocketAddr::new(IpAddr::V4(host_ip), port))
             .with_identity(identity)
             .keep_alive_interval(Some(Duration::from_secs(10)))
             .build();

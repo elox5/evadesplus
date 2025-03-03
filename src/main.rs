@@ -1,4 +1,5 @@
 use anyhow::Result;
+use colored::Colorize;
 use evadesplus::{
     cache::Cache,
     env::{get_env_or_default, get_env_var},
@@ -11,14 +12,17 @@ use std::{
 };
 use warp::hyper::Uri;
 use warp::Filter;
-use wtransport::{tls::Sha256DigestFmt, Identity};
+use wtransport::Identity;
 
 #[tokio::main]
 async fn main() -> Result<()> {
     dotenvy::dotenv()?;
 
-    let local_ip_string = get_env_or_default("LOCAL_IP", "127.0.0.1");
-    let local_ip = local_ip_string.parse().expect("Invalid local ip");
+    let ssl_cert_path = get_env_or_default("SSL_CERT_PATH", "ssl/cert.pem");
+    let ssl_key_path = get_env_or_default("SSL_KEY_PATH", "ssl/key.pem");
+
+    let host_ip_string = get_env_or_default("HOST_IP", "127.0.0.1");
+    let host_ip = host_ip_string.parse().expect("Invalid host ip");
 
     let https_port = get_env_or_default("HTTPS_PORT", "443")
         .parse()
@@ -40,8 +44,17 @@ async fn main() -> Result<()> {
 
     let game = Game::new(start_map_id);
 
-    let identity = Identity::self_signed([&local_ip_string])?;
-    let cert_digest = identity.certificate_chain().as_slice()[0].hash();
+    let identity = Identity::load_pemfiles(ssl_cert_path, ssl_key_path)
+        .await
+        .unwrap_or_else(|err| {
+            println!("Failed to load SSL certificate: {err}");
+            let message =
+                "Warning! SSL certificate not found, generating self-signed certificate... (browsers might react oddly)"
+                    .yellow();
+            println!("{message}");
+
+            Identity::self_signed([&host_ip_string]).unwrap()
+        });
 
     let cert = identity.certificate_chain().as_slice()[0].clone();
     let cert = cert.to_pem();
@@ -49,13 +62,9 @@ async fn main() -> Result<()> {
     let key = identity.private_key().clone_key();
     let key = key.to_secret_pem();
 
-    let webtransport_server = WebTransportServer::new(identity, game, local_ip, https_port)?;
+    let webtransport_server = WebTransportServer::new(identity, game, host_ip, https_port)?;
 
     let root_route = warp::fs::dir(client_path);
-    let cert_route = warp::path("cert").and(warp::get()).then(move || {
-        let cert_digest = cert_digest.clone();
-        async move { warp::reply::json(&cert_digest.fmt(Sha256DigestFmt::BytesArray)) }
-    });
     let cache_route = warp::path("cache").and(warp::get()).then(move || {
         let cache = cache.clone();
         async move { warp::reply::json(&cache) }
@@ -65,17 +74,13 @@ async fn main() -> Result<()> {
         async move { warp::reply::json(&hash) }
     });
 
-    let routes = root_route
-        .or(cert_route)
-        .or(cache_route)
-        .or(cache_hash_route);
+    let routes = root_route.or(cache_route).or(cache_hash_route);
     let addr = webtransport_server.local_addr();
 
-    let http_redirect_uri =
-        Uri::from_str(&format!("https://{}:{}", &local_ip_string, &https_port))?;
+    let http_redirect_uri = Uri::from_str(&format!("https://{}:{}", &host_ip_string, &https_port))?;
 
     let http_route = warp::any().map(move || warp::redirect(http_redirect_uri.clone()));
-    let http_addr = SocketAddr::new(IpAddr::V4(local_ip), http_port);
+    let http_addr = SocketAddr::new(IpAddr::V4(host_ip), http_port);
 
     tokio::select! {
         _result = warp::serve(http_route).run(http_addr) => {

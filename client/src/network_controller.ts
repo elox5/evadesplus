@@ -16,14 +16,6 @@ export class NetworkController {
         return this.closed;
     }
 
-    private async get_certificate() {
-        const response = await fetch("/cert");
-        let digest = await response.json();
-        digest = JSON.parse(digest);
-
-        return new Uint8Array(digest);
-    }
-
     private async init(name: string): Promise<"ok" | "name_invalid" | InitError> {
         const encoder = new TextEncoder();
 
@@ -63,16 +55,8 @@ export class NetworkController {
         }
 
         const url = window.location.origin;
-        let certificate = await this.get_certificate();
 
-        this.transport = new WebTransport(url, {
-            serverCertificateHashes: [
-                {
-                    algorithm: "sha-256",
-                    value: certificate.buffer,
-                }
-            ]
-        });
+        this.transport = new WebTransport(url);
 
         this.closed = false;
 

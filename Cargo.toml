@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.94"
 arc-swap = "1.7.1"
+colored = "3.0.0"
 dotenvy = "0.15.7"
 hecs = "0.10.5"
 rand = "0.8.5"
