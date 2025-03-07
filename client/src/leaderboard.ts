@@ -17,12 +17,15 @@ class Leaderboard implements NetworkModule {
         player_info.on_player_set_downed.push(this.set_downed.bind(this));
     }
 
+    // Leaderboard action handlers
+
     private add(player: PlayerData) {
         if (!this.maps.get(player.area_info.map_id)) {
             const map = new LeaderboardMap(player.area_info.map_id);
 
-            this.maps.set(player.area_info.map_id, map);
-            this.element.appendChild(map.element);
+            this.add_map(map);
+
+            this.redraw();
         }
 
         this.maps.get(player.area_info.map_id)!.add(player);
@@ -63,6 +66,48 @@ class Leaderboard implements NetworkModule {
         }
     }
 
+    // Helpers
+
+    private add_map(map: LeaderboardMap) {
+        this.maps.set(map.id, map);
+        this.order_maps();
+    }
+
+    private order_maps() {
+        this.maps = new Map(
+            [...this.maps.entries()].sort((a, b) => this.compare_map_names(a[1], b[1]))
+        )
+    }
+
+    private compare_map_names(a: LeaderboardMap, b: LeaderboardMap): number {
+        const a_name = cache.maps.find(m => m.id === a.id)!.name;
+        const b_name = cache.maps.find(m => m.id === b.id)!.name;
+
+        return a_name.localeCompare(b_name);
+    }
+
+    private redraw() {
+        this.element.innerHTML = "";
+
+        for (const map of this.maps.values()) {
+            this.element.append(map.element);
+        }
+
+        const self_id = player_info.get_self_id();
+
+        if (self_id !== null) {
+            const self = player_info.get_player(self_id);
+
+            if (self !== null) {
+                const current_map = this.maps.get(self.area_info.map_id);
+
+                if (current_map) {
+                    this.element.insertBefore(current_map.element, this.element.firstChild);
+                }
+            }
+        }
+    }
+
     // NetworkModule implementation
 
     cleanup() {
@@ -75,8 +120,8 @@ class LeaderboardMap {
     id: string;
     entries: LeaderboardEntry[];
 
-    element: HTMLElement;
-    private list: HTMLElement;
+    element: HTMLDivElement;
+    private list: HTMLDivElement;
 
     constructor(id: string) {
         const map = cache.maps.find(map => map.id === id);
