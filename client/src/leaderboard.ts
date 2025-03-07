@@ -155,7 +155,13 @@ class LeaderboardEntry {
 
         const areaDiv = document.createElement("div");
         areaDiv.classList.add("leaderboard-entry-area");
-        areaDiv.textContent = player?.area_info.area_name ?? "Unknown Area";
+
+        let area_name = player.area_info.area_name ?? "Unknown Area";
+        if (player.area_info.victory) {
+            area_name = `Victory! ${area_name}`;
+        }
+
+        areaDiv.textContent = area_name;
         areaDiv.style.color = player.area_info.area_color ?? cache.maps.find(m => m.id === player.area_info.map_id)!.text_color;
 
         this.element.appendChild(areaDiv);
