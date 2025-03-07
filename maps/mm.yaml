@@ -1,0 +1,75 @@
+id: mm
+name: Monumental Migration
+background_color: "#f3e6ff"
+text_color: "#f2f7ff"
+areas:
+  - name: Area 480
+    message: Death fills the air.
+    message_config:
+      color: "#ff0000"
+    enemy_groups:
+      - color: "#a97c87"
+        count: 14
+        speed: 9
+        size: 1.8
+      - color: "#939393"
+        count: 3
+        speed: 14
+        size: 9
+      - color: "#966e14c"
+        count: 3
+        speed: 14
+        size: 9
+      - color: "#003c65"
+        count: 3
+        speed: 14
+        size: 9
+    safe_zones:
+      - x: 0
+        y: 0
+        w: 10
+        h: 15
+      - x: 90
+        y: 0
+        w: 10
+        h: 15
+    portals:
+      - rect:
+          x: 0
+          y: 0
+          w: 2
+          h: 15
+        target: !Map tt
+        target_x: Center
+        target_y: Center
+      - rect:
+          x: 98
+          y: 0
+          w: 2
+          h: 15
+        target: Next
+        target_x: !FromLeft 3
+        target_y: KeepPlayer
+  - name: Area 481
+    message: Take care. The people will require your help one day. 
+    vp: 20
+    flags:
+      victory: true
+    portals:
+      - rect:
+          x: 0
+          y: 0
+          w: 2
+          h: 15
+        target: Previous
+        target_x: !FromRight 3
+        target_y: KeepPlayer
+      - rect:
+          x: 98
+          y: 0
+          w: 2
+          h: 15
+        target: !Map tt
+        target_x: Center
+        target_y: Center
+    

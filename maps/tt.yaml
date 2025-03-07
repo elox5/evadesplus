@@ -50,6 +50,15 @@ areas:
         target: !Map lm
         target_x: !FromLeft 5
         target_y: Center
+      - rect:
+          x: 52
+          y: 13
+          w: 1
+          h: 1
+        color: "#ff000055"
+        target: !Map mm
+        target_x: !FromLeft 5
+        target_y: Center
   - name: "Named Area"
     alias: "named_area"
     background_color: "#64C864"
@@ -91,10 +100,7 @@ areas:
         target: Next
         target_x: !FromLeft 2
         target_y: KeepPlayer
-  - message: Death fills the air.
-    message_config:
-      color: "#ff0000"
-    enemy_groups:
+  - enemy_groups:
       - color: "#ff000055"
         count: 100
         speed: 1
@@ -134,21 +140,42 @@ areas:
         target: Next
         target_x: !FromLeft 2
         target_y: KeepPlayer
-  - width: 35
+  - width: 25
     enemy_groups:
       - color: "#0077ff"
         count: 1
-        speed: 50
+        speed: 100
         size: 2
     safe_zones:
       - x: 0
         y: 0
         w: 10
         h: 15
-      - x: 25
+      - x: 15
         y: 0
         w: 10
         h: 15
+    portals:
+      - rect:
+          x: 0
+          y: 0
+          w: 1
+          h: 15
+        target: Previous
+        target_x: !FromRight 2
+        target_y: KeepPlayer
+      - rect:
+          x: 24
+          y: 0
+          w: 1
+          h: 15
+        target: Next
+        target_x: !FromLeft 2
+        target_y: KeepPlayer
+  - name: a
+    vp: 255
+    flags:
+      victory: true
     portals:
       - rect:
           x: 0

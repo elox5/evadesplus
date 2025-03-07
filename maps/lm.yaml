@@ -35,7 +35,7 @@ areas:
         target_x: !FromLeft 2
         target_y: KeepPlayer
     flags:
-      boss: true
+      victory: true
   - enemy_groups:
       - color: "#777777"
         count: 60
@@ -72,7 +72,7 @@ areas:
         target_x: !FromLeft 2
         target_y: KeepPlayer
     flags:
-      victory: true
+      boss: true
   - enemy_groups:
       - color: "#777777"
         count: 70
