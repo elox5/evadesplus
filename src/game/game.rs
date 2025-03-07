@@ -8,7 +8,7 @@ use crate::{
     env::get_env_or_default,
     networking::{
         chat::{ChatMessageType, ChatRequest},
-        leaderboard::{LeaderboardState, LeaderboardUpdate},
+        leaderboard::{AreaInfo, LeaderboardState, LeaderboardUpdate},
     },
     physics::vec2::Vec2,
 };
@@ -210,10 +210,7 @@ impl Game {
             id,
             name.to_owned(),
             false,
-            area.key.order(),
-            area.name.clone(),
-            area.text_color.clone().map(|c| c.to_hex()),
-            area.key.map_id().to_owned(),
+            AreaInfo::new(&area),
         ));
 
         println!("Spawning hero '{}' (entity {})", name, entity.id());
@@ -304,10 +301,7 @@ impl Game {
 
         let _ = self.leaderboard_tx.send(LeaderboardUpdate::transfer(
             req.player_id,
-            target_area.key.order(),
-            target_area.name.clone(),
-            target_area.text_color.clone().map(|c| c.to_hex()),
-            target_area.key.map_id().to_owned(),
+            AreaInfo::new(&target_area),
         ));
 
         let target_pos = req.target_pos.unwrap_or(target_area.spawn_pos);

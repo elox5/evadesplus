@@ -18,14 +18,14 @@ class Leaderboard implements NetworkModule {
     }
 
     private add(player: PlayerData) {
-        if (!this.maps.get(player.location_info.map_id)) {
-            const map = new LeaderboardMap(player.location_info.map_id);
+        if (!this.maps.get(player.area_info.map_id)) {
+            const map = new LeaderboardMap(player.area_info.map_id);
 
-            this.maps.set(player.location_info.map_id, map);
+            this.maps.set(player.area_info.map_id, map);
             this.element.appendChild(map.element);
         }
 
-        this.maps.get(player.location_info.map_id)!.add(player);
+        this.maps.get(player.area_info.map_id)!.add(player);
     }
 
     private remove(player: PlayerData) {
@@ -139,7 +139,7 @@ class LeaderboardEntry {
 
     constructor(player: PlayerData) {
         this.id = player.id;
-        this.order = player.location_info.area_order;
+        this.order = player.area_info.area_order;
 
         this.element = document.createElement("div");
         this.element.classList.add("leaderboard-entry");
@@ -155,8 +155,8 @@ class LeaderboardEntry {
 
         const areaDiv = document.createElement("div");
         areaDiv.classList.add("leaderboard-entry-area");
-        areaDiv.textContent = player?.location_info.area_name ?? "Unknown Area";
-        areaDiv.style.color = player.location_info.area_color ?? cache.maps.find(m => m.id === player.location_info.map_id)!.text_color;
+        areaDiv.textContent = player?.area_info.area_name ?? "Unknown Area";
+        areaDiv.style.color = player.area_info.area_color ?? cache.maps.find(m => m.id === player.area_info.map_id)!.text_color;
 
         this.element.appendChild(areaDiv);
     }

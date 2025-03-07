@@ -1,3 +1,46 @@
+use crate::game::area::Area;
+
+#[derive(Clone, Debug)]
+pub struct AreaInfo {
+    map_id: String,
+    name: String,
+    order: u16,
+    color: Option<String>,
+    victory: bool,
+}
+
+impl AreaInfo {
+    pub fn new(area: &Area) -> Self {
+        Self {
+            map_id: area.key.map_id().to_owned(),
+            name: area.name.clone(),
+            order: area.key.order(),
+            color: area.text_color.clone().map(|c| c.to_hex()),
+            victory: area.flags.victory,
+        }
+    }
+
+    fn to_bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+
+        bytes.push(self.map_id.len() as u8);
+        bytes.extend_from_slice(self.map_id.as_bytes());
+        bytes.push(self.name.len() as u8);
+        bytes.extend_from_slice(self.name.as_bytes());
+        bytes.extend_from_slice(&self.order.to_le_bytes());
+        bytes.push(self.victory as u8);
+
+        if let Some(color) = &self.color {
+            bytes.push(1);
+            bytes.extend_from_slice(color.as_bytes());
+        } else {
+            bytes.push(0);
+        }
+
+        bytes
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct LeaderboardUpdate {
     player_id: u64,
@@ -9,40 +52,21 @@ pub enum LeaderboardUpdateMode {
     Add {
         player_name: String,
         downed: bool,
-        area_order: u16,
-        area_name: String,
-        area_color: Option<String>,
-        map_id: String,
+        area_info: AreaInfo,
     },
     Remove,
-    Transfer {
-        area_order: u16,
-        area_name: String,
-        area_color: Option<String>,
-        map_id: String,
-    },
+    Transfer(AreaInfo),
     SetDowned(bool),
 }
 
 impl LeaderboardUpdate {
-    pub fn add(
-        player_id: u64,
-        player_name: String,
-        downed: bool,
-        area_order: u16,
-        area_name: String,
-        area_color: Option<String>,
-        map_id: String,
-    ) -> Self {
+    pub fn add(player_id: u64, player_name: String, downed: bool, area_info: AreaInfo) -> Self {
         Self {
             player_id,
             mode: LeaderboardUpdateMode::Add {
                 player_name,
                 downed,
-                area_order,
-                area_name,
-                area_color,
-                map_id,
+                area_info,
             },
         }
     }
@@ -54,21 +78,10 @@ impl LeaderboardUpdate {
         }
     }
 
-    pub fn transfer(
-        player_id: u64,
-        target_area_order: u16,
-        target_area_name: String,
-        target_area_color: Option<String>,
-        target_map_id: String,
-    ) -> Self {
+    pub fn transfer(player_id: u64, area_info: AreaInfo) -> Self {
         Self {
             player_id,
-            mode: LeaderboardUpdateMode::Transfer {
-                area_order: target_area_order,
-                area_name: target_area_name,
-                area_color: target_area_color,
-                map_id: target_map_id,
-            },
+            mode: LeaderboardUpdateMode::Transfer(area_info),
         }
     }
 
@@ -96,46 +109,17 @@ impl LeaderboardUpdate {
             LeaderboardUpdateMode::Add {
                 player_name,
                 downed,
-                area_order,
-                area_name,
-                area_color,
-                map_id,
+                area_info,
             } => {
-                bytes.extend_from_slice(&area_order.to_le_bytes()); // 2 bytes
-                bytes.push(*downed as u8); // 1 byte
                 bytes.push(player_name.len().to_le_bytes()[0]); // 1 byte
                 bytes.extend_from_slice(player_name.as_bytes()); // player_name.len() bytes
-                bytes.push(area_name.len().to_le_bytes()[0]); // 1 byte
-                bytes.extend_from_slice(area_name.as_bytes()); // area_name.len() bytes
-                bytes.push(map_id.len().to_le_bytes()[0]); // 1 byte
-                bytes.extend_from_slice(map_id.as_bytes()); // map_id.len() bytes
+                bytes.push(*downed as u8); // 1 byte
 
-                if let Some(area_color) = area_color {
-                    bytes.push(1); // 1 byte
-                    bytes.extend_from_slice(area_color.as_bytes()); // 7 bytes
-                } else {
-                    bytes.push(0);
-                }
+                bytes.extend_from_slice(&area_info.to_bytes());
             }
             LeaderboardUpdateMode::Remove => {}
-            LeaderboardUpdateMode::Transfer {
-                area_order,
-                area_name,
-                area_color,
-                map_id,
-            } => {
-                bytes.extend_from_slice(&area_order.to_le_bytes()); // 2 bytes
-                bytes.push(area_name.len().to_le_bytes()[0]); // 1 byte
-                bytes.extend_from_slice(area_name.as_bytes()); // area_name.len() bytes
-                bytes.push(map_id.len().to_le_bytes()[0]); // 1 byte
-                bytes.extend_from_slice(map_id.as_bytes()); // map_name.len() bytes
-
-                if let Some(area_color) = area_color {
-                    bytes.push(1); // 1 byte
-                    bytes.extend_from_slice(area_color.as_bytes()); // 7 bytes
-                } else {
-                    bytes.push(0);
-                }
+            LeaderboardUpdateMode::Transfer(area_info) => {
+                bytes.extend_from_slice(&area_info.to_bytes());
             }
             LeaderboardUpdateMode::SetDowned(downed) => {
                 bytes.push(*downed as u8); // 1 byte
@@ -150,11 +134,8 @@ impl LeaderboardUpdate {
 struct LeaderboardStateEntry {
     player_id: u64,
     player_name: String,
+    area_info: AreaInfo,
     downed: bool,
-    area_order: u16,
-    area_name: String,
-    area_color: Option<String>,
-    map_id: String,
 }
 
 impl LeaderboardStateEntry {
@@ -162,21 +143,11 @@ impl LeaderboardStateEntry {
         let mut bytes = Vec::new();
 
         bytes.extend_from_slice(&self.player_id.to_le_bytes()); // 8 bytes
-        bytes.extend_from_slice(&self.area_order.to_le_bytes()); // 2 bytes
-        bytes.push(self.downed as u8); // 1 byte
         bytes.push(self.player_name.len() as u8); // 1 byte
         bytes.extend_from_slice(self.player_name.as_bytes()); // player_name.len() bytes
-        bytes.push(self.area_name.len() as u8); // 1 byte
-        bytes.extend_from_slice(self.area_name.as_bytes()); // area_name.len() bytes
-        bytes.push(self.map_id.len() as u8); // 1 byte
-        bytes.extend_from_slice(self.map_id.as_bytes()); // map_name.len() bytes
+        bytes.push(self.downed as u8); // 1 byte
 
-        if let Some(area_color) = &self.area_color {
-            bytes.push(1); // 1 byte
-            bytes.extend_from_slice(area_color.as_bytes()); // 7 bytes
-        } else {
-            bytes.push(0);
-        }
+        bytes.extend_from_slice(&self.area_info.to_bytes());
 
         bytes
     }
@@ -199,25 +170,16 @@ impl LeaderboardState {
             LeaderboardUpdateMode::Add {
                 player_name,
                 downed,
-                area_order,
-                area_name,
-                area_color,
-                map_id,
+                area_info,
             } => self.add(LeaderboardStateEntry {
                 player_id: update.player_id,
                 player_name,
                 downed,
-                area_order,
-                area_name,
-                area_color,
-                map_id,
+                area_info,
             }),
-            LeaderboardUpdateMode::Transfer {
-                area_order,
-                area_name,
-                area_color,
-                map_id,
-            } => self.transfer(update.player_id, area_order, area_name, area_color, map_id),
+            LeaderboardUpdateMode::Transfer(area_info) => {
+                self.transfer(update.player_id, area_info);
+            }
             LeaderboardUpdateMode::Remove => self.remove(update.player_id),
             LeaderboardUpdateMode::SetDowned(downed) => self.set_downed(update.player_id, downed),
         }
@@ -237,14 +199,7 @@ impl LeaderboardState {
         self.entries.swap_remove(index);
     }
 
-    fn transfer(
-        &mut self,
-        player_id: u64,
-        area_order: u16,
-        area_name: String,
-        area_color: Option<String>,
-        map_id: String,
-    ) {
+    fn transfer(&mut self, player_id: u64, area_info: AreaInfo) {
         let old_entry_index = self
             .entries
             .iter()
@@ -257,10 +212,7 @@ impl LeaderboardState {
             player_id,
             player_name: old_entry.player_name,
             downed: old_entry.downed,
-            area_order,
-            area_name,
-            area_color,
-            map_id,
+            area_info,
         });
     }
 

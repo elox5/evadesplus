@@ -30,7 +30,7 @@ class PlayerInfo implements NetworkModule {
 
     get_player_name_span(id: bigint): HTMLSpanElement {
         const player = player_info.players.find(p => p.id === id)!;
-        const map = cache.maps.find(m => m.id === player.location_info.map_id)!;
+        const map = cache.maps.find(m => m.id === player.area_info.map_id)!;
         const map_color = map.text_color;
 
         const span = document.createElement("span");
@@ -44,25 +44,15 @@ class PlayerInfo implements NetworkModule {
 
     private handle_add(data: BinaryReader) {
         const player_id = data.read_u64();
-        const area_order = data.read_u16();
+        const player_name = data.read_length_u8_string()!;
         const [downed] = data.read_flags();
 
-        const player_name = data.read_length_u8_string()!;
-        const area_name = data.read_length_u8_string()!;
-        const map_id = data.read_length_u8_string()!;
-
-        const has_color = data.read_bool();
-        const area_color = has_color ? data.read_string(7) : null;
+        const area_info = this.parse_area_info(data);
 
         player_info.players.push({
             id: player_id,
             name: player_name,
-            location_info: {
-                map_id,
-                area_order,
-                area_name,
-                area_color,
-            },
+            area_info,
             downed,
         });
 
@@ -85,22 +75,9 @@ class PlayerInfo implements NetworkModule {
 
     private handle_transfer(data: BinaryReader) {
         const player_id = data.read_u64();
-        const area_order = data.read_u16();
-
-        const area_name = data.read_length_u8_string()!;
-        const map_id = data.read_length_u8_string()!;
-
-        const has_color = data.read_bool();
-        const area_color = has_color ? data.read_string(7) : null;
-
         const player = this.get_player(player_id)!;
 
-        player.location_info = {
-            map_id,
-            area_order,
-            area_name,
-            area_color,
-        };
+        player.area_info = this.parse_area_info(data);
 
         for (const handler of this.on_player_transfer) {
             handler(player);
@@ -117,6 +94,26 @@ class PlayerInfo implements NetworkModule {
         for (const handler of this.on_player_set_downed) {
             handler(player);
         }
+    }
+
+    // Private helpers
+
+    private parse_area_info(data: BinaryReader): AreaInfo {
+        const map_id = data.read_length_u8_string()!;
+        const area_name = data.read_length_u8_string()!;
+        const area_order = data.read_u16();
+        const victory = data.read_bool();
+
+        const has_color = data.read_bool();
+        const area_color = has_color ? data.read_string(7) : null;
+
+        return {
+            map_id,
+            area_name,
+            area_order,
+            area_color,
+            victory,
+        };
     }
 
     // NetworkModule implementation
@@ -150,15 +147,16 @@ class PlayerInfo implements NetworkModule {
 export type PlayerData = {
     id: bigint,
     name: string,
-    location_info: LocationInfo,
+    area_info: AreaInfo,
     downed: boolean,
 };
 
-type LocationInfo = {
+type AreaInfo = {
     map_id: string,
-    area_order: number,
     area_name: string,
+    area_order: number,
     area_color: string | null,
+    victory: boolean,
 };
 
 export const player_info = new PlayerInfo();
