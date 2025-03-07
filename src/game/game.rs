@@ -2,6 +2,7 @@ use super::{
     area::{Area, AreaKey},
     components::{CrossingPortal, Downed, Position, RenderReceiver},
     map_table::try_get_map,
+    portal::{PortalTargetPosX, PortalTargetPosY},
     systems::*,
 };
 use crate::{
@@ -10,7 +11,7 @@ use crate::{
         chat::{ChatMessageType, ChatRequest},
         leaderboard::{AreaInfo, LeaderboardState, LeaderboardUpdate},
     },
-    physics::vec2::Vec2,
+    physics::{rect::Rect, vec2::Vec2},
 };
 use anyhow::{anyhow, Result};
 use arc_swap::{ArcSwap, Guard};
@@ -304,8 +305,15 @@ impl Game {
             AreaInfo::new(&target_area),
         ));
 
-        let target_pos = req.target_pos.unwrap_or(target_area.spawn_pos);
+        let target_pos = match req.target_pos {
+            Some(target_pos) => {
+                let target_x = target_pos.x.resolve(&target_area.bounds);
+                let target_y = target_pos.y.resolve(&target_area.bounds);
 
+                Vec2::new(target_x, target_y)
+            }
+            None => target_area.spawn_pos,
+        };
         let mut new_player = Player {
             id: player.id,
             name: player.name.clone(),
@@ -362,12 +370,23 @@ impl Game {
 
         let area = self.get_or_create_area(&player.area_key)?;
         let mut area = area.lock().await;
+        let bounds = area.bounds.clone();
 
         let area_spawn_pos = area.spawn_pos;
 
         let pos = area.world.query_one_mut::<&mut Position>(player.entity)?;
 
-        pos.0 = req.target_pos.unwrap_or(area_spawn_pos);
+        let target_pos = match req.target_pos {
+            Some(target_pos) => {
+                let target_x = target_pos.x.resolve(&bounds);
+                let target_y = target_pos.y.resolve(&bounds);
+
+                Vec2::new(target_x, target_y)
+            }
+            None => area_spawn_pos,
+        };
+
+        pos.0 = target_pos;
 
         Ok(())
     }
@@ -449,7 +468,7 @@ impl Player {
 pub struct TransferRequest {
     pub player_id: u64,
     pub target: TransferTarget,
-    pub target_pos: Option<Vec2>,
+    pub target_pos: Option<TransferRequestTargetPos>,
 }
 
 #[derive(Clone, Debug)]
@@ -457,4 +476,66 @@ pub enum TransferTarget {
     Area(AreaKey),
     MapStart(String),
     Spawn,
+}
+
+#[derive(Clone, Debug)]
+pub struct TransferRequestTargetPos {
+    pub x: TransferRequestTargetPosX,
+    pub y: TransferRequestTargetPosY,
+}
+
+#[derive(Clone, Debug)]
+pub enum TransferRequestTargetPosX {
+    FromLeft(f32),
+    FromRight(f32),
+    Center,
+    Resolved(f32),
+}
+
+impl TransferRequestTargetPosX {
+    pub fn new(data: PortalTargetPosX, player_x: f32) -> Self {
+        match data {
+            PortalTargetPosX::FromLeft(x) => Self::FromLeft(x),
+            PortalTargetPosX::FromRight(x) => Self::FromRight(x),
+            PortalTargetPosX::Center => Self::Center,
+            PortalTargetPosX::KeepPlayer => Self::Resolved(player_x),
+        }
+    }
+
+    pub fn resolve(&self, bounds: &Rect) -> f32 {
+        match self {
+            TransferRequestTargetPosX::FromLeft(x) => *x,
+            TransferRequestTargetPosX::FromRight(x) => bounds.right() - x,
+            TransferRequestTargetPosX::Center => bounds.center().x,
+            TransferRequestTargetPosX::Resolved(x) => *x,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum TransferRequestTargetPosY {
+    FromBottom(f32),
+    FromTop(f32),
+    Center,
+    Resolved(f32),
+}
+
+impl TransferRequestTargetPosY {
+    pub fn new(data: PortalTargetPosY, player_y: f32) -> Self {
+        match data {
+            PortalTargetPosY::FromBottom(y) => Self::FromBottom(y),
+            PortalTargetPosY::FromTop(y) => Self::FromTop(y),
+            PortalTargetPosY::Center => Self::Center,
+            PortalTargetPosY::KeepPlayer => Self::Resolved(player_y),
+        }
+    }
+
+    pub fn resolve(&self, bounds: &Rect) -> f32 {
+        match self {
+            TransferRequestTargetPosY::FromBottom(x) => *x,
+            TransferRequestTargetPosY::FromTop(x) => bounds.top() - x,
+            TransferRequestTargetPosY::Center => bounds.center().x,
+            TransferRequestTargetPosY::Resolved(x) => *x,
+        }
+    }
 }

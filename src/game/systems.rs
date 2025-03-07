@@ -4,8 +4,10 @@ use super::{
         BounceOffBounds, Bounded, Color, CrossingPortal, Downed, Enemy, Hero, PlayerId,
         RenderReceiver, Size,
     },
-    game::{TransferRequest, TransferTarget},
-    portal::{PortalTargetPosX, PortalTargetPosY},
+    game::{
+        TransferRequest, TransferRequestTargetPos, TransferRequestTargetPosX,
+        TransferRequestTargetPosY, TransferTarget,
+    },
 };
 use crate::{
     game::components::{Direction, Position, Speed, Velocity},
@@ -13,7 +15,6 @@ use crate::{
         leaderboard::LeaderboardUpdate,
         rendering::{RenderNode, RenderPacket},
     },
-    physics::vec2::Vec2,
 };
 use hecs::{With, Without};
 
@@ -309,25 +310,14 @@ pub async fn system_portals(area: &mut Area) {
             if portal.rect.contains_circle(pos.0, size.0 / 2.0) {
                 let area_key = portal.target.get_area_key();
 
-                let target_x = match portal.target_x {
-                    PortalTargetPosX::FromLeft(x) => x, // area bounds start at (0, 0)
-                    PortalTargetPosX::FromRight(x) => area.bounds.right() - x,
-                    PortalTargetPosX::KeepPlayer => pos.0.x,
-                    PortalTargetPosX::Center => area.bounds.center().x,
-                };
-
-                let target_y = match portal.target_y {
-                    PortalTargetPosY::FromBottom(y) => y,
-                    PortalTargetPosY::FromTop(y) => area.bounds.top() - y,
-                    PortalTargetPosY::KeepPlayer => pos.0.y,
-                    PortalTargetPosY::Center => area.bounds.center().y,
-                };
-
                 if let Ok(area_key) = area_key {
                     let req = TransferRequest {
                         player_id: player_id.0,
                         target: TransferTarget::Area(area_key),
-                        target_pos: Some(Vec2::new(target_x, target_y)),
+                        target_pos: Some(TransferRequestTargetPos {
+                            x: TransferRequestTargetPosX::new(portal.target_x.clone(), pos.0.x),
+                            y: TransferRequestTargetPosY::new(portal.target_y.clone(), pos.0.y),
+                        }),
                     };
 
                     to_cross.push(entity);

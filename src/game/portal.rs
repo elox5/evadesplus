@@ -89,7 +89,7 @@ pub enum PortalTarget {
     Map(String),
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Debug)]
 pub enum PortalTargetPosX {
     FromLeft(f32),
     FromRight(f32),
@@ -97,12 +97,34 @@ pub enum PortalTargetPosX {
     Center,
 }
 
-#[derive(Deserialize, Clone)]
+impl PortalTargetPosX {
+    pub fn resolve(&self, bounds: &Rect, player_x: f32) -> f32 {
+        match self {
+            PortalTargetPosX::FromLeft(x) => *x,
+            PortalTargetPosX::FromRight(x) => bounds.right() - x,
+            PortalTargetPosX::KeepPlayer => player_x,
+            PortalTargetPosX::Center => bounds.center().x,
+        }
+    }
+}
+
+#[derive(Deserialize, Clone, Debug)]
 pub enum PortalTargetPosY {
     FromBottom(f32),
     FromTop(f32),
     KeepPlayer,
     Center,
+}
+
+impl PortalTargetPosY {
+    pub fn resolve(&self, bounds: &Rect, player_y: f32) -> f32 {
+        match self {
+            PortalTargetPosY::FromBottom(y) => *y,
+            PortalTargetPosY::FromTop(y) => bounds.top() - y,
+            PortalTargetPosY::KeepPlayer => player_y,
+            PortalTargetPosY::Center => bounds.center().y,
+        }
+    }
 }
 
 impl PortalTarget {
