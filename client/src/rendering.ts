@@ -112,7 +112,32 @@ function draw_rect(canvas: Canvas, _x: number, _y: number, _w: number, _h: numbe
     }
 }
 
-function drawLine(canvas: Canvas, _x1: number, _y1: number, _x2: number, _y2: number, color = "#000", width = 1) {
+function draw_polygon(canvas: Canvas, points: Vector2[], settings: DrawSettings) {
+    const ctx = canvas.ctx;
+
+    points = points.map(p => canvas.game_to_canvas_pos(p.x, p.y));
+
+    ctx.beginPath();
+
+    for (const point of points) {
+        ctx.lineTo(point.x, point.y);
+    }
+
+    ctx.closePath();
+
+    if (settings.fill_color !== undefined) {
+        ctx.fillStyle = settings.fill_color;
+        ctx.fill();
+    }
+
+    if (settings.outline_color !== undefined) {
+        ctx.strokeStyle = settings.outline_color;
+        ctx.lineWidth = settings.outline_width ?? 1;
+        ctx.stroke();
+    }
+}
+
+function draw_line(canvas: Canvas, _x1: number, _y1: number, _x2: number, _y2: number, color = "#000", width = 1) {
     const ctx = canvas.ctx;
     const { x: x1, y: y1 } = canvas.game_to_canvas_pos(_x1, _y1);
     const { x: x2, y: y2 } = canvas.game_to_canvas_pos(_x2, _y2);
@@ -207,21 +232,23 @@ function render_frame(offset: Vector2, nodes: RenderNode[]) {
 
     set_draw_offset(offset.x, offset.y);
 
-    let named_nodes = [];
-    let own_hero = null;
+    const heroes = [];
+    let own_hero: RenderNode | null = null;
+
+    const self_id = player_info.get_self_id();
 
     for (const node of nodes) {
         if (node.is_hero) {
             draw_minimap_hero(node);
 
-            named_nodes.push(node);
+            heroes.push(node);
 
             if (node.downed) {
                 draw_text(hero_minimap, node.x, node.y + 1, "!", "red", 16, "bold");
             }
         }
 
-        if (node.player_id !== null && node.player_id === player_info.get_self_id()) {
+        if (node.player_id !== null && node.player_id === self_id) {
             own_hero = node;
             continue;
         }
@@ -237,9 +264,20 @@ function render_frame(offset: Vector2, nodes: RenderNode[]) {
         draw_circle(main_canvas, own_hero.x, own_hero.y, own_hero.radius, {
             fill_color: own_hero.color,
         });
+
+        const closest_downed_hero = heroes.filter(h => h.downed && h.player_id !== self_id).sort((a, b) => {
+            const a_dist_sq = (a.x - own_hero.x) * (a.x - own_hero.x) + (a.y - own_hero.y) * (a.y - own_hero.y);
+            const b_dist_sq = (b.x - own_hero.x) * (b.x - own_hero.x) + (b.y - own_hero.y) * (b.y - own_hero.y);
+
+            return a_dist_sq - b_dist_sq;
+        }).at(0);
+
+        if (closest_downed_hero !== undefined) {
+            draw_downed_indicator(own_hero, closest_downed_hero);
+        }
     }
 
-    for (const node of named_nodes) {
+    for (const node of heroes) {
         if (node.player_id !== null) {
             const player = player_info.get_player(node.player_id);
 
@@ -251,7 +289,7 @@ function render_frame(offset: Vector2, nodes: RenderNode[]) {
     }
 
     let range = input_settings.mouse_input_range;
-    drawLine(main_canvas, offset.x, offset.y, offset.x + (input.x * range), offset.y + (input.y * range), "yellow", 2);
+    draw_line(main_canvas, offset.x, offset.y, offset.x + (input.x * range), offset.y + (input.y * range), "yellow", 2);
     draw_circle(main_canvas, offset.x, offset.y, range, {
         outline_color: "orange",
         outline_width: 2
@@ -264,6 +302,59 @@ function draw_minimap_hero(hero: RenderNode) {
     draw_circle(hero_minimap, hero.x, hero.y, hero.radius, {
         fill_color: hero.color,
     });
+}
+
+const downed_indicator_config = {
+    distance: 7,
+    cutoff_distance: 10,
+    triangle_radius: 0.7,
+    wing_angle: 100,
+}
+
+function draw_downed_indicator(source: Vector2, target: Vector2) {
+    const diff = {
+        x: target.x - source.x,
+        y: target.y - source.y
+    };
+
+    const dist = Math.sqrt(diff.x * diff.x + diff.y * diff.y);
+
+    if (dist < downed_indicator_config.cutoff_distance) {
+        return;
+    }
+
+    const dir = {
+        x: diff.x / dist,
+        y: diff.y / dist
+    };
+
+    const center = {
+        x: source.x + dir.x * downed_indicator_config.distance,
+        y: source.y + dir.y * downed_indicator_config.distance
+    };
+
+    const r = downed_indicator_config.triangle_radius;
+    const theta = Math.PI / 180 * downed_indicator_config.wing_angle;
+
+    const p1 = {
+        x: center.x + dir.x * r,
+        y: center.y + dir.y * r
+    };
+
+    const p2 = {
+        x: center.x + (dir.x * Math.cos(theta) - dir.y * Math.sin(theta)) * r,
+        y: center.y + (dir.x * Math.sin(theta) + dir.y * Math.cos(theta)) * r
+    };
+
+    const p3 = {
+        x: center.x + (dir.x * Math.cos(-theta) - dir.y * Math.sin(-theta)) * r,
+        y: center.y + (dir.x * Math.sin(-theta) + dir.y * Math.cos(-theta)) * r
+    };
+
+    draw_polygon(main_canvas, [p1, p2, p3], {
+        fill_color: "red"
+    });
+
 }
 
 class RenderingModule implements NetworkModule {
