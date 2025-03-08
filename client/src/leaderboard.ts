@@ -193,23 +193,25 @@ class LeaderboardEntry {
             this.element.classList.add("downed");
         }
 
-        const nameDiv = document.createElement("div");
-        nameDiv.classList.add("leaderboard-entry-name");
-        nameDiv.appendChild(player_info.get_player_name_span(player.id));
-        this.element.appendChild(nameDiv);
+        const name_span = player_info.get_player_name_span(player.id);
 
-        const areaDiv = document.createElement("div");
-        areaDiv.classList.add("leaderboard-entry-area");
+        const name_div = document.createElement("div");
+        name_div.classList.add("leaderboard-entry-name");
+        name_div.appendChild(name_span);
+        this.element.appendChild(name_div);
+
+        const area_div = document.createElement("div");
+        area_div.classList.add("leaderboard-entry-area");
 
         let area_name = player.area_info.area_name ?? "Unknown Area";
         if (player.area_info.victory) {
             area_name = `Victory! ${area_name}`;
         }
 
-        areaDiv.textContent = area_name;
-        areaDiv.style.color = player.area_info.area_color ?? cache.maps.find(m => m.id === player.area_info.map_id)!.text_color;
+        area_div.textContent = area_name;
+        area_div.style.color = player.area_info.area_color ?? cache.maps.find(m => m.id === player.area_info.map_id)!.text_color;
 
-        this.element.appendChild(areaDiv);
+        this.element.appendChild(area_div);
     }
 }
 

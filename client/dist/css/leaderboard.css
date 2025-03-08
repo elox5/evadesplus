@@ -49,6 +49,6 @@
     font-weight: bold;
 }
 
-.leaderboard-entry.downed>.leaderboard-entry-name {
-    color: red;
+.leaderboard-entry.downed>.leaderboard-entry-name>span {
+    color: red !important;
 }
