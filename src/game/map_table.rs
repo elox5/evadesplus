@@ -32,8 +32,8 @@ fn fill_map_table() -> HashMap<String, MapTemplate> {
                 get_env_or_default("MAP_PATH", "maps"),
                 id
             ))
+            .unwrap_or_else(|err| panic!("Could not parse map {id}: {err}"))
         })
-        .flatten()
         .map(|map| {
             let template = MapTemplate::new(map);
             (template.id.clone(), template)
