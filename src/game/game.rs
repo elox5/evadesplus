@@ -534,7 +534,7 @@ impl TransferRequestTargetPosY {
         match self {
             TransferRequestTargetPosY::FromBottom(x) => *x,
             TransferRequestTargetPosY::FromTop(x) => bounds.top() - x,
-            TransferRequestTargetPosY::Center => bounds.center().x,
+            TransferRequestTargetPosY::Center => bounds.center().y,
             TransferRequestTargetPosY::Resolved(x) => *x,
         }
     }
