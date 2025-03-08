@@ -77,7 +77,7 @@
     background-color: #ff000077;
 }
 
-.chat-entry:nth-of-type(1) {
+.chat-entry:nth-child(1 of .chat-entry:not(.hidden)) {
     margin-top: auto;
 }
 

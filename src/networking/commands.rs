@@ -65,6 +65,13 @@ static COMMANDS: LazyLock<Vec<Command>> = LazyLock::new(|| {
             Some("<map>"),
             Some(Box::new(warp)),
         ),
+        Command::new(
+            "filter",
+            None,
+            "Filters the chat to only show messages from the given map",
+            Some("<map? | \"off\">"),
+            None,
+        ),
     ]
 });
 

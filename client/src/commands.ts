@@ -78,6 +78,45 @@ export function try_execute_command(message: string): boolean {
 
         return true;
     }
+    else if (matches_command_with_name(commandName, "filter")) {
+        if (args[0] === undefined) {
+            const self_id = player_info.get_self_id();
+
+            if (self_id === null) {
+                chat.set_map_filter(null);
+                return true;
+            }
+
+            const self = player_info.get_player(self_id);
+
+            if (self === null) {
+                chat.set_map_filter(null);
+                return true;
+            }
+
+            if (self.area_info.map_id === chat.get_map_filter()) {
+                chat.set_map_filter(null);
+                return true;
+            }
+
+            chat.set_map_filter(self.area_info.map_id);
+            return true;
+        }
+
+        if (!cache.maps.some(map => map.id === args[0])) {
+            chat.mock_server_response(`Map '${args[0]}' does not exist.`);
+            return true;
+        }
+
+        if (args[0] === "off" || args[0] === chat.get_map_filter()) {
+            chat.set_map_filter(null);
+        }
+        else {
+            chat.set_map_filter(args[0]);
+        }
+
+        return true;
+    }
 
     return false;
 }

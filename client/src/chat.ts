@@ -14,6 +14,8 @@ class Chat {
 
     private context_menu: HTMLDivElement;
 
+    private map_filter: string | null = null;
+
     settings = {
         max_messages: 100,
         auto_reply: false,
@@ -138,7 +140,7 @@ class Chat {
         }
 
         message = message.replace(/\n/g, "\r\n");
-        message = message.replace(/\*([^*]*)\*/g, "<strong>$1</strong>");
+        message = message.replace(/\*([^*]*)\*/g, "$1");
 
         entry.appendChild(document.createTextNode(message));
 
@@ -152,10 +154,20 @@ class Chat {
             this.reply_target = sender_id;
         }
 
+        const map_id = sender_id === null ? null : player_info.get_player(sender_id)?.area_info.map_id ?? null;
+
+        if (this.map_filter !== null && map_id !== null) {
+            if (map_id !== this.map_filter) {
+                entry.classList.add("hidden");
+            }
+        }
+
         this.list.appendChild(entry);
 
         this.messages.push({
             sender_id,
+            map_id,
+            message_type,
             element: entry,
         });
 
@@ -188,6 +200,38 @@ class Chat {
     clear() {
         this.messages = [];
         this.list.innerHTML = "";
+    }
+
+    get_map_filter() {
+        return this.map_filter;
+    }
+
+    set_map_filter(map_id: string | null) {
+        this.map_filter = map_id;
+
+        if (map_id === null) {
+            this.show_all();
+        }
+        else {
+            this.filter(
+                message => message.message_type !== MessageType.Normal
+                    || message.sender_id === player_info.get_self_id()
+                    || message.map_id === map_id
+            );
+        }
+    }
+
+    private filter(predicate: (message: ChatMessage) => boolean) {
+        for (const message of this.messages) {
+            if (message)
+                message.element.classList.toggle("hidden", !predicate(message));
+        }
+    }
+
+    private show_all() {
+        for (const message of this.messages) {
+            message.element.classList.remove("hidden");
+        }
     }
 
     private hide_autocomplete() {
@@ -326,6 +370,8 @@ class Chat {
 
 type ChatMessage = {
     sender_id: bigint | null;
+    map_id: string | null;
+    message_type: MessageType;
     element: HTMLElement;
 }
 
