@@ -1,9 +1,6 @@
 use super::{
     area::Area,
-    components::{
-        BounceOffBounds, Bounded, Color, CrossingPortal, Downed, Enemy, Hero, PlayerId,
-        RenderReceiver, Size,
-    },
+    components::*,
     game::{
         TransferRequest, TransferRequestTargetPos, TransferRequestTargetPosX,
         TransferRequestTargetPosY, TransferTarget,
@@ -17,6 +14,12 @@ use crate::{
     },
 };
 use hecs::{With, Without};
+
+pub fn system_increment_timer(area: &mut Area) {
+    for (_, timer) in area.world.query_mut::<&mut Timer>() {
+        timer.0 += area.delta_time;
+    }
+}
 
 pub fn system_update_position(area: &mut Area) {
     for (_, (pos, vel)) in area

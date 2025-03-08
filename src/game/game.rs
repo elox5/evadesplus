@@ -7,6 +7,7 @@ use super::{
 };
 use crate::{
     env::get_env_or_default,
+    game::components::Timer,
     networking::{
         chat::{ChatMessageType, ChatRequest},
         leaderboard::{AreaInfo, LeaderboardState, LeaderboardUpdate},
@@ -15,6 +16,7 @@ use crate::{
 };
 use anyhow::{anyhow, Result};
 use arc_swap::{ArcSwap, Guard};
+use colored::Colorize;
 use hecs::Entity;
 use std::{collections::HashMap, sync::Arc, time::Duration};
 use tokio::{
@@ -161,6 +163,8 @@ impl Game {
         area.time += delta_time;
         area.delta_time = delta_time;
 
+        system_increment_timer(area);
+
         system_update_velocity(area);
         system_update_position(area);
         system_bounds_check(area);
@@ -264,6 +268,22 @@ impl Game {
 
         let _ = area.world.remove_one::<Downed>(player.entity);
 
+        if let Ok(timer) = area.world.query_one_mut::<&mut Timer>(player.entity) {
+            timer.0 = 0.0;
+        }
+
+        let new_player = Player::new(
+            player_id,
+            player.name.clone(),
+            player.entity,
+            player.area_key.clone(),
+        );
+
+        println!("{:?}", new_player.victories);
+
+        let player_arcswap = self.get_player_arcswap(player_id)?;
+        player_arcswap.store(Arc::new(new_player));
+
         Ok(())
     }
 
@@ -325,10 +345,23 @@ impl Game {
         if target_area.flags.victory && !new_player.victories.contains(&target_area.key) {
             new_player.victories.push(target_area.key.clone());
 
-            self.send_server_announcement(format!(
-                "{} just completed {}!",
-                player.name, target_area.full_name
-            ));
+            let world = &mut target_area.world;
+            let timer = world.query_one_mut::<&mut Timer>(entity).ok();
+
+            if let Some(timer) = timer {
+                let minutes = timer.0 / 60.0;
+                let seconds = (timer.0.floor() as u32) % 60;
+
+                self.send_server_announcement(format!(
+                    "{} just completed {} in {:02.0}:{:02.0}!",
+                    player.name, target_area.full_name, minutes, seconds
+                ));
+            } else {
+                let msg =
+                    "Error: Expected Timer component on hero when transferring to victory area"
+                        .red();
+                println!("{msg}");
+            }
         }
 
         let player_arcswap = self.get_player_arcswap(req.player_id)?;

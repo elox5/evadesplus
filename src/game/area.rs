@@ -1,7 +1,7 @@
 use super::{
     components::{
         BounceOffBounds, Bounded, Color, Direction, Enemy, Hero, PlayerId, Position,
-        RenderReceiver, Size, Speed, Velocity,
+        RenderReceiver, Size, Speed, Timer, Velocity,
     },
     game::TransferRequest,
     portal::{Portal, PortalCreationContext, PortalData},
@@ -148,6 +148,7 @@ impl Area {
             PlayerId(id),
             Hero,
             Bounded,
+            Timer(0.0),
         ))
     }
 
