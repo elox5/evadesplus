@@ -28,6 +28,10 @@ class PlayerInfo implements NetworkModule {
         return player_info.players.some(p => p.id === id);
     }
 
+    all_players(): PlayerData[] {
+        return player_info.players;
+    }
+
     get_player_name_span(id: bigint): HTMLSpanElement {
         const player = player_info.players.find(p => p.id === id)!;
         const map = cache.maps.find(m => m.id === player.area_info.map_id)!;

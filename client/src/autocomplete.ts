@@ -1,5 +1,6 @@
 import { try_get_command } from "./commands.js";
 import { cache } from "./cache.js";
+import { player_info } from "./player_info.js";
 
 export type CommandAutocompleteToken = {
     name: string,
@@ -40,7 +41,7 @@ function resolve_token(token: CommandAutocompleteToken, input: string): Autocomp
             matches.unshift(exact_match);
         }
     } else if (token.name === "player") {
-        for (const player of player_info.players) {
+        for (const player of player_info.all_players()) {
             if (player.name.toLowerCase().startsWith(input) && !matches.some(m => m.name == player.name)) {
                 matches.push({ name: player.name, value: `@${player.id}` });
             }
