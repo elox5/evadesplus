@@ -8,6 +8,7 @@ use super::{
 use crate::{
     env::get_env_or_default,
     game::components::Timer,
+    logger::Logger,
     networking::{
         chat::{ChatMessageType, ChatRequest},
         leaderboard::{AreaInfo, LeaderboardState, LeaderboardUpdate},
@@ -16,7 +17,6 @@ use crate::{
 };
 use anyhow::{anyhow, Result};
 use arc_swap::{ArcSwap, Guard};
-use colored::Colorize;
 use hecs::Entity;
 use std::{collections::HashMap, sync::Arc, time::Duration};
 use tokio::{
@@ -115,12 +115,6 @@ impl Game {
             .try_get_area(key.order() as usize)
             .ok_or_else(|| anyhow::anyhow!("Area '{}' not found", key))?;
 
-        println!(
-            "Area {} opened. Loaded areas: {:?}",
-            key,
-            self.areas.keys().collect::<Vec<_>>()
-        );
-
         let area = Area::new(
             template,
             self.transfer_tx.clone(),
@@ -129,6 +123,12 @@ impl Game {
         let area = Arc::new(Mutex::new(area));
         Self::start_update_loop(area.clone(), self.frame_duration);
         self.areas.insert(key.clone(), area.clone());
+
+        Logger::debug(format!(
+            "Area {} opened. Loaded areas: {:?}",
+            key,
+            self.areas.keys().collect::<Vec<_>>()
+        ));
 
         Ok(area)
     }
@@ -144,11 +144,11 @@ impl Game {
     fn close_area(&mut self, key: &AreaKey) {
         self.areas.remove(key);
 
-        println!(
+        Logger::debug(format!(
             "Area {} closed. Loaded areas: {:?}",
             key,
             self.areas.keys().collect::<Vec<_>>()
-        );
+        ));
     }
 
     fn get_spawn_area(&mut self) -> Arc<Mutex<Area>> {
@@ -216,7 +216,12 @@ impl Game {
             AreaInfo::new(&area),
         ));
 
-        println!("Spawning hero '{}' (entity {})", name, entity.id());
+        Logger::info(format!(
+            "Spawning hero '{}' (id @{}, entity {})...",
+            name,
+            id,
+            entity.id()
+        ));
 
         self.send_server_announcement(format!("{} joined the game", name));
     }
@@ -233,7 +238,10 @@ impl Game {
             .leaderboard_tx
             .send(LeaderboardUpdate::remove(player_id));
 
-        println!("Despawning hero '{}'", player.name);
+        Logger::info(format!(
+            "Despawning hero '{}' (id @{})...",
+            player.name, player_id
+        ));
 
         self.send_server_announcement(format!("{} left the game", player.name));
 
@@ -276,8 +284,6 @@ impl Game {
             player.entity,
             player.area_key.clone(),
         );
-
-        println!("{:?}", new_player.victories);
 
         let player_arcswap = self.get_player_arcswap(player_id)?;
         player_arcswap.store(Arc::new(new_player));
@@ -355,10 +361,7 @@ impl Game {
                     player.name, target_area.full_name, minutes, seconds
                 ));
             } else {
-                let msg =
-                    "Error: Expected Timer component on hero when transferring to victory area"
-                        .red();
-                println!("{msg}");
+                Logger::error("Expected Timer component on hero when transferring to victory area");
             }
         }
 
@@ -390,8 +393,6 @@ impl Game {
             .write_all(&target_area.definition_packet())
             .await?;
         response_stream.finish().await?;
-
-        println!("Transfer finished");
 
         Ok(())
     }

@@ -2,6 +2,7 @@ pub mod cache;
 pub mod effects;
 pub mod env;
 pub mod game;
+pub mod logger;
 pub mod networking;
 pub mod parsing;
 pub mod physics;

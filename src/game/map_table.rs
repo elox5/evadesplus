@@ -1,6 +1,7 @@
 use super::map::MapTemplate;
 use crate::{
     env::{get_env_or_default, try_get_env_var},
+    logger::Logger,
     parsing::parse_map,
 };
 use std::{collections::HashMap, ffi::OsStr, sync::LazyLock};
@@ -18,7 +19,7 @@ fn fill_map_ids() -> Vec<String> {
         None => get_all_map_ids(map_path),
     };
 
-    println!("Maps: {maps:?}");
+    Logger::debug(format!("Loaded maps: {maps:?}"));
 
     maps
 }

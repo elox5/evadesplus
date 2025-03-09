@@ -5,6 +5,7 @@ use super::{
 };
 use crate::{
     game::{area::Area, game::Game},
+    logger::Logger,
     physics::vec2::Vec2,
 };
 use anyhow::Result;
@@ -61,18 +62,18 @@ impl WebTransportServer {
     }
 
     pub async fn serve(self) -> Result<()> {
-        println!(
+        Logger::info(format!(
             "WebTransport server listening on https://{}",
             &self.local_addr()
-        );
+        ));
 
         for id in 0.. {
             let incomming_session = self.endpoint.accept().await;
 
-            println!(
-                "Accepting session {id} from {}",
+            Logger::info(format!(
+                "WebTransport: Accepting session @{id} from {}",
                 incomming_session.remote_address()
-            );
+            ));
 
             tokio::spawn(Self::handle_session(
                 incomming_session,
@@ -95,7 +96,9 @@ impl WebTransportServer {
     ) {
         let result = Self::handle_session_impl(session, game.clone(), chat_tx, chat_rx, id).await;
 
-        println!("Session {id} closed with result: {result:?}");
+        Logger::info(format!(
+            "WebTransport: Session @{id} closed with result: {result:?}"
+        ));
 
         Self::finalize_connection(&game, id).await;
     }
@@ -113,7 +116,9 @@ impl WebTransportServer {
 
         let connection = session_request.accept().await?;
 
-        println!("Accepted connection from client {id}. Awaiting streams...");
+        Logger::info(format!(
+            "WebTransport: Accepted connection from client @{id}. Awaiting streams..."
+        ));
 
         let mut lb_rx = game.lock().await.leaderboard_rx.resubscribe();
 
@@ -174,7 +179,7 @@ async fn handle_uni_stream(
         b"CHAT" => {
             let text = std::str::from_utf8(data)?;
 
-            println!("CHAT | [{id}] {text}");
+            Logger::info(format!("Chat: [@{id}] {text}"));
 
             if text.starts_with("/") {
                 let text = &text[1..];
@@ -188,7 +193,9 @@ async fn handle_uni_stream(
                     player_id: id,
                 };
 
-                println!("executing command '{command}'");
+                Logger::info(format!(
+                    "Executing command '{command}' requested by client @{id}..."
+                ));
 
                 let response = handle_command(command, req).await;
 
@@ -220,12 +227,7 @@ async fn handle_uni_stream(
                 let _ = chat_tx.send(request);
             }
         }
-        _ => {
-            println!(
-                "Received unknown packet from client {id} (header: {})",
-                std::str::from_utf8(header).unwrap_or(&format!("{header:x?}").clone())
-            );
-        }
+        _ => handle_unknown_header(header, id),
     }
 
     Ok(())
@@ -260,6 +262,10 @@ async fn handle_bi_stream(
             let valid = validate_player_name(name);
 
             if valid {
+                Logger::info(format!(
+                    "WebTransport: Accepted name '{name}' from client @{id}. Spawning hero..."
+                ));
+
                 let spawn_result = spawn_hero(name, connection, game, id).await;
 
                 match spawn_result {
@@ -278,18 +284,15 @@ async fn handle_bi_stream(
                     }
                 }
             } else {
-                println!("Rejected client {id} for invalid name '{name}'");
+                Logger::info(format!(
+                    "WebTransport: Rejected client @{id} for invalid name '{name}'"
+                ));
                 response.push(1);
             }
 
             send_stream.write_all(&response).await?;
         }
-        _ => {
-            println!(
-                "Received unknown packet from client {id} (header: {})",
-                std::str::from_utf8(header).unwrap_or(&format!("{header:x?}").clone())
-            );
-        }
+        _ => handle_unknown_header(header, id),
     }
 
     send_stream.finish().await?;
@@ -303,7 +306,9 @@ async fn handle_datagram(datagram: Datagram, game: &Arc<Mutex<Game>>, id: u64) {
     let x = f32::from_le_bytes([payload[0], payload[1], payload[2], payload[3]]);
     let y = f32::from_le_bytes([payload[4], payload[5], payload[6], payload[7]]);
 
-    // println!("Received input '({x:.2}, {y:.2})' from client {id}");
+    // Logger::debug(format!(
+    //     "Received input '({x:.2}, {y:.2})' from client {id}"
+    // ));
 
     let mut game = game.lock().await;
     let _ = game.update_player_input(id, Vec2::new(x, y)).await;
@@ -360,8 +365,6 @@ async fn spawn_hero(
     game: &Arc<Mutex<Game>>,
     id: u64,
 ) -> Result<Vec<u8>> {
-    println!("Accepted name '{name}' from client {id}. Spawning hero...");
-
     let mut game = game.lock().await;
     let leaderboard_state = game.leaderboard_state.clone();
 
@@ -388,4 +391,15 @@ async fn send_definition_stream(area: Arc<Mutex<Area>>, connection: &Connection)
     definition_stream.finish().await?;
 
     Ok(())
+}
+
+fn handle_unknown_header(header: &[u8], id: u64) {
+    let header = match std::str::from_utf8(header) {
+        Ok(header) => header,
+        Err(_) => &format!("0x{:x?}", header),
+    };
+
+    Logger::warn(format!(
+        "Received unknown packet from client @{id} (header: {header})"
+    ));
 }

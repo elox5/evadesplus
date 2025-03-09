@@ -33,7 +33,10 @@ impl RenderPacket {
                 let node = nodes.pop().unwrap();
                 let node_size = node.length();
 
-                // println!("Node size: {node_size} bytes. Remaining: {}", nodes.len());
+                // Logger::debug(format!(
+                //     "Node size: {node_size} bytes. Remaining: {}",
+                //     nodes.len()
+                // ));
 
                 if Self::HEADER_SIZE + node_total_size + node_size > max_size {
                     nodes.push(node);
@@ -51,10 +54,10 @@ impl RenderPacket {
                 datagram.extend_from_slice(&node.to_bytes());
             }
 
-            // println!(
+            // Logger::debug(format!(
             //     "Creating datagram. Size: {} bytes. Node count: {node_count}",
             //     datagram.len()
-            // );
+            // ));
 
             datagrams.push(datagram);
         }
@@ -63,7 +66,7 @@ impl RenderPacket {
         datagrams[datagrams_len - 1][8] = 1;
         // the last datagram has to tell the client to render the frame
 
-        // println!("Packet ready. Datagrams sent: {}", datagrams.len());
+        // Logger::debug(format!("Packet ready. Datagrams sent: {}", datagrams.len()));
 
         datagrams
     }

@@ -1,9 +1,9 @@
 use anyhow::Result;
-use colored::Colorize;
 use evadesplus::{
     cache::Cache,
     env::{get_env_or_default, get_env_var},
     game::{game::Game, map_table::get_map_list},
+    logger::Logger,
     networking::webtransport::WebTransportServer,
 };
 use std::{
@@ -50,11 +50,8 @@ async fn main() -> Result<()> {
     let identity = Identity::load_pemfiles(ssl_cert_path, ssl_key_path)
         .await
         .unwrap_or_else(|err| {
-            println!("Failed to load SSL certificate: {err}");
-            let message =
-                "Warning! SSL certificate not found, generating self-signed certificate... (browsers might react oddly)"
-                    .yellow();
-            println!("{message}");
+            Logger::warn(format!("Failed to load SSL certificate: {err}"));
+            Logger::warn("Generating self-signed certificate... (browsers might react oddly)");
 
             Identity::self_signed([&host_ip_string]).unwrap()
         });
@@ -88,13 +85,13 @@ async fn main() -> Result<()> {
 
     tokio::select! {
         _result = warp::serve(http_route).run(http_addr) => {
-            println!("HTTP server closed");
+            Logger::info("HTTP server closed");
         }
         _result = warp::serve(routes).tls().cert(cert).key(key).run(addr) => {
-            println!("HTTPS server closed");
+            Logger::info("HTTPS server closed");
         }
         _result = webtransport_server.serve() => {
-            println!("WebTransport server closed");
+            Logger::info("WebTransport server closed");
         }
     }
 
