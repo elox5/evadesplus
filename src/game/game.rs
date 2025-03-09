@@ -51,11 +51,9 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn new(start_map_id: String) -> Arc<Mutex<Self>> {
+    pub fn new(start_map_id: String, chat_tx: broadcast::Sender<ChatRequest>) -> Arc<Mutex<Self>> {
         let (transfer_tx, mut transfer_rx) = mpsc::channel::<TransferRequest>(8);
         let (leaderboard_tx, leaderboard_rx) = broadcast::channel(8);
-
-        let (chat_tx, _) = broadcast::channel(8);
 
         let mut lb_rx_clone = leaderboard_rx.resubscribe();
 

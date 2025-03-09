@@ -32,6 +32,8 @@ impl WebTransportServer {
     pub fn new(
         identity: Identity,
         game_arc: Arc<Mutex<Game>>,
+        chat_tx: broadcast::Sender<ChatRequest>,
+        chat_rx: broadcast::Receiver<ChatRequest>,
         host_ip: Ipv4Addr,
         port: u16,
     ) -> Result<Self> {
@@ -44,8 +46,6 @@ impl WebTransportServer {
         let endpoint = Endpoint::server(config)?;
 
         let game = game_arc.try_lock().unwrap();
-        let chat_tx = game.chat_tx.clone();
-        let chat_rx = chat_tx.subscribe();
         drop(game);
 
         Ok(Self {

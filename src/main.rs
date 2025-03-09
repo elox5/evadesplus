@@ -10,6 +10,7 @@ use std::{
     net::{IpAddr, SocketAddr},
     str::FromStr,
 };
+use tokio::sync::broadcast;
 use warp::hyper::Uri;
 use warp::Filter;
 use wtransport::Identity;
@@ -42,7 +43,9 @@ async fn main() -> Result<()> {
 
     let start_map_id = get_env_var("START_MAP");
 
-    let game = Game::new(start_map_id);
+    let (chat_tx, chat_rx) = broadcast::channel(8);
+
+    let game = Game::new(start_map_id, chat_tx.clone());
 
     let identity = Identity::load_pemfiles(ssl_cert_path, ssl_key_path)
         .await
@@ -62,7 +65,8 @@ async fn main() -> Result<()> {
     let key = identity.private_key().clone_key();
     let key = key.to_secret_pem();
 
-    let webtransport_server = WebTransportServer::new(identity, game, host_ip, https_port)?;
+    let webtransport_server =
+        WebTransportServer::new(identity, game, chat_tx, chat_rx, host_ip, https_port)?;
 
     let root_route = warp::fs::dir(client_path);
     let cache_route = warp::path("cache").and(warp::get()).then(move || {
