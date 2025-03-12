@@ -7,7 +7,7 @@ edition = "2021"
 anyhow = "1.0.94"
 arc-swap = "1.7.1"
 colored = "3.0.0"
-dotenvy = "0.15.7"
+figment = { version = "0.10.19", features = ["toml"] }
 hecs = "0.10.5"
 rand = "0.8.5"
 serde = { version = "1.0.216", features = ["derive"] }

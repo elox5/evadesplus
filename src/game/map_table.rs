@@ -1,9 +1,5 @@
 use super::map::MapTemplate;
-use crate::{
-    env::{get_env_or_default, try_get_env_var},
-    logger::Logger,
-    parsing::parse_map,
-};
+use crate::{config::CONFIG, logger::Logger, parsing::parse_map};
 use std::{collections::HashMap, ffi::OsStr, sync::LazyLock};
 
 static MAP_IDS: LazyLock<Vec<String>> = LazyLock::new(fill_map_ids);
@@ -11,12 +7,11 @@ static MAP_IDS: LazyLock<Vec<String>> = LazyLock::new(fill_map_ids);
 static MAPS: LazyLock<HashMap<String, MapTemplate>> = LazyLock::new(fill_map_table);
 
 fn fill_map_ids() -> Vec<String> {
-    let map_path = get_env_or_default("MAP_PATH", "maps");
-    let maps = try_get_env_var("MAPS");
+    let config = &CONFIG.maps;
 
-    let maps = match maps {
-        Some(maps) => maps.split(',').into_iter().map(str::to_owned).collect(),
-        None => get_all_map_ids(map_path),
+    let maps = match &config.maps {
+        Some(maps) => maps.iter().map(String::from).collect(),
+        None => get_all_map_ids(&config.path),
     };
 
     Logger::debug(format!("Loaded maps: {maps:?}"));
@@ -25,15 +20,13 @@ fn fill_map_ids() -> Vec<String> {
 }
 
 fn fill_map_table() -> HashMap<String, MapTemplate> {
+    let path = &CONFIG.maps.path;
+
     let maps: HashMap<String, MapTemplate> = MAP_IDS
         .iter()
         .map(|id| {
-            parse_map(&format!(
-                "{}/{}.yaml",
-                get_env_or_default("MAP_PATH", "maps"),
-                id
-            ))
-            .unwrap_or_else(|err| panic!("Could not parse map {id}: {err}"))
+            parse_map(&format!("{path}/{id}.yaml",))
+                .unwrap_or_else(|err| panic!("Could not parse map {id}: {err}"))
         })
         .map(|map| {
             let template = MapTemplate::new(map);
@@ -44,7 +37,7 @@ fn fill_map_table() -> HashMap<String, MapTemplate> {
     maps
 }
 
-fn get_all_map_ids(map_path: String) -> Vec<String> {
+fn get_all_map_ids(map_path: &str) -> Vec<String> {
     std::fs::read_dir(map_path)
         .unwrap()
         .filter_map(|f| f.ok())

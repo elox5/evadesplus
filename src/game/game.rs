@@ -6,7 +6,7 @@ use super::{
     systems::*,
 };
 use crate::{
-    env::get_env_or_default,
+    config::CONFIG,
     game::components::Timer,
     logger::Logger,
     networking::{
@@ -51,20 +51,23 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn new(start_map_id: String, chat_tx: broadcast::Sender<ChatRequest>) -> Arc<Mutex<Self>> {
+    pub fn new(chat_tx: broadcast::Sender<ChatRequest>) -> Arc<Mutex<Self>> {
         let (transfer_tx, mut transfer_rx) = mpsc::channel::<TransferRequest>(8);
         let (leaderboard_tx, leaderboard_rx) = broadcast::channel(8);
 
         let mut lb_rx_clone = leaderboard_rx.resubscribe();
 
-        let framerate: f32 = get_env_or_default("SIMULATION_FRAMERATE", "60")
-            .parse()
-            .expect("Invalid framerate");
+        let config = &CONFIG.game;
 
-        let frame_duration = Duration::from_secs_f32(1.0 / framerate);
+        let frame_duration = Duration::from_secs_f32(1.0 / config.simulation_framerate);
 
-        let spawn_area_key = try_get_map(&start_map_id)
-            .unwrap_or_else(|| panic!("Could not find start map"))
+        let spawn_map_id = config
+            .spawn_map
+            .as_ref()
+            .expect("Spawn map not defined in config file");
+
+        let spawn_area_key = try_get_map(&spawn_map_id)
+            .expect("Could not find start map")
             .get_start_area()
             .key
             .clone();
