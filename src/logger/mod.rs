@@ -1,6 +1,7 @@
 use std::sync::LazyLock;
 
 use colored::{Color, Colorize};
+use serde::{Deserialize, Serialize};
 
 use crate::config::{LogHeaderType, CONFIG};
 
@@ -51,6 +52,14 @@ impl Logger {
     }
 }
 
+#[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+pub enum LogLevel {
+    Debug = 0,
+    Info = 1,
+    Warn = 2,
+    Error = 3,
+}
+
 pub enum LogCategory {
     Info,
     Warning,
@@ -93,6 +102,15 @@ impl LogCategory {
             LogCategory::Chat => Color::BrightGreen,
         }
     }
+
+    fn get_level(&self) -> LogLevel {
+        match self {
+            LogCategory::Warning => LogLevel::Warn,
+            LogCategory::Error => LogLevel::Error,
+            LogCategory::Debug => LogLevel::Debug,
+            _ => LogLevel::Info,
+        }
+    }
 }
 
 struct LogEntry {
@@ -109,6 +127,10 @@ struct ConsoleHandler;
 impl Handler for ConsoleHandler {
     fn handle(&self, entry: &LogEntry) {
         let config = &CONFIG.logger.console;
+
+        if entry.category.get_level() < config.level {
+            return;
+        }
 
         let header = match config.header_type {
             LogHeaderType::None => String::new(),

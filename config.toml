@@ -3,4 +3,4 @@
 spawn_map = "tt"
 
 [logger]
-console = { header_type = "Emoji" }
+console = { level = "Debug", header_type = "Emoji" }

@@ -5,6 +5,8 @@ use figment::{
 use serde::{Deserialize, Serialize};
 use std::{net::Ipv4Addr, sync::LazyLock};
 
+use crate::logger::LogLevel;
+
 pub const CONFIG: LazyLock<Config> = LazyLock::new(init_config);
 
 fn init_config() -> Config {
@@ -90,16 +92,18 @@ pub struct LoggerConfig {
 #[derive(Serialize, Deserialize)]
 pub struct LoggerConsoleConfig {
     pub enabled: bool,
-    pub header_type: LogHeaderType,
+    pub level: LogLevel,
     pub colored: bool,
+    pub header_type: LogHeaderType,
 }
 
 impl Default for LoggerConsoleConfig {
     fn default() -> Self {
         LoggerConsoleConfig {
             enabled: true,
-            header_type: LogHeaderType::Full,
+            level: LogLevel::Info,
             colored: true,
+            header_type: LogHeaderType::Full,
         }
     }
 }
