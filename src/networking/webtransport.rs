@@ -5,7 +5,7 @@ use super::{
 };
 use crate::{
     game::{area::Area, game::Game},
-    logger::Logger,
+    logger::{LogCategory, Logger},
     physics::vec2::Vec2,
 };
 use anyhow::Result;
@@ -70,10 +70,13 @@ impl WebTransportServer {
         for id in 0.. {
             let incomming_session = self.endpoint.accept().await;
 
-            Logger::info(format!(
-                "WebTransport: Accepting session @{id} from {}",
-                incomming_session.remote_address()
-            ));
+            Logger::log(
+                format!(
+                    "Accepting session @{id} from {}",
+                    incomming_session.remote_address()
+                ),
+                LogCategory::Network,
+            );
 
             tokio::spawn(Self::handle_session(
                 incomming_session,
@@ -96,9 +99,10 @@ impl WebTransportServer {
     ) {
         let result = Self::handle_session_impl(session, game.clone(), chat_tx, chat_rx, id).await;
 
-        Logger::info(format!(
-            "WebTransport: Session @{id} closed with result: {result:?}"
-        ));
+        Logger::log(
+            format!("Session @{id} closed with result: {result:?}"),
+            LogCategory::Network,
+        );
 
         Self::finalize_connection(&game, id).await;
     }
@@ -116,9 +120,10 @@ impl WebTransportServer {
 
         let connection = session_request.accept().await?;
 
-        Logger::info(format!(
-            "WebTransport: Accepted connection from client @{id}. Awaiting streams..."
-        ));
+        Logger::log(
+            format!("Accepted connection from client @{id}. Awaiting streams..."),
+            LogCategory::Network,
+        );
 
         let mut lb_rx = game.lock().await.leaderboard_rx.resubscribe();
 
@@ -179,7 +184,7 @@ async fn handle_uni_stream(
         b"CHAT" => {
             let text = std::str::from_utf8(data)?;
 
-            Logger::info(format!("Chat: [@{id}] {text}"));
+            Logger::log(format!("[@{id}] {text}"), LogCategory::Chat);
 
             if text.starts_with("/") {
                 let text = &text[1..];
@@ -262,9 +267,10 @@ async fn handle_bi_stream(
             let valid = validate_player_name(name);
 
             if valid {
-                Logger::info(format!(
-                    "WebTransport: Accepted name '{name}' from client @{id}. Spawning hero..."
-                ));
+                Logger::log(
+                    format!("Accepted name '{name}' from client @{id}. Spawning hero..."),
+                    LogCategory::Network,
+                );
 
                 let spawn_result = spawn_hero(name, connection, game, id).await;
 
@@ -284,9 +290,10 @@ async fn handle_bi_stream(
                     }
                 }
             } else {
-                Logger::info(format!(
-                    "WebTransport: Rejected client @{id} for invalid name '{name}'"
-                ));
+                Logger::log(
+                    format!("Rejected client @{id} for invalid name '{name}'"),
+                    LogCategory::Network,
+                );
                 response.push(1);
             }
 

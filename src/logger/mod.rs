@@ -56,6 +56,8 @@ pub enum LogCategory {
     Warning,
     Error,
     Debug,
+    Network,
+    Chat,
 }
 
 impl LogCategory {
@@ -65,6 +67,8 @@ impl LogCategory {
             LogCategory::Warning => "WARN ",
             LogCategory::Error => "ERROR",
             LogCategory::Debug => "DEBUG",
+            LogCategory::Network => "NET  ",
+            LogCategory::Chat => "CHAT ",
         }
     }
 
@@ -74,6 +78,8 @@ impl LogCategory {
             LogCategory::Warning => "\u{26a0}",
             LogCategory::Error => "\u{1f6a8}",
             LogCategory::Debug => "\u{1F527}",
+            LogCategory::Network => "\u{1F310}",
+            LogCategory::Chat => "\u{1F4AC}",
         }
     }
 
@@ -83,6 +89,8 @@ impl LogCategory {
             LogCategory::Warning => Color::Yellow,
             LogCategory::Error => Color::Red,
             LogCategory::Debug => Color::Cyan,
+            LogCategory::Network => Color::Blue,
+            LogCategory::Chat => Color::BrightGreen,
         }
     }
 }
