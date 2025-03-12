@@ -23,6 +23,8 @@ pub struct Config {
     pub maps: MapConfig,
     #[serde(default)]
     pub game: GameConfig,
+    #[serde(default)]
+    pub logger: LoggerConfig,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -78,4 +80,34 @@ impl Default for GameConfig {
             spawn_map: None,
         }
     }
+}
+
+#[derive(Serialize, Deserialize, Default)]
+pub struct LoggerConfig {
+    pub console: LoggerConsoleConfig,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct LoggerConsoleConfig {
+    pub enabled: bool,
+    pub header_type: LogHeaderType,
+    pub colored: bool,
+}
+
+impl Default for LoggerConsoleConfig {
+    fn default() -> Self {
+        LoggerConsoleConfig {
+            enabled: true,
+            header_type: LogHeaderType::Full,
+            colored: true,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub enum LogHeaderType {
+    None,
+    Emoji,
+    Text,
+    Full,
 }

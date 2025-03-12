@@ -1,3 +1,6 @@
 
 [game]
 spawn_map = "tt"
+
+[logger]
+console = { header_type = "Emoji" }

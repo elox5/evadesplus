@@ -1,6 +1,8 @@
 use std::sync::LazyLock;
 
-use colored::Colorize;
+use colored::{Color, Colorize};
+
+use crate::config::{LogHeaderType, CONFIG};
 
 static LOGGER: LazyLock<Logger> = LazyLock::new(Logger::new);
 
@@ -10,11 +12,13 @@ pub struct Logger {
 
 impl Logger {
     fn new() -> Self {
-        let console_handler = ConsoleHandler { colored: true };
+        let mut handlers: Vec<Box<dyn Handler + Send + Sync>> = Vec::new();
 
-        Self {
-            handlers: vec![Box::new(console_handler)],
+        if CONFIG.logger.console.enabled {
+            handlers.push(Box::new(ConsoleHandler));
         }
+
+        Self { handlers }
     }
 
     fn handle_log(&self, entry: LogEntry) {
@@ -73,12 +77,12 @@ impl LogCategory {
         }
     }
 
-    fn color_message(&self, message: &str) -> String {
+    fn get_text_color(&self) -> Color {
         match self {
-            LogCategory::Info => message.to_owned(),
-            LogCategory::Warning => message.yellow().to_string(),
-            LogCategory::Error => message.red().to_string(),
-            LogCategory::Debug => message.cyan().to_string(),
+            LogCategory::Info => Color::White,
+            LogCategory::Warning => Color::Yellow,
+            LogCategory::Error => Color::Red,
+            LogCategory::Debug => Color::Cyan,
         }
     }
 }
@@ -92,21 +96,27 @@ trait Handler {
     fn handle(&self, entry: &LogEntry);
 }
 
-struct ConsoleHandler {
-    colored: bool,
-}
+struct ConsoleHandler;
 
 impl Handler for ConsoleHandler {
     fn handle(&self, entry: &LogEntry) {
-        let message = format!(
-            "{} {} | {}",
-            entry.category.get_emoji(),
-            entry.category.get_header(),
-            entry.message
-        );
+        let config = &CONFIG.logger.console;
 
-        if self.colored {
-            println!("{}", entry.category.color_message(&message));
+        let header = match config.header_type {
+            LogHeaderType::None => String::new(),
+            LogHeaderType::Emoji => format!("{} |", entry.category.get_emoji()),
+            LogHeaderType::Text => format!("{} |", entry.category.get_header()),
+            LogHeaderType::Full => format!(
+                "{} {} |",
+                entry.category.get_emoji(),
+                entry.category.get_header()
+            ),
+        };
+
+        let message = format!("{} {}", header, entry.message);
+
+        if config.colored {
+            println!("{}", message.color(entry.category.get_text_color()));
         } else {
             println!("{message}");
         }
