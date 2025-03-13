@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.94"
 arc-swap = "1.7.1"
+chrono = "0.4.40"
 colored = "3.0.0"
 figment = { version = "0.10.19", features = ["toml"] }
 hecs = "0.10.5"

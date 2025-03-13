@@ -5,8 +5,6 @@ use figment::{
 use serde::{Deserialize, Serialize};
 use std::{net::Ipv4Addr, sync::LazyLock};
 
-use crate::logger::LogLevel;
-
 pub const CONFIG: LazyLock<Config> = LazyLock::new(init_config);
 
 fn init_config() -> Config {
@@ -84,17 +82,40 @@ impl Default for GameConfig {
     }
 }
 
+#[derive(Serialize, Deserialize)]
+pub enum LogHeaderType {
+    None,
+    Emoji,
+    Text,
+    Full,
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+pub enum LogLevel {
+    Debug = 0,
+    Info = 1,
+    Warn = 2,
+    Error = 3,
+}
+
+#[derive(Serialize, Deserialize)]
+pub enum FileLogMode {
+    Append,
+    Overwrite,
+}
+
 #[derive(Serialize, Deserialize, Default)]
 pub struct LoggerConfig {
     pub console: LoggerConsoleConfig,
+    pub file: LoggerFileConfig,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct LoggerConsoleConfig {
     pub enabled: bool,
     pub level: LogLevel,
-    pub colored: bool,
     pub header_type: LogHeaderType,
+    pub colored: bool,
 }
 
 impl Default for LoggerConsoleConfig {
@@ -102,16 +123,29 @@ impl Default for LoggerConsoleConfig {
         LoggerConsoleConfig {
             enabled: true,
             level: LogLevel::Info,
-            colored: true,
             header_type: LogHeaderType::Full,
+            colored: true,
         }
     }
 }
 
 #[derive(Serialize, Deserialize)]
-pub enum LogHeaderType {
-    None,
-    Emoji,
-    Text,
-    Full,
+pub struct LoggerFileConfig {
+    pub enabled: bool,
+    pub level: LogLevel,
+    pub header_type: LogHeaderType,
+    pub path: String,
+    pub mode: FileLogMode,
+}
+
+impl Default for LoggerFileConfig {
+    fn default() -> Self {
+        LoggerFileConfig {
+            enabled: true,
+            level: LogLevel::Info,
+            header_type: LogHeaderType::Full,
+            path: String::from("logs/log.txt"),
+            mode: FileLogMode::Append,
+        }
+    }
 }

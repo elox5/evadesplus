@@ -2,6 +2,7 @@
 
 Cargo.lock
 TODO
+/logs
 
 .env
 /ssl

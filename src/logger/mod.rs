@@ -1,9 +1,10 @@
-use std::sync::LazyLock;
-
+use crate::config::{FileLogMode, LogHeaderType, LogLevel, CONFIG};
 use colored::{Color, Colorize};
-use serde::{Deserialize, Serialize};
-
-use crate::config::{LogHeaderType, CONFIG};
+use std::{
+    fs::File,
+    io::Write,
+    sync::{Arc, LazyLock, Mutex},
+};
 
 static LOGGER: LazyLock<Logger> = LazyLock::new(Logger::new);
 
@@ -17,6 +18,10 @@ impl Logger {
 
         if CONFIG.logger.console.enabled {
             handlers.push(Box::new(ConsoleHandler));
+        }
+
+        if CONFIG.logger.file.enabled {
+            handlers.push(Box::new(FileHandler::new()));
         }
 
         Self { handlers }
@@ -52,14 +57,6 @@ impl Logger {
     }
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
-pub enum LogLevel {
-    Debug = 0,
-    Info = 1,
-    Warn = 2,
-    Error = 3,
-}
-
 pub enum LogCategory {
     Info,
     Warning,
@@ -83,7 +80,7 @@ impl LogCategory {
 
     fn get_emoji(&self) -> &str {
         match self {
-            LogCategory::Info => "\u{2139}\u{fe0f} ",
+            LogCategory::Info => "\u{2139}\u{fe0f}",
             LogCategory::Warning => "\u{26a0}",
             LogCategory::Error => "\u{1f6a8}",
             LogCategory::Debug => "\u{1F527}",
@@ -118,6 +115,21 @@ struct LogEntry {
     category: LogCategory,
 }
 
+impl LogEntry {
+    fn get_message(&self, header_type: &LogHeaderType) -> String {
+        match header_type {
+            LogHeaderType::None => self.message.clone(),
+            LogHeaderType::Emoji => format!("{} | {}", self.category.get_emoji(), self.message),
+            LogHeaderType::Text => format!("{} | {}", self.category.get_header(), self.message),
+            LogHeaderType::Full => format!(
+                "{} {} | {}",
+                self.category.get_emoji(),
+                self.category.get_header(),
+                self.message
+            ),
+        }
+    }
+}
 trait Handler {
     fn handle(&self, entry: &LogEntry);
 }
@@ -132,23 +144,59 @@ impl Handler for ConsoleHandler {
             return;
         }
 
-        let header = match config.header_type {
-            LogHeaderType::None => String::new(),
-            LogHeaderType::Emoji => format!("{} |", entry.category.get_emoji()),
-            LogHeaderType::Text => format!("{} |", entry.category.get_header()),
-            LogHeaderType::Full => format!(
-                "{} {} |",
-                entry.category.get_emoji(),
-                entry.category.get_header()
-            ),
-        };
-
-        let message = format!("{} {}", header, entry.message);
+        let message = entry.get_message(&config.header_type);
 
         if config.colored {
             println!("{}", message.color(entry.category.get_text_color()));
         } else {
             println!("{message}");
         }
+    }
+}
+
+struct FileHandler {
+    file: Arc<Mutex<File>>,
+}
+
+impl FileHandler {
+    fn new() -> Self {
+        let config = &CONFIG.logger.file;
+
+        let mut file = match config.mode {
+            FileLogMode::Append => File::options().append(true).create(true).open(&config.path),
+            FileLogMode::Overwrite => File::create(&config.path),
+        }
+        .expect("Failed to open log file");
+
+        file.write_all(
+            format!(
+                "---------- Server starting at {} ----------\n",
+                chrono::Local::now()
+            )
+            .as_bytes(),
+        )
+        .expect("Failed to write to log file");
+
+        Self {
+            file: Arc::new(Mutex::new(file)),
+        }
+    }
+}
+
+impl Handler for FileHandler {
+    fn handle(&self, entry: &LogEntry) {
+        let config = &CONFIG.logger.file;
+
+        if entry.category.get_level() < config.level {
+            return;
+        }
+
+        let message = entry.get_message(&config.header_type);
+
+        self.file
+            .lock()
+            .expect("Failed to acquire log file")
+            .write_all(format!("{message}\n").as_bytes())
+            .expect("Failed to write to log file");
     }
 }
