@@ -122,22 +122,30 @@ struct LogEntry {
 }
 
 impl LogEntry {
-    fn get_message(&self, header_type: &LogHeaderType, trim_emoji_space: bool) -> String {
-        match header_type {
-            LogHeaderType::None => self.message.clone(),
-            LogHeaderType::Emoji => format!(
-                "{} | {}",
-                self.category.get_emoji(trim_emoji_space),
-                self.message
-            ),
-            LogHeaderType::Text => format!("{} | {}", self.category.get_header(), self.message),
-            LogHeaderType::Full => format!(
-                "{} {} | {}",
-                self.category.get_emoji(trim_emoji_space),
-                self.category.get_header(),
-                self.message
-            ),
+    fn get_header(&self, header: &LogHeaderType, trim_emoji_space: bool) -> String {
+        match header {
+            LogHeaderType::Emoji => self.category.get_emoji(trim_emoji_space).to_string(),
+            LogHeaderType::Text => self.category.get_header().to_string(),
+            LogHeaderType::Timestamp => chrono::Local::now().format("%H:%M:%S").to_string(),
         }
+    }
+
+    fn get_message(&self, headers: &Vec<LogHeaderType>, trim_emoji_space: bool) -> String {
+        if headers.is_empty() {
+            return self.message.clone();
+        }
+
+        let mut message = String::new();
+
+        for header in headers {
+            message.push_str(&self.get_header(header, trim_emoji_space));
+            message.push_str(" ");
+        }
+
+        message.push_str("| ");
+        message.push_str(&self.message);
+
+        message
     }
 }
 trait Handler {
@@ -154,7 +162,7 @@ impl Handler for ConsoleHandler {
             return;
         }
 
-        let message = entry.get_message(&config.header_type, false);
+        let message = entry.get_message(&config.headers, false);
 
         if config.colored {
             println!("{}", message.color(entry.category.get_text_color()));
@@ -201,7 +209,7 @@ impl Handler for FileHandler {
             return;
         }
 
-        let message = entry.get_message(&config.header_type, true);
+        let message = entry.get_message(&config.headers, true);
 
         self.file
             .lock()

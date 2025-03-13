@@ -84,10 +84,9 @@ impl Default for GameConfig {
 
 #[derive(Serialize, Deserialize)]
 pub enum LogHeaderType {
-    None,
     Emoji,
     Text,
-    Full,
+    Timestamp,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
@@ -114,7 +113,7 @@ pub struct LoggerConfig {
 pub struct LoggerConsoleConfig {
     pub enabled: bool,
     pub level: LogLevel,
-    pub header_type: LogHeaderType,
+    pub headers: Vec<LogHeaderType>,
     pub colored: bool,
 }
 
@@ -123,7 +122,11 @@ impl Default for LoggerConsoleConfig {
         LoggerConsoleConfig {
             enabled: true,
             level: LogLevel::Info,
-            header_type: LogHeaderType::Full,
+            headers: vec![
+                LogHeaderType::Timestamp,
+                LogHeaderType::Emoji,
+                LogHeaderType::Text,
+            ],
             colored: true,
         }
     }
@@ -133,7 +136,7 @@ impl Default for LoggerConsoleConfig {
 pub struct LoggerFileConfig {
     pub enabled: bool,
     pub level: LogLevel,
-    pub header_type: LogHeaderType,
+    pub headers: Vec<LogHeaderType>,
     pub path: String,
     pub mode: FileLogMode,
 }
@@ -143,7 +146,11 @@ impl Default for LoggerFileConfig {
         LoggerFileConfig {
             enabled: true,
             level: LogLevel::Info,
-            header_type: LogHeaderType::Full,
+            headers: vec![
+                LogHeaderType::Timestamp,
+                LogHeaderType::Emoji,
+                LogHeaderType::Text,
+            ],
             path: String::from("logs/log.txt"),
             mode: FileLogMode::Append,
         }
