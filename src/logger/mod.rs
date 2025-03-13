@@ -78,9 +78,15 @@ impl LogCategory {
         }
     }
 
-    fn get_emoji(&self) -> &str {
+    fn get_emoji(&self, trim_space: bool) -> &str {
         match self {
-            LogCategory::Info => "\u{2139}\u{fe0f}",
+            LogCategory::Info => {
+                if trim_space {
+                    "\u{2139}\u{fe0f}"
+                } else {
+                    "\u{2139}\u{fe0f} "
+                }
+            }
             LogCategory::Warning => "\u{26a0}",
             LogCategory::Error => "\u{1f6a8}",
             LogCategory::Debug => "\u{1F527}",
@@ -116,14 +122,18 @@ struct LogEntry {
 }
 
 impl LogEntry {
-    fn get_message(&self, header_type: &LogHeaderType) -> String {
+    fn get_message(&self, header_type: &LogHeaderType, trim_emoji_space: bool) -> String {
         match header_type {
             LogHeaderType::None => self.message.clone(),
-            LogHeaderType::Emoji => format!("{} | {}", self.category.get_emoji(), self.message),
+            LogHeaderType::Emoji => format!(
+                "{} | {}",
+                self.category.get_emoji(trim_emoji_space),
+                self.message
+            ),
             LogHeaderType::Text => format!("{} | {}", self.category.get_header(), self.message),
             LogHeaderType::Full => format!(
                 "{} {} | {}",
-                self.category.get_emoji(),
+                self.category.get_emoji(trim_emoji_space),
                 self.category.get_header(),
                 self.message
             ),
@@ -144,7 +154,7 @@ impl Handler for ConsoleHandler {
             return;
         }
 
-        let message = entry.get_message(&config.header_type);
+        let message = entry.get_message(&config.header_type, false);
 
         if config.colored {
             println!("{}", message.color(entry.category.get_text_color()));
@@ -191,7 +201,7 @@ impl Handler for FileHandler {
             return;
         }
 
-        let message = entry.get_message(&config.header_type);
+        let message = entry.get_message(&config.header_type, true);
 
         self.file
             .lock()
