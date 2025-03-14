@@ -3,7 +3,9 @@ use colored::{Color, Colorize};
 use std::{
     fs::File,
     io::Write,
+    path::PathBuf,
     sync::{Arc, LazyLock, Mutex},
+    time::SystemTime,
 };
 
 static LOGGER: LazyLock<Logger> = LazyLock::new(Logger::new);
@@ -181,14 +183,36 @@ impl FileHandler {
         let config = &CONFIG.logger.file;
 
         let mut file = match config.mode {
-            FileLogMode::Append => File::options().append(true).create(true).open(&config.path),
-            FileLogMode::Overwrite => File::create(&config.path),
+            FileLogMode::Append => {
+                let last_file = Self::find_last_file(&config.path);
+
+                if let Some(last_file) = last_file {
+                    File::options().append(true).create(true).open(last_file)
+                } else {
+                    File::create(&format!("{}/{}.log", config.path, config.filename))
+                }
+            }
+            FileLogMode::Overwrite => {
+                let last_file = Self::find_last_file(&config.path);
+
+                if let Some(last_file) = last_file {
+                    File::options().write(true).truncate(true).open(last_file)
+                } else {
+                    File::create(&format!("{}/{}.log", config.path, config.filename))
+                }
+            }
+            FileLogMode::Create => File::create(&format!(
+                "{}/{}-{}.log",
+                config.path,
+                config.filename,
+                chrono::Local::now().format("%Y-%m-%d-%H-%M-%S")
+            )),
         }
         .expect("Failed to open log file");
 
         file.write_all(
             format!(
-                "---------- Server starting at {} ----------\n",
+                "---------- Server started at {} ----------\n",
                 chrono::Local::now()
             )
             .as_bytes(),
@@ -198,6 +222,24 @@ impl FileHandler {
         Self {
             file: Arc::new(Mutex::new(file)),
         }
+    }
+
+    fn find_last_file(path: &str) -> Option<PathBuf> {
+        let files = std::fs::read_dir(&path).expect("Failed to read log directory");
+
+        let last_file = files
+            .flat_map(|f| f.ok())
+            .map(|f| f.path())
+            .filter(|f| f.is_file() && f.metadata().is_ok())
+            .filter(|f| f.extension().unwrap_or_default() == "log")
+            .max_by_key(|f| {
+                f.metadata()
+                    .unwrap()
+                    .modified()
+                    .unwrap_or_else(|_| SystemTime::now())
+            });
+
+        last_file
     }
 }
 

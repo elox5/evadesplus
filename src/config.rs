@@ -101,6 +101,7 @@ pub enum LogLevel {
 pub enum FileLogMode {
     Append,
     Overwrite,
+    Create,
 }
 
 #[derive(Serialize, Deserialize, Default)]
@@ -138,6 +139,7 @@ pub struct LoggerFileConfig {
     pub level: LogLevel,
     pub headers: Vec<LogHeaderType>,
     pub path: String,
+    pub filename: String,
     pub mode: FileLogMode,
 }
 
@@ -151,7 +153,8 @@ impl Default for LoggerFileConfig {
                 LogHeaderType::Emoji,
                 LogHeaderType::Text,
             ],
-            path: String::from("logs/log.txt"),
+            path: String::from("logs/"),
+            filename: String::from("server"),
             mode: FileLogMode::Append,
         }
     }

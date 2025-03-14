@@ -3,5 +3,5 @@
 spawn_map = "tt"
 
 [logger]
-console = { level = "Debug", header_type = "Emoji" }
+console = { level = "Debug" }
 file = { level = "Debug", mode = "Overwrite" }
