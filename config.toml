@@ -5,3 +5,4 @@ spawn_map = "tt"
 [logger]
 console = { level = "Debug" }
 file = { level = "Debug", mode = "Overwrite" }
+chat = { level = "Warn" }

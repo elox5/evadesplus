@@ -1,5 +1,5 @@
 use super::{
-    chat::{ChatMessageType, ChatRequest},
+    chat::{Chat, ChatMessageType, ChatRequest},
     commands::{handle_command, CommandRequest},
     leaderboard::LeaderboardUpdate,
 };
@@ -33,8 +33,6 @@ impl WebTransportServer {
     pub fn new(
         identity: Identity,
         game_arc: Arc<Mutex<Game>>,
-        chat_tx: broadcast::Sender<ChatRequest>,
-        chat_rx: broadcast::Receiver<ChatRequest>,
         host_ip: Ipv4Addr,
         port: u16,
     ) -> Result<Self> {
@@ -52,8 +50,8 @@ impl WebTransportServer {
         Ok(Self {
             endpoint,
             game: game_arc,
-            chat_tx,
-            chat_rx,
+            chat_tx: Chat::tx(),
+            chat_rx: Chat::rx(),
         })
     }
 

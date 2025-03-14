@@ -4,7 +4,7 @@ use evadesplus::{
     config::CONFIG,
     game::{game::Game, map_table::get_map_list},
     logger::Logger,
-    networking::webtransport::WebTransportServer,
+    networking::{chat::Chat, webtransport::WebTransportServer},
 };
 use std::{
     net::{IpAddr, SocketAddr},
@@ -17,6 +17,9 @@ use wtransport::Identity;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    let (chat_tx, chat_rx) = broadcast::channel(8);
+    Chat::init(chat_tx, chat_rx);
+
     let network_config = &CONFIG.network;
 
     if !std::path::Path::new(&network_config.client_path).is_dir() {
@@ -26,9 +29,7 @@ async fn main() -> Result<()> {
     let cache = Cache::new(get_map_list());
     let cache_hash = cache.get_hash();
 
-    let (chat_tx, chat_rx) = broadcast::channel(8);
-
-    let game = Game::new(chat_tx.clone());
+    let game = Game::new();
 
     let identity =
         Identity::load_pemfiles(&network_config.ssl_cert_path, &network_config.ssl_key_path)
@@ -49,8 +50,6 @@ async fn main() -> Result<()> {
     let webtransport_server = WebTransportServer::new(
         identity,
         game,
-        chat_tx,
-        chat_rx,
         network_config.ip,
         network_config.client_port_https,
     )?;

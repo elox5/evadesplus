@@ -10,7 +10,7 @@ use crate::{
     game::components::Timer,
     logger::Logger,
     networking::{
-        chat::{ChatMessageType, ChatRequest},
+        chat::{Chat, ChatMessageType, ChatRequest},
         leaderboard::{AreaInfo, LeaderboardState, LeaderboardUpdate},
     },
     physics::{rect::Rect, vec2::Vec2},
@@ -51,7 +51,7 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn new(chat_tx: broadcast::Sender<ChatRequest>) -> Arc<Mutex<Self>> {
+    pub fn new() -> Arc<Mutex<Self>> {
         let (transfer_tx, mut transfer_rx) = mpsc::channel::<TransferRequest>(8);
         let (leaderboard_tx, leaderboard_rx) = broadcast::channel(8);
 
@@ -81,7 +81,7 @@ impl Game {
             leaderboard_state: LeaderboardState::new(),
             leaderboard_tx,
             leaderboard_rx,
-            chat_tx,
+            chat_tx: Chat::tx(),
             frame_duration,
         };
 

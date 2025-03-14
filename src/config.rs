@@ -85,11 +85,11 @@ impl Default for GameConfig {
 #[derive(Serialize, Deserialize)]
 pub enum LogHeaderType {
     Emoji,
-    Text,
+    Title,
     Timestamp,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum LogLevel {
     Debug = 0,
     Info = 1,
@@ -108,6 +108,7 @@ pub enum FileLogMode {
 pub struct LoggerConfig {
     pub console: LoggerConsoleConfig,
     pub file: LoggerFileConfig,
+    pub chat: LoggerChatConfig,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -126,7 +127,7 @@ impl Default for LoggerConsoleConfig {
             headers: vec![
                 LogHeaderType::Timestamp,
                 LogHeaderType::Emoji,
-                LogHeaderType::Text,
+                LogHeaderType::Title,
             ],
             colored: true,
         }
@@ -151,11 +152,28 @@ impl Default for LoggerFileConfig {
             headers: vec![
                 LogHeaderType::Timestamp,
                 LogHeaderType::Emoji,
-                LogHeaderType::Text,
+                LogHeaderType::Title,
             ],
             path: String::from("logs/"),
             filename: String::from("server"),
             mode: FileLogMode::Append,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct LoggerChatConfig {
+    pub enabled: bool,
+    pub level: LogLevel,
+    pub headers: Vec<LogHeaderType>,
+}
+
+impl Default for LoggerChatConfig {
+    fn default() -> Self {
+        LoggerChatConfig {
+            enabled: true,
+            level: LogLevel::Warn,
+            headers: vec![LogHeaderType::Title],
         }
     }
 }

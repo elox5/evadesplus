@@ -1,3 +1,29 @@
+use std::sync::{Arc, LazyLock, Mutex};
+use tokio::sync::broadcast;
+
+static CHAT: LazyLock<Arc<Mutex<Option<Chat>>>> = LazyLock::new(|| Arc::new(Mutex::new(None)));
+
+pub struct Chat {
+    pub tx: broadcast::Sender<ChatRequest>,
+    pub rx: broadcast::Receiver<ChatRequest>,
+}
+
+impl Chat {
+    pub fn init(tx: broadcast::Sender<ChatRequest>, rx: broadcast::Receiver<ChatRequest>) {
+        let chat = Self { tx, rx };
+
+        *CHAT.lock().unwrap() = Some(chat);
+    }
+
+    pub fn tx() -> broadcast::Sender<ChatRequest> {
+        CHAT.lock().unwrap().as_ref().unwrap().tx.clone()
+    }
+
+    pub fn rx() -> broadcast::Receiver<ChatRequest> {
+        CHAT.lock().unwrap().as_ref().unwrap().rx.resubscribe()
+    }
+}
+
 #[derive(Clone)]
 pub struct ChatRequest {
     pub message: String,

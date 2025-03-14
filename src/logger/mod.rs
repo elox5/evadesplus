@@ -1,4 +1,7 @@
-use crate::config::{FileLogMode, LogHeaderType, LogLevel, CONFIG};
+use crate::{
+    config::{FileLogMode, LogHeaderType, LogLevel, CONFIG},
+    networking::chat::{Chat, ChatMessageType, ChatRequest},
+};
 use colored::{Color, Colorize};
 use std::{
     fs::File,
@@ -6,7 +9,9 @@ use std::{
     path::PathBuf,
     sync::{Arc, LazyLock, Mutex},
     time::SystemTime,
+    u64,
 };
+use tokio::sync::broadcast;
 
 static LOGGER: LazyLock<Logger> = LazyLock::new(Logger::new);
 
@@ -19,11 +24,15 @@ impl Logger {
         let mut handlers: Vec<Box<dyn Handler + Send + Sync>> = Vec::new();
 
         if CONFIG.logger.console.enabled {
-            handlers.push(Box::new(ConsoleHandler));
+            handlers.push(Box::new(ConsoleHandler::new()));
         }
 
         if CONFIG.logger.file.enabled {
             handlers.push(Box::new(FileHandler::new()));
+        }
+
+        if CONFIG.logger.chat.enabled {
+            handlers.push(Box::new(ChatHandler::new(Chat::tx().clone())));
         }
 
         Self { handlers }
@@ -31,7 +40,9 @@ impl Logger {
 
     fn handle_log(&self, entry: LogEntry) {
         for handler in &self.handlers {
-            handler.handle(&entry);
+            if entry.category.get_level() >= *handler.log_level() {
+                handler.handle(&entry);
+            }
         }
     }
 
@@ -69,7 +80,7 @@ pub enum LogCategory {
 }
 
 impl LogCategory {
-    fn get_header(&self) -> &str {
+    fn get_title(&self) -> &str {
         match self {
             LogCategory::Info => "INFO ",
             LogCategory::Warning => "WARN ",
@@ -127,7 +138,7 @@ impl LogEntry {
     fn get_header(&self, header: &LogHeaderType, trim_emoji_space: bool) -> String {
         match header {
             LogHeaderType::Emoji => self.category.get_emoji(trim_emoji_space).to_string(),
-            LogHeaderType::Text => self.category.get_header().to_string(),
+            LogHeaderType::Title => self.category.get_title().to_string(),
             LogHeaderType::Timestamp => chrono::Local::now().format("%H:%M:%S").to_string(),
         }
     }
@@ -152,17 +163,26 @@ impl LogEntry {
 }
 trait Handler {
     fn handle(&self, entry: &LogEntry);
+    fn log_level(&self) -> &LogLevel;
 }
 
-struct ConsoleHandler;
+struct ConsoleHandler {
+    level: LogLevel,
+}
+
+impl ConsoleHandler {
+    fn new() -> Self {
+        let config = &CONFIG.logger.console;
+
+        Self {
+            level: config.level.clone(),
+        }
+    }
+}
 
 impl Handler for ConsoleHandler {
     fn handle(&self, entry: &LogEntry) {
         let config = &CONFIG.logger.console;
-
-        if entry.category.get_level() < config.level {
-            return;
-        }
 
         let message = entry.get_message(&config.headers, false);
 
@@ -172,10 +192,15 @@ impl Handler for ConsoleHandler {
             println!("{message}");
         }
     }
+
+    fn log_level(&self) -> &LogLevel {
+        &self.level
+    }
 }
 
 struct FileHandler {
     file: Arc<Mutex<File>>,
+    level: LogLevel,
 }
 
 impl FileHandler {
@@ -221,6 +246,7 @@ impl FileHandler {
 
         Self {
             file: Arc::new(Mutex::new(file)),
+            level: config.level.clone(),
         }
     }
 
@@ -247,10 +273,6 @@ impl Handler for FileHandler {
     fn handle(&self, entry: &LogEntry) {
         let config = &CONFIG.logger.file;
 
-        if entry.category.get_level() < config.level {
-            return;
-        }
-
         let message = entry.get_message(&config.headers, true);
 
         self.file
@@ -258,5 +280,53 @@ impl Handler for FileHandler {
             .expect("Failed to acquire log file")
             .write_all(format!("{message}\n").as_bytes())
             .expect("Failed to write to log file");
+    }
+
+    fn log_level(&self) -> &LogLevel {
+        &self.level
+    }
+}
+
+struct ChatHandler {
+    tx: broadcast::Sender<ChatRequest>,
+    level: LogLevel,
+}
+
+impl ChatHandler {
+    fn new(tx: broadcast::Sender<ChatRequest>) -> Self {
+        let config = &CONFIG.logger.chat;
+
+        Self {
+            tx,
+            level: config.level.clone(),
+        }
+    }
+
+    fn get_message_type(entry: &LogEntry) -> ChatMessageType {
+        match entry.category.get_level() {
+            LogLevel::Error => ChatMessageType::ServerError,
+            _ => ChatMessageType::ServerAnnouncement,
+        }
+    }
+}
+
+impl Handler for ChatHandler {
+    fn handle(&self, entry: &LogEntry) {
+        self.tx
+            .send(ChatRequest {
+                sender_name: String::new(),
+                sender_id: u64::MAX,
+                message_type: Self::get_message_type(entry),
+                message: entry.get_message(&CONFIG.logger.chat.headers, true),
+                recipient_filter: None,
+            })
+            .unwrap_or_else(|err| {
+                println!("Failed to send log to player chat: {err}");
+                0
+            });
+    }
+
+    fn log_level(&self) -> &LogLevel {
+        &self.level
     }
 }
