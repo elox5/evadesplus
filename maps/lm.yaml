@@ -256,6 +256,9 @@ areas:
         target: Next
         target_x: !FromLeft 2
         target_y: KeepPlayer
+    flags:
+      victory: true
+      final_victory: true
   - enemy_groups:
       - color: "#777777"
         count: 80

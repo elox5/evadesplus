@@ -24,6 +24,7 @@ pub struct Area {
     pub alias: Option<String>,
 
     pub name: String,
+    pub map_name: String,
     pub full_name: String,
 
     pub background_color: Color,
@@ -66,6 +67,7 @@ impl Area {
             alias: template.alias.clone(),
 
             name: template.name.clone(),
+            map_name: template.map_name.clone(),
             full_name: template.full_name.clone(),
             background_color: template.background_color.clone(),
             text_color: template.text_color.clone(),
@@ -293,6 +295,7 @@ pub struct AreaTemplate {
     pub alias: Option<String>,
 
     pub name: String,
+    pub map_name: String,
     pub full_name: String,
     pub background_color: Color,
     pub text_color: Option<Color>,
@@ -373,6 +376,7 @@ impl AreaTemplate {
             key,
             alias: data.alias,
             name: name.clone(),
+            map_name: ctx.map_name.clone(),
             full_name: format!("{} - {}", ctx.map_name, name),
             background_color,
             text_color,
@@ -431,6 +435,7 @@ pub struct AreaData {
 pub struct AreaFlags {
     pub boss: bool,
     pub victory: bool,
+    pub final_victory: bool,
 }
 
 impl AreaFlags {
@@ -439,10 +444,12 @@ impl AreaFlags {
             Some(data) => Self {
                 boss: data.boss.unwrap_or(false),
                 victory: data.victory.unwrap_or(false),
+                final_victory: data.final_victory.unwrap_or(false),
             },
             None => Self {
                 boss: false,
                 victory: false,
+                final_victory: false,
             },
         }
     }
@@ -452,6 +459,7 @@ impl AreaFlags {
 pub struct AreaFlagsData {
     pub boss: Option<bool>,
     pub victory: Option<bool>,
+    pub final_victory: Option<bool>,
 }
 
 #[derive(Clone)]

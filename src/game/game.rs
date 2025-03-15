@@ -361,7 +361,10 @@ impl Game {
 
                 let announcement_name = match &target_area.route_name {
                     Some(route) => route,
-                    None => &target_area.full_name,
+                    None => match &target_area.flags.final_victory {
+                        true => &target_area.map_name,
+                        false => &target_area.full_name,
+                    },
                 };
 
                 self.send_server_announcement(format!(
