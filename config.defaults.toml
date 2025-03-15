@@ -1,0 +1,32 @@
+
+[network]
+ip = "127.0.0.1"
+client_port_https = 3333
+client_port_http = 3000
+webtransport_port = 3334
+client_path = "client/dist"
+ssl_cert_path = "ssl/cert.pem"
+ssl_key_path = "ssl/key.pem"
+
+[maps]
+path = "maps"
+maps = []
+
+[game]
+simulation_framerate = 60
+
+[logger]
+console = { enabled = true, level = "Info", headers = [
+    "Timestamp",
+    "Emoji",
+    "Title",
+], colored = true }
+
+file = { enabled = true, level = "Info", headers = [
+    "Timestamp",
+    "Emoji",
+    "Title",
+], path = "logs/", filename = "server", mode = "Append" }
+chat = { enabled = true, level = "Warn", headers = ["Title"] }
+
+panic_on_error = false

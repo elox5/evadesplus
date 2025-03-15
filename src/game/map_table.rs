@@ -9,9 +9,9 @@ static MAPS: LazyLock<HashMap<String, MapTemplate>> = LazyLock::new(fill_map_tab
 fn fill_map_ids() -> Vec<String> {
     let config = &CONFIG.maps;
 
-    let maps = match &config.maps {
-        Some(maps) => maps.iter().map(String::from).collect(),
-        None => get_all_map_ids(&config.path),
+    let maps = match &config.maps.len() {
+        0 => get_all_map_ids(&config.path),
+        _ => config.maps.iter().map(String::from).collect(),
     };
 
     Logger::debug(format!("Loaded maps: {maps:?}"));
