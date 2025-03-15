@@ -17,6 +17,7 @@ static LOGGER: LazyLock<Logger> = LazyLock::new(Logger::new);
 
 pub struct Logger {
     handlers: Vec<Box<dyn Handler + Send + Sync>>,
+    panic_on_error: bool,
 }
 
 impl Logger {
@@ -35,7 +36,10 @@ impl Logger {
             handlers.push(Box::new(ChatHandler::new(Chat::tx().clone())));
         }
 
-        Self { handlers }
+        Self {
+            handlers,
+            panic_on_error: CONFIG.logger.panic_on_error,
+        }
     }
 
     fn handle_log(&self, entry: LogEntry) {
@@ -43,6 +47,10 @@ impl Logger {
             if entry.category.get_level() >= *handler.log_level() {
                 handler.handle(&entry);
             }
+        }
+
+        if self.panic_on_error && entry.category.get_level() >= LogLevel::Error {
+            panic!("Program encountered an error: {}", entry.message);
         }
     }
 

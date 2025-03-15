@@ -109,6 +109,7 @@ pub struct LoggerConfig {
     pub console: LoggerConsoleConfig,
     pub file: LoggerFileConfig,
     pub chat: LoggerChatConfig,
+    pub panic_on_error: bool,
 }
 
 #[derive(Serialize, Deserialize)]
