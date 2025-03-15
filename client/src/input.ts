@@ -2,6 +2,7 @@ import { chat } from "./chat.js";
 import { try_execute_command } from "./commands.js";
 import { network_controller, NetworkController, NetworkModule } from "./network_controller.js";
 import { render_settings } from "./rendering.js";
+import { settings } from "./settings.js";
 import { Vector2 } from "./types.js";
 
 const canvas_container = document.querySelector("#canvas-container") as HTMLDivElement;
@@ -10,10 +11,6 @@ const settings_popover = document.querySelector("#settings-popover") as HTMLDivE
 export let input = {
     x: 0,
     y: 0,
-}
-
-export let input_settings = {
-    mouse_input_range: 4,
 }
 
 let keyboard_pressed = {
@@ -27,6 +24,8 @@ let mouse_input: Vector2 = {
     x: 0,
     y: 0,
 }
+
+let range = 4;
 
 let mouse_input_active = false;
 
@@ -73,6 +72,9 @@ function get_keyboard_input() {
 }
 
 function setup_input() {
+    range = settings.get("gameplay.mouse_input_range");
+    settings.bind("gameplay.mouse_input_range", v => range = v);
+
     window.onkeydown = (e) => {
         if (chat.focused()) return;
         if (settings_popover.matches(":popover-open")) return;
@@ -166,7 +168,6 @@ export function lock_mouse_input() {
 function calculate_mouse_input(e: MouseEvent) {
     const centerX = window.innerWidth / 2;
     const centerY = window.innerHeight / 2;
-    const range = input_settings.mouse_input_range;
 
     let delta = {
         x: (e.clientX - centerX) / render_settings.tile_size / range,

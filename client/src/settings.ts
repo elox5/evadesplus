@@ -1,10 +1,10 @@
 
 
 class Settings {
-    private sections: SettingsSection[] = [];
+    private sections: Section[] = [];
     private panel: HTMLDivElement;
 
-    constructor(sections: SettingsSection[]) {
+    constructor(sections: Section[]) {
         this.sections = sections;
 
         this.panel = document.querySelector("#settings-panel") as HTMLDivElement;
@@ -37,11 +37,37 @@ class Settings {
 
                     checkbox.onchange = () => {
                         setting.value = checkbox.checked;
-                        setting.onchange?.(setting.value);
+
+                        if (setting.handlers !== undefined) {
+                            for (const handler of setting.handlers) {
+                                handler(setting.value);
+                            }
+                        }
                     }
 
                     element.appendChild(checkbox);
-                } else {
+                }
+                else if (typeof setting.value === "number") {
+                    const slider = document.createElement("input");
+                    slider.type = "range";
+                    slider.min = setting.options?.slider_min?.toString() ?? "0";
+                    slider.max = setting.options?.slider_max?.toString() ?? "100";
+                    slider.step = setting.options?.slider_step?.toString() ?? "1";
+                    slider.value = setting.value.toString();
+
+                    slider.oninput = () => {
+                        setting.value = parseFloat(slider.value);
+
+                        if (setting.handlers !== undefined) {
+                            for (const handler of setting.handlers) {
+                                handler(setting.value);
+                            }
+                        }
+                    }
+
+                    element.appendChild(slider);
+                }
+                else {
                     const value = document.createElement("span");
                     value.textContent = setting.value.toString();
                     element.appendChild(value);
@@ -54,36 +80,92 @@ class Settings {
         }
     }
 
-    get_setting(name: string) {
-        return this.sections.flatMap(section => section.settings).find(setting => setting.name === name);
+    private get_setting(id: string): Setting {
+        const [section_id, setting_id] = id.split(".");
+
+        const section = this.sections.find(s => s.id === section_id);
+        const setting = section?.settings.find(s => s.id === setting_id);
+
+        if (setting === undefined) {
+            throw new Error(`Setting ${id} not found`);
+        }
+
+        return setting;
+    }
+
+    get<T>(id: string): T {
+        return this.get_setting(id).value as T;
+    }
+
+    bind(id: string, handler: (v: any) => void) {
+        const setting = this.get_setting(id);
+
+        if (setting.handlers === undefined) {
+            setting.handlers = [handler];
+        } else {
+            setting.handlers.push(handler);
+        }
     }
 }
 
-type SettingsSection = {
+type Section = {
+    id: string,
     name: string,
     settings: Setting[],
 }
 
 type Setting = {
+    id: string,
     name: string,
+    type: "boolean" | "number",
     value: any,
     hotkey?: string,
-    onchange?: (v: any) => void
+    handlers?: ((v: any) => void)[],
+    options?: {
+        slider_min?: number,
+        slider_max?: number,
+        slider_step?: number
+    }
 }
-
-const minimap = document.querySelector("#minimap-container") as HTMLDivElement;
-const leaderboard = document.querySelector("#leaderboard") as HTMLDivElement;
-const chat = document.querySelector("#chat") as HTMLDivElement;
-const metrics = document.querySelector("#metrics-container") as HTMLDivElement;
 
 export const settings = new Settings([
     {
+        id: "hud",
         name: "HUD",
         settings: [
-            { name: "Show Minimap", value: true, hotkey: "m", onchange: (v) => minimap.classList.toggle("hidden", !v) },
-            { name: "Show Leaderboard", value: true, hotkey: "b", onchange: (v) => leaderboard.classList.toggle("hidden", !v) },
-            { name: "Show Chat", value: true, hotkey: "v", onchange: (v) => chat.classList.toggle("hidden", !v) },
-            { name: "Show Metrics", value: true, hotkey: "n", onchange: (v) => metrics.classList.toggle("hidden", !v) },
+            { id: "minimap", name: "Show Minimap", type: "boolean", value: true, hotkey: "m" },
+            { id: "leaderboard", name: "Show Leaderboard", type: "boolean", value: true, hotkey: "b" },
+            { id: "chat", name: "Show Chat", type: "boolean", value: true, hotkey: "v" },
+            { id: "metrics", name: "Show Metrics", type: "boolean", value: true, hotkey: "n" },
+        ],
+    },
+    {
+        id: "gameplay",
+        name: "Gameplay",
+        settings: [
+            {
+                id: "mouse_input_range",
+                name: "Mouse Input Range",
+                type: "number",
+                value: 4,
+                options: {
+                    slider_min: 1, slider_max: 8,
+                    slider_step: 0.1
+                }
+            },
+        ],
+    },
+    {
+        id: "visual",
+        name: "Visual",
+        settings: [
+            {
+                id: "input_overlay",
+                name: "Show Input Overlay",
+                type: "boolean",
+                value: false,
+                hotkey: "i",
+            }
         ],
     },
 ]);

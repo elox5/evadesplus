@@ -1,4 +1,4 @@
-import { input, input_settings } from "./input.js";
+import { input } from "./input.js";
 import Canvas from "./canvas.js";
 import { report_frame_start, report_render_end, report_render_start } from "./metrics.js";
 import { Portal, Rect, RenderNode, Vector2 } from "./types.js";
@@ -6,6 +6,7 @@ import { network_controller, NetworkModule } from "./network_controller.js";
 import { BinaryReader } from "./binary_reader.js";
 import { cache } from "./cache.js";
 import { player_info } from "./player_info.js";
+import { settings } from "./settings.js";
 
 export let render_settings = {
     tile_size: 40,
@@ -288,12 +289,16 @@ function render_frame(offset: Vector2, nodes: RenderNode[]) {
         }
     }
 
-    let range = input_settings.mouse_input_range;
-    draw_line(main_canvas, offset.x, offset.y, offset.x + (input.x * range), offset.y + (input.y * range), "yellow", 2);
-    draw_circle(main_canvas, offset.x, offset.y, range, {
-        outline_color: "orange",
-        outline_width: 2
-    });
+    if (settings.get("visual.input_overlay")) {
+        const range = settings.get<number>("gameplay.mouse_input_range");
+
+        draw_line(main_canvas, offset.x, offset.y, offset.x + (input.x * range), offset.y + (input.y * range), "yellow", 2);
+        draw_circle(main_canvas, offset.x, offset.y, range, {
+            outline_color: "orange",
+            outline_width: 2
+        });
+    }
+
 
     report_render_end();
 }
