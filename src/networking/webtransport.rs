@@ -97,10 +97,17 @@ impl WebTransportServer {
     ) {
         let result = Self::handle_session_impl(session, game.clone(), chat_tx, chat_rx, id).await;
 
-        Logger::log(
-            format!("Session @{id} closed with result: {result:?}"),
-            LogCategory::Network,
-        );
+        let category = match &result {
+            Ok(_) => LogCategory::Network,
+            Err(_) => LogCategory::Error,
+        };
+
+        let message = match result {
+            Ok(c) => format!("Session @{id} - {c}"),
+            Err(e) => format!("Session @{id} closed due to error: {e:?}"),
+        };
+
+        Logger::log(message, category);
 
         Self::finalize_connection(&game, id).await;
     }
@@ -114,9 +121,15 @@ impl WebTransportServer {
     ) -> Result<ConnectionError> {
         let mut buffer = vec![0; 65536].into_boxed_slice();
 
-        let session_request = session.await?;
+        let session_request = match session.await {
+            Ok(session_request) => session_request,
+            Err(c) => return Ok(c),
+        };
 
-        let connection = session_request.accept().await?;
+        let connection = match session_request.accept().await {
+            Ok(connection) => connection,
+            Err(c) => return Ok(c),
+        };
 
         Logger::log(
             format!("Accepted connection from client @{id}. Awaiting streams..."),
