@@ -105,6 +105,8 @@ class Settings {
         } else {
             setting.handlers.push(handler);
         }
+
+        handler(setting.value);
     }
 }
 
@@ -129,16 +131,6 @@ type Setting = {
 }
 
 export const settings = new Settings([
-    {
-        id: "hud",
-        name: "HUD",
-        settings: [
-            { id: "minimap", name: "Show Minimap", type: "boolean", value: true, hotkey: "m" },
-            { id: "leaderboard", name: "Show Leaderboard", type: "boolean", value: true, hotkey: "b" },
-            { id: "chat", name: "Show Chat", type: "boolean", value: true, hotkey: "v" },
-            { id: "metrics", name: "Show Metrics", type: "boolean", value: true, hotkey: "n" },
-        ],
-    },
     {
         id: "gameplay",
         name: "Gameplay",
@@ -212,6 +204,26 @@ export const settings = new Settings([
                     slider_step: 0.1
                 }
             },
+        ],
+    },
+    {
+        id: "hud",
+        name: "HUD",
+        settings: [
+            { id: "minimap", name: "Show Minimap", type: "boolean", value: true, hotkey: "m" },
+            { id: "leaderboard", name: "Show Leaderboard", type: "boolean", value: true, hotkey: "b" },
+            { id: "chat", name: "Show Chat", type: "boolean", value: true, hotkey: "v" },
+            { id: "metrics", name: "Show Metrics", type: "boolean", value: true, hotkey: "n" },
+        ],
+    },
+    {
+        id: "metrics",
+        name: "Metrics",
+        settings: [
+            { id: "fps_enabled", name: "Show FPS", type: "boolean", value: true },
+            { id: "ping_enabled", name: "Show Ping", type: "boolean", value: true },
+            { id: "bandwidth_enabled", name: "Show Bandwidth", type: "boolean", value: true },
+            { id: "render_time_enabled", name: "Show Render Time", type: "boolean", value: false },
         ],
     },
 ]);

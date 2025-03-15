@@ -1,10 +1,16 @@
 import { BinaryReader } from "./binary_reader.js";
 import { network_controller, NetworkController, NetworkModule } from "./network_controller.js";
+import { settings } from "./settings.js";
 
-const pingMeter = document.getElementById("ping-meter") as HTMLSpanElement;
-const bandwidthMeter = document.getElementById("bandwidth-meter") as HTMLSpanElement;
-const fpsMeter = document.getElementById("fps-meter") as HTMLSpanElement;
-const renderMsMeter = document.getElementById("render-ms-meter") as HTMLSpanElement;
+const fps_container = document.getElementById("fps-container") as HTMLDivElement;
+const ping_container = document.getElementById("ping-container") as HTMLDivElement;
+const bandwidth_container = document.getElementById("bandwidth-container") as HTMLDivElement;
+const render_time_container = document.getElementById("render-time-container") as HTMLDivElement;
+
+const fps_meter = document.getElementById("fps-meter") as HTMLSpanElement;
+const ping_meter = document.getElementById("ping-meter") as HTMLSpanElement;
+const bandwidth_meter = document.getElementById("bandwidth-meter") as HTMLSpanElement;
+const render_time_meter = document.getElementById("render-time-meter") as HTMLSpanElement;
 
 type ColorLevel = {
     threshold: number,
@@ -64,7 +70,16 @@ type BandwidthEntry = {
 
 let bandwidth_queue: BandwidthEntry[] = [];
 
+const enabled_flags = {
+    fps: true,
+    ping: true,
+    bandwidth: true,
+    render_time: true,
+}
+
 export function report_render_start() {
+    if (!enabled_flags.render_time) return;
+
     render_report_counter++;
 
     if (render_report_counter % metric_settings.render_report_frequency === 0) {
@@ -73,13 +88,17 @@ export function report_render_start() {
 }
 
 export function report_render_end() {
+    if (!enabled_flags.render_time) return;
+
     if (render_report_counter % metric_settings.render_report_frequency === 0) {
         const renderTime = performance.now() - render_start_time;
-        renderMsMeter.textContent = renderTime.toFixed(2);
+        render_time_meter.textContent = renderTime.toFixed(2);
     }
 }
 
 export function report_frame_start() {
+    if (!enabled_flags.fps) return;
+
     const frameTime = performance.now();
 
     frame_time_queue.push(frameTime);
@@ -90,9 +109,9 @@ export function report_frame_start() {
 
     let fps = frame_time_queue.length / (performance.now() - frame_time_queue[0]) * 1000;
 
-    fpsMeter.textContent = fps.toFixed(0);
+    fps_meter.textContent = fps.toFixed(0);
 
-    set_meter_color(fpsMeter, fps, metric_settings.fps_color_map);
+    set_meter_color(fps_meter, fps, metric_settings.fps_color_map);
 }
 
 export function start_ping() {
@@ -111,6 +130,8 @@ function set_meter_color(meter: HTMLSpanElement, value: number, color_map: Color
 }
 
 export function report_bandwidth(bytes: number) {
+    if (!enabled_flags.bandwidth) return;
+
     const entry = {
         time: performance.now(),
         bytes
@@ -132,7 +153,7 @@ export function report_bandwidth(bytes: number) {
 
     const sum_bits = sum_bytes * 8;
 
-    bandwidthMeter.textContent = (sum_bits / time_delta).toFixed(0); // (sum_bits / 1000 [kb]) / (time_delta / 1000 [s]) = sum_bits / time_delta
+    bandwidth_meter.textContent = (sum_bits / time_delta).toFixed(0); // (sum_bits / 1000 [kb]) / (time_delta / 1000 [s]) = sum_bits / time_delta
 }
 
 export class PingModule implements NetworkModule {
@@ -143,6 +164,7 @@ export class PingModule implements NetworkModule {
 
             this.interval = setInterval(async () => {
                 if (controller.is_closed()) return;
+                if (!enabled_flags.ping) return;
 
                 start_ping();
 
@@ -168,15 +190,40 @@ export class PingModule implements NetworkModule {
         once: false,
     }
 
+    on_game_load = {
+        callback: () => {
+            settings.bind("metrics.fps_enabled", v => {
+                enabled_flags.fps = v;
+                fps_container.classList.toggle("hidden", !v);
+            });
+
+            settings.bind("metrics.ping_enabled", v => {
+                enabled_flags.ping = v;
+                ping_container.classList.toggle("hidden", !v);
+            });
+
+            settings.bind("metrics.bandwidth_enabled", v => {
+                enabled_flags.bandwidth = v;
+                bandwidth_container.classList.toggle("hidden", !v);
+            });
+
+            settings.bind("metrics.render_time_enabled", v => {
+                enabled_flags.render_time = v;
+                render_time_container.classList.toggle("hidden", !v);
+            });
+        },
+        once: true,
+    };
+
     cleanup() {
         clearInterval(this.interval);
     }
 
     private report_ping() {
         const pingTime = performance.now() - ping_start_time;
-        pingMeter.textContent = pingTime.toFixed(2);
+        ping_meter.textContent = pingTime.toFixed(2);
 
-        set_meter_color(pingMeter, pingTime, metric_settings.ping_color_levels);
+        set_meter_color(ping_meter, pingTime, metric_settings.ping_color_levels);
     }
 }
 
