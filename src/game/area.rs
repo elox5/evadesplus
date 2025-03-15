@@ -31,6 +31,7 @@ pub struct Area {
     pub message: Option<AreaMessage>,
 
     pub vp: Option<u8>,
+    pub route_name: Option<String>,
 
     pub world: World,
 
@@ -71,6 +72,7 @@ impl Area {
             message: template.message.clone(),
 
             vp: template.vp,
+            route_name: template.route_name.clone(),
 
             bounds: Rect::new(0.0, 0.0, template.width, template.height),
             spawn_pos: template.spawn_pos,
@@ -297,6 +299,7 @@ pub struct AreaTemplate {
     pub message: Option<AreaMessage>,
 
     pub vp: Option<u8>,
+    pub route_name: Option<String>,
 
     pub width: f32,
     pub height: f32,
@@ -375,6 +378,9 @@ impl AreaTemplate {
             text_color,
             message,
             vp: data.vp,
+            route_name: data
+                .route_name
+                .map(|route| format!("{} - {}", ctx.map_name, route)),
             width,
             height,
             spawn_pos: data
@@ -405,6 +411,7 @@ pub struct AreaData {
     pub message_config: Option<MessageConfigData>,
 
     pub vp: Option<u8>,
+    pub route_name: Option<String>,
 
     pub width: Option<f32>,
     pub height: Option<f32>,

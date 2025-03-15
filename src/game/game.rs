@@ -359,9 +359,14 @@ impl Game {
                 let minutes = timer.0 / 60.0;
                 let seconds = (timer.0.floor() as u32) % 60;
 
+                let announcement_name = match &target_area.route_name {
+                    Some(route) => route,
+                    None => &target_area.full_name,
+                };
+
                 self.send_server_announcement(format!(
                     "{} just completed {} in {:02.0}:{:02.0}!",
-                    player.name, target_area.full_name, minutes, seconds
+                    player.name, announcement_name, minutes, seconds
                 ));
             } else {
                 Logger::error("Expected Timer component on hero when transferring to victory area");

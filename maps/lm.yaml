@@ -36,6 +36,7 @@ areas:
         target_y: KeepPlayer
     flags:
       victory: true
+    route_name: Test Route
   - enemy_groups:
       - color: "#777777"
         count: 60
