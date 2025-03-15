@@ -66,9 +66,7 @@
 }
 
 .chat-entry.server-announcement {
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    text-align: center;
 
     background-color: #ffbb0077;
 }
