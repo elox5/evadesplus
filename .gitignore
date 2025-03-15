@@ -1,8 +1,10 @@
 /target
 
 Cargo.lock
+
 TODO
 /logs
+config.toml
 
 .env
 /ssl
