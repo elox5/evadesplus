@@ -1,11 +1,17 @@
 
 
 class Settings {
-    private sections: Section[] = [];
+    private settings: Setting[] = [];
     private panel: HTMLDivElement;
 
     constructor(sections: Section[]) {
-        this.sections = sections;
+        for (const section of sections) {
+            for (const setting of section.settings) {
+                setting.id = `${section.id}.${setting.id}`;
+            }
+        }
+
+        this.settings = sections.flatMap(s => s.settings);
 
         this.panel = document.querySelector("#settings-panel") as HTMLDivElement;
 
@@ -13,7 +19,7 @@ class Settings {
         header.textContent = "Settings";
         this.panel.appendChild(header);
 
-        for (const section of this.sections) {
+        for (const section of sections) {
             const section_element = document.createElement("section");
             section_element.classList.add("settings-section");
 
@@ -81,10 +87,7 @@ class Settings {
     }
 
     private get_setting(id: string): Setting {
-        const [section_id, setting_id] = id.split(".");
-
-        const section = this.sections.find(s => s.id === section_id);
-        const setting = section?.settings.find(s => s.id === setting_id);
+        const setting = this.settings.find(s => s.id === id);
 
         if (setting === undefined) {
             throw new Error(`Setting ${id} not found`);
@@ -159,13 +162,13 @@ export const settings = new Settings([
                 hotkey: "i",
             },
             {
-                id: "downed_radar_enabled",
+                id: "downed_radar.enabled",
                 name: "Show Downed Radar",
                 type: "boolean",
                 value: true,
             },
             {
-                id: "downed_radar_distance",
+                id: "downed_radar.distance",
                 name: "Downed Radar Distance",
                 type: "number",
                 value: 7,
@@ -175,7 +178,7 @@ export const settings = new Settings([
                 }
             },
             {
-                id: "downed_radar_cutoff_distance",
+                id: "downed_radar.cutoff_distance",
                 name: "Downed Radar Cutoff Distance",
                 type: "number",
                 value: 10,
@@ -185,7 +188,7 @@ export const settings = new Settings([
                 }
             },
             {
-                id: "downed_radar_opacity",
+                id: "downed_radar.opacity",
                 name: "Downed Radar Opacity",
                 type: "number",
                 value: 0.5,
@@ -195,7 +198,7 @@ export const settings = new Settings([
                 }
             },
             {
-                id: "downed_radar_size",
+                id: "downed_radar.size",
                 name: "Downed Radar Size",
                 type: "number",
                 value: 0.7,

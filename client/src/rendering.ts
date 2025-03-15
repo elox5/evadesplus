@@ -266,7 +266,7 @@ function render_frame(offset: Vector2, nodes: RenderNode[]) {
             fill_color: own_hero.color,
         });
 
-        if (settings.get("visual.downed_radar_enabled")) {
+        if (settings.get("visual.downed_radar.enabled")) {
             const closest_downed_hero = heroes.filter(h => h.downed && h.player_id !== self_id).sort((a, b) => {
                 const a_dist_sq = (a.x - own_hero.x) * (a.x - own_hero.x) + (a.y - own_hero.y) * (a.y - own_hero.y);
                 const b_dist_sq = (b.x - own_hero.x) * (b.x - own_hero.x) + (b.y - own_hero.y) * (b.y - own_hero.y);
@@ -324,7 +324,7 @@ function draw_downed_radar(source: Vector2, target: Vector2) {
 
     const dist = Math.sqrt(diff.x * diff.x + diff.y * diff.y);
 
-    if (dist < settings.get<number>("visual.downed_radar_cutoff_distance")) {
+    if (dist < settings.get<number>("visual.downed_radar.cutoff_distance")) {
         return;
     }
 
@@ -333,14 +333,14 @@ function draw_downed_radar(source: Vector2, target: Vector2) {
         y: diff.y / dist
     };
 
-    const target_distance = settings.get<number>("visual.downed_radar_distance");
+    const target_distance = settings.get<number>("visual.downed_radar.distance");
 
     const center = {
         x: source.x + dir.x * target_distance,
         y: source.y + dir.y * target_distance,
     };
 
-    const r = settings.get<number>("visual.downed_radar_size");
+    const r = settings.get<number>("visual.downed_radar.size");
     const theta = Math.PI / 180 * WING_ANGLE;
 
     const p1 = {
@@ -358,7 +358,7 @@ function draw_downed_radar(source: Vector2, target: Vector2) {
         y: center.y + (dir.x * Math.sin(-theta) + dir.y * Math.cos(-theta)) * r
     };
 
-    const opacity = settings.get<number>("visual.downed_radar_opacity");
+    const opacity = settings.get<number>("visual.downed_radar.opacity");
 
     draw_polygon(main_canvas, [p1, p2, p3], {
         fill_color: `rgba(255, 0, 0, ${opacity})`,
