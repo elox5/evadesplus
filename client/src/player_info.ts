@@ -60,8 +60,6 @@ class PlayerInfo implements NetworkModule {
             downed,
         });
 
-        console.log(player_info.players);
-
         for (const handler of this.on_player_add) {
             handler(player_info.players[player_info.players.length - 1]);
         }
@@ -74,8 +72,6 @@ class PlayerInfo implements NetworkModule {
             player_info.players.findIndex(p => p.id === player_id), 1
         );
 
-        console.log(player_info.players);
-
         for (const handler of this.on_player_remove) {
             handler(removed_player);
         }
@@ -86,8 +82,6 @@ class PlayerInfo implements NetworkModule {
         const player = this.get_player(player_id)!;
 
         player.area_info = this.parse_area_info(data);
-
-        console.log(player_info.players);
 
         for (const handler of this.on_player_transfer) {
             handler(player);
@@ -100,8 +94,6 @@ class PlayerInfo implements NetworkModule {
 
         const player = this.get_player(player_id)!;
         player.downed = downed;
-
-        console.log(player_info.players);
 
         for (const handler of this.on_player_set_downed) {
             handler(player);
