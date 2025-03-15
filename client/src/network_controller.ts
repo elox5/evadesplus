@@ -54,9 +54,12 @@ export class NetworkController {
             return "already_connected";
         }
 
-        const url = window.location.origin;
+        const host = window.location.hostname;
+        const port = await fetch("/wt_port").then(res => res.text()).then(port => parseInt(port));
 
-        this.transport = new WebTransport(url);
+        const target = `https://${host}:${port}`;
+
+        this.transport = new WebTransport(target);
 
         this.closed = false;
 
@@ -64,7 +67,7 @@ export class NetworkController {
             this.closed = true;
         })
 
-        console.log(`Establishing WebTransport connection at ${url}...`);
+        console.log(`Establishing WebTransport connection at ${host}...`);
 
         await this.transport.ready;
 

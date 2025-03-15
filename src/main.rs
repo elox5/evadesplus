@@ -51,7 +51,7 @@ async fn main() -> Result<()> {
         identity,
         game,
         network_config.ip,
-        network_config.client_port_https,
+        network_config.webtransport_port,
     )?;
 
     let root_route = warp::fs::dir(network_config.client_path.clone());
@@ -63,9 +63,15 @@ async fn main() -> Result<()> {
         let hash = cache_hash.clone();
         async move { warp::reply::json(&hash) }
     });
+    let wt_port_route = warp::path("wt_port").and(warp::get()).then(move || {
+        let port = CONFIG.network.webtransport_port;
+        async move { warp::reply::json(&port) }
+    });
 
-    let routes = root_route.or(cache_route).or(cache_hash_route);
-    let addr = webtransport_server.local_addr();
+    let routes = root_route
+        .or(cache_route)
+        .or(cache_hash_route)
+        .or(wt_port_route);
 
     let http_redirect_uri = Uri::from_str(&format!(
         "https://{}:{}",
@@ -73,6 +79,11 @@ async fn main() -> Result<()> {
     ))?;
 
     let http_route = warp::any().map(move || warp::redirect(http_redirect_uri.clone()));
+
+    let https_addr = SocketAddr::new(
+        IpAddr::V4(network_config.ip),
+        network_config.client_port_https,
+    );
     let http_addr = SocketAddr::new(
         IpAddr::V4(network_config.ip),
         network_config.client_port_http,
@@ -82,7 +93,7 @@ async fn main() -> Result<()> {
         _result = warp::serve(http_route).run(http_addr) => {
             Logger::info("HTTP server closed");
         }
-        _result = warp::serve(routes).tls().cert(cert).key(key).run(addr) => {
+        _result = warp::serve(routes).tls().cert(cert).key(key).run(https_addr) => {
             Logger::info("HTTPS server closed");
         }
         _result = webtransport_server.serve() => {
