@@ -1,8 +1,4 @@
 #leaderboard {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-
     width: 300px;
     min-height: 50px;
     height: fit-content;

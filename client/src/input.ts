@@ -4,7 +4,8 @@ import { network_controller, NetworkController, NetworkModule } from "./network_
 import { render_settings } from "./rendering.js";
 import { Vector2 } from "./types.js";
 
-const canvasContainer = document.querySelector("#canvas-container") as HTMLDivElement;
+const canvas_container = document.querySelector("#canvas-container") as HTMLDivElement;
+const settings_popover = document.querySelector("#settings-popover") as HTMLDivElement;
 
 export let input = {
     x: 0,
@@ -74,6 +75,7 @@ function get_keyboard_input() {
 function setup_input() {
     window.onkeydown = (e) => {
         if (chat.focused()) return;
+        if (settings_popover.matches(":popover-open")) return;
 
         if (e.key === "Shift") {
             sneaking = true;
@@ -135,8 +137,9 @@ function setup_input() {
         update_input();
     };
 
-    canvasContainer.onmousedown = (e) => {
+    canvas_container.onmousedown = (e) => {
         if (e.button !== 0) return;
+        if (settings_popover.matches(":popover-open")) return;
 
         mouse_input_active = !mouse_input_active;
 
