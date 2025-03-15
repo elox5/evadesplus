@@ -266,15 +266,17 @@ function render_frame(offset: Vector2, nodes: RenderNode[]) {
             fill_color: own_hero.color,
         });
 
-        const closest_downed_hero = heroes.filter(h => h.downed && h.player_id !== self_id).sort((a, b) => {
-            const a_dist_sq = (a.x - own_hero.x) * (a.x - own_hero.x) + (a.y - own_hero.y) * (a.y - own_hero.y);
-            const b_dist_sq = (b.x - own_hero.x) * (b.x - own_hero.x) + (b.y - own_hero.y) * (b.y - own_hero.y);
+        if (settings.get("visual.downed_radar_enabled")) {
+            const closest_downed_hero = heroes.filter(h => h.downed && h.player_id !== self_id).sort((a, b) => {
+                const a_dist_sq = (a.x - own_hero.x) * (a.x - own_hero.x) + (a.y - own_hero.y) * (a.y - own_hero.y);
+                const b_dist_sq = (b.x - own_hero.x) * (b.x - own_hero.x) + (b.y - own_hero.y) * (b.y - own_hero.y);
 
-            return a_dist_sq - b_dist_sq;
-        }).at(0);
+                return a_dist_sq - b_dist_sq;
+            }).at(0);
 
-        if (closest_downed_hero !== undefined) {
-            draw_downed_indicator(own_hero, closest_downed_hero);
+            if (closest_downed_hero !== undefined) {
+                draw_downed_radar(own_hero, closest_downed_hero);
+            }
         }
     }
 
@@ -290,17 +292,20 @@ function render_frame(offset: Vector2, nodes: RenderNode[]) {
     }
 
     if (settings.get("visual.input_overlay")) {
-        const range = settings.get<number>("gameplay.mouse_input_range");
-
-        draw_line(main_canvas, offset.x, offset.y, offset.x + (input.x * range), offset.y + (input.y * range), "yellow", 2);
-        draw_circle(main_canvas, offset.x, offset.y, range, {
-            outline_color: "orange",
-            outline_width: 2
-        });
+        draw_input_overlay(offset);
     }
 
-
     report_render_end();
+}
+
+function draw_input_overlay(offset: Vector2) {
+    const range = settings.get<number>("gameplay.mouse_input_range");
+
+    draw_line(main_canvas, offset.x, offset.y, offset.x + (input.x * range), offset.y + (input.y * range), "yellow", 2);
+    draw_circle(main_canvas, offset.x, offset.y, range, {
+        outline_color: "orange",
+        outline_width: 2
+    });
 }
 
 function draw_minimap_hero(hero: RenderNode) {
@@ -309,14 +314,9 @@ function draw_minimap_hero(hero: RenderNode) {
     });
 }
 
-const downed_indicator_config = {
-    distance: 7,
-    cutoff_distance: 10,
-    triangle_radius: 0.7,
-    wing_angle: 100,
-}
+function draw_downed_radar(source: Vector2, target: Vector2) {
+    const WING_ANGLE = 100;
 
-function draw_downed_indicator(source: Vector2, target: Vector2) {
     const diff = {
         x: target.x - source.x,
         y: target.y - source.y
@@ -324,7 +324,7 @@ function draw_downed_indicator(source: Vector2, target: Vector2) {
 
     const dist = Math.sqrt(diff.x * diff.x + diff.y * diff.y);
 
-    if (dist < downed_indicator_config.cutoff_distance) {
+    if (dist < settings.get<number>("visual.downed_radar_cutoff_distance")) {
         return;
     }
 
@@ -333,13 +333,15 @@ function draw_downed_indicator(source: Vector2, target: Vector2) {
         y: diff.y / dist
     };
 
+    const target_distance = settings.get<number>("visual.downed_radar_distance");
+
     const center = {
-        x: source.x + dir.x * downed_indicator_config.distance,
-        y: source.y + dir.y * downed_indicator_config.distance
+        x: source.x + dir.x * target_distance,
+        y: source.y + dir.y * target_distance,
     };
 
-    const r = downed_indicator_config.triangle_radius;
-    const theta = Math.PI / 180 * downed_indicator_config.wing_angle;
+    const r = settings.get<number>("visual.downed_radar_size");
+    const theta = Math.PI / 180 * WING_ANGLE;
 
     const p1 = {
         x: center.x + dir.x * r,
@@ -356,8 +358,10 @@ function draw_downed_indicator(source: Vector2, target: Vector2) {
         y: center.y + (dir.x * Math.sin(-theta) + dir.y * Math.cos(-theta)) * r
     };
 
+    const opacity = settings.get<number>("visual.downed_radar_opacity");
+
     draw_polygon(main_canvas, [p1, p2, p3], {
-        fill_color: "red"
+        fill_color: `rgba(255, 0, 0, ${opacity})`,
     });
 
 }

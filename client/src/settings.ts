@@ -50,8 +50,8 @@ class Settings {
                 else if (typeof setting.value === "number") {
                     const slider = document.createElement("input");
                     slider.type = "range";
-                    slider.min = setting.options?.slider_min?.toString() ?? "0";
-                    slider.max = setting.options?.slider_max?.toString() ?? "100";
+                    slider.min = setting.options?.min?.toString() ?? "0";
+                    slider.max = setting.options?.max?.toString() ?? "100";
                     slider.step = setting.options?.slider_step?.toString() ?? "1";
                     slider.value = setting.value.toString();
 
@@ -122,8 +122,8 @@ type Setting = {
     hotkey?: string,
     handlers?: ((v: any) => void)[],
     options?: {
-        slider_min?: number,
-        slider_max?: number,
+        min?: number,
+        max?: number,
         slider_step?: number
     }
 }
@@ -149,7 +149,7 @@ export const settings = new Settings([
                 type: "number",
                 value: 4,
                 options: {
-                    slider_min: 1, slider_max: 8,
+                    min: 1, max: 8,
                     slider_step: 0.1
                 }
             },
@@ -165,7 +165,53 @@ export const settings = new Settings([
                 type: "boolean",
                 value: false,
                 hotkey: "i",
-            }
+            },
+            {
+                id: "downed_radar_enabled",
+                name: "Show Downed Radar",
+                type: "boolean",
+                value: true,
+            },
+            {
+                id: "downed_radar_distance",
+                name: "Downed Radar Distance",
+                type: "number",
+                value: 7,
+                options: {
+                    min: 1, max: 10,
+                    slider_step: 0.1
+                }
+            },
+            {
+                id: "downed_radar_cutoff_distance",
+                name: "Downed Radar Cutoff Distance",
+                type: "number",
+                value: 10,
+                options: {
+                    min: 5, max: 20,
+                    slider_step: 0.5
+                }
+            },
+            {
+                id: "downed_radar_opacity",
+                name: "Downed Radar Opacity",
+                type: "number",
+                value: 0.5,
+                options: {
+                    min: 0.2, max: 1,
+                    slider_step: 0.01
+                }
+            },
+            {
+                id: "downed_radar_size",
+                name: "Downed Radar Size",
+                type: "number",
+                value: 0.7,
+                options: {
+                    min: 0.2, max: 2,
+                    slider_step: 0.1
+                }
+            },
         ],
     },
 ]);
