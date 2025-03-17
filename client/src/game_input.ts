@@ -8,7 +8,7 @@ import { Vector2 } from "./types.js";
 const canvas_container = document.querySelector("#canvas-container") as HTMLDivElement;
 const settings_popover = document.querySelector("#settings-popover") as HTMLDivElement;
 
-export let input = {
+export let player_input = {
     x: 0,
     y: 0,
 }
@@ -35,17 +35,17 @@ function update_input() {
     const keyboard_input = get_keyboard_input();
 
     if (!mouse_input_active || keyboard_input.x !== 0 || keyboard_input.y !== 0) {
-        input.x = keyboard_input.x;
-        input.y = keyboard_input.y;
+        player_input.x = keyboard_input.x;
+        player_input.y = keyboard_input.y;
     }
     else if (mouse_input_active) {
-        input.x = mouse_input.x;
-        input.y = mouse_input.y;
+        player_input.x = mouse_input.x;
+        player_input.y = mouse_input.y;
     }
 
     if (sneaking) {
-        input.x *= 0.5;
-        input.y *= 0.5;
+        player_input.x *= 0.5;
+        player_input.y *= 0.5;
     }
 }
 
@@ -214,7 +214,7 @@ class InputModule implements NetworkModule {
             }
 
             this.interval = setInterval(async () => {
-                this.send_input(input_writer, input);
+                this.send_input(input_writer, player_input);
             }, 1000 / 60);
         },
         once: false,

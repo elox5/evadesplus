@@ -1,4 +1,4 @@
-import { input } from "./input.js";
+import { player_input } from "./game_input.js";
 import Canvas from "./canvas.js";
 import { report_frame_start, report_render_end, report_render_start } from "./metrics.js";
 import { Portal, Rect, RenderNode, Vector2 } from "./types.js";
@@ -301,7 +301,7 @@ function render_frame(offset: Vector2, nodes: RenderNode[]) {
 function draw_input_overlay(offset: Vector2) {
     const range = settings.get<number>("gameplay.mouse_input_range");
 
-    draw_line(main_canvas, offset.x, offset.y, offset.x + (input.x * range), offset.y + (input.y * range), "yellow", 2);
+    draw_line(main_canvas, offset.x, offset.y, offset.x + (player_input.x * range), offset.y + (player_input.y * range), "yellow", 2);
     draw_circle(main_canvas, offset.x, offset.y, range, {
         outline_color: "orange",
         outline_width: 2
