@@ -8,6 +8,7 @@ class Settings {
         for (const section of sections) {
             for (const setting of section.settings) {
                 setting.id = `${section.id}.${setting.id}`;
+                setting.value = setting.default_value;
             }
         }
 
@@ -47,12 +48,13 @@ class Settings {
                 element.classList.add("settings-entry");
 
                 const name = document.createElement("span");
-                name.textContent = setting.name;
+                name.textContent = `${setting.name}:`;
                 element.appendChild(name);
 
                 if (typeof setting.value === "boolean") {
                     const checkbox = document.createElement("input");
                     checkbox.type = "checkbox";
+                    checkbox.defaultChecked = setting.default_value;
                     checkbox.checked = setting.value;
 
                     checkbox.onchange = () => {
@@ -62,24 +64,48 @@ class Settings {
                     element.appendChild(checkbox);
                 }
                 else if (typeof setting.value === "number") {
+                    const value_display = document.createElement("span");
+                    value_display.classList.add("settings-entry-value");
+                    value_display.textContent = setting.value.toFixed(2);
+                    element.appendChild(value_display);
+
                     const slider = document.createElement("input");
                     slider.type = "range";
                     slider.min = setting.options?.min?.toString() ?? "0";
                     slider.max = setting.options?.max?.toString() ?? "100";
                     slider.step = setting.options?.slider_step?.toString() ?? "1";
-                    slider.value = setting.value.toString();
+                    slider.defaultValue = setting.default_value.toFixed(2);
+                    slider.value = setting.value.toFixed(2);
 
                     slider.oninput = () => {
-                        this.update_setting(setting, parseFloat(slider.value));
+                        const value = parseFloat(slider.value);
+
+                        this.update_setting(setting, value);
+                        value_display.textContent = value.toFixed(2);
                     }
 
                     element.appendChild(slider);
+
+                    const reset_button = document.createElement("button");
+                    reset_button.classList.add("settings-entry-reset-button");
+                    reset_button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--!Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.--><path fill="#dddddd" d="M125.7 160l50.3 0c17.7 0 32 14.3 32 32s-14.3 32-32 32L48 224c-17.7 0-32-14.3-32-32L16 64c0-17.7 14.3-32 32-32s32 14.3 32 32l0 51.2L97.6 97.6c87.5-87.5 229.3-87.5 316.8 0s87.5 229.3 0 316.8s-229.3 87.5-316.8 0c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0c62.5 62.5 163.8 62.5 226.3 0s62.5-163.8 0-226.3s-163.8-62.5-226.3 0L125.7 160z"/></svg>';
+                    reset_button.title = "Reset to default";
+
+                    reset_button.onclick = () => {
+                        this.update_setting(setting, setting.default_value);
+                        value_display.textContent = setting.default_value.toFixed(2);
+                        slider.value = slider.defaultValue;
+                    }
+
+                    element.appendChild(reset_button);
                 }
                 else {
                     const value = document.createElement("span");
-                    value.textContent = setting.value.toString();
+                    value.classList.add("settings-entry-value");
+                    value.textContent = setting.value.toFixed(2);
                     element.appendChild(value);
                 }
+
 
                 section_element.appendChild(element);
             }
@@ -151,7 +177,8 @@ type Setting = {
     id: string,
     name: string,
     type: "boolean" | "number",
-    value: any,
+    default_value: any,
+    value?: any,
     hotkey?: string,
     handlers?: ((v: any) => void)[],
     options?: {
@@ -170,7 +197,7 @@ export const settings = new Settings([
                 id: "mouse_input_range",
                 name: "Mouse Input Range",
                 type: "number",
-                value: 4,
+                default_value: 4,
                 options: {
                     min: 1, max: 8,
                     slider_step: 0.1
@@ -186,20 +213,20 @@ export const settings = new Settings([
                 id: "input_overlay",
                 name: "Show Input Overlay",
                 type: "boolean",
-                value: false,
+                default_value: false,
                 hotkey: "i",
             },
             {
                 id: "downed_radar.enabled",
                 name: "Show Downed Radar",
                 type: "boolean",
-                value: true,
+                default_value: true,
             },
             {
                 id: "downed_radar.distance",
                 name: "Downed Radar Distance",
                 type: "number",
-                value: 7,
+                default_value: 7,
                 options: {
                     min: 1, max: 10,
                     slider_step: 0.1
@@ -209,7 +236,7 @@ export const settings = new Settings([
                 id: "downed_radar.cutoff_distance",
                 name: "Downed Radar Cutoff Distance",
                 type: "number",
-                value: 10,
+                default_value: 10,
                 options: {
                     min: 5, max: 20,
                     slider_step: 0.5
@@ -219,7 +246,7 @@ export const settings = new Settings([
                 id: "downed_radar.opacity",
                 name: "Downed Radar Opacity",
                 type: "number",
-                value: 0.5,
+                default_value: 0.5,
                 options: {
                     min: 0.2, max: 1,
                     slider_step: 0.01
@@ -229,7 +256,7 @@ export const settings = new Settings([
                 id: "downed_radar.size",
                 name: "Downed Radar Size",
                 type: "number",
-                value: 0.7,
+                default_value: 0.7,
                 options: {
                     min: 0.2, max: 2,
                     slider_step: 0.1
@@ -241,20 +268,20 @@ export const settings = new Settings([
         id: "hud",
         name: "HUD",
         settings: [
-            { id: "minimap", name: "Show Minimap", type: "boolean", value: true, hotkey: "m" },
-            { id: "leaderboard", name: "Show Leaderboard", type: "boolean", value: true, hotkey: "b" },
-            { id: "chat", name: "Show Chat", type: "boolean", value: true, hotkey: "v" },
-            { id: "metrics", name: "Show Metrics", type: "boolean", value: true, hotkey: "n" },
+            { id: "minimap", name: "Show Minimap", type: "boolean", default_value: true, hotkey: "m" },
+            { id: "leaderboard", name: "Show Leaderboard", type: "boolean", default_value: true, hotkey: "b" },
+            { id: "chat", name: "Show Chat", type: "boolean", default_value: true, hotkey: "v" },
+            { id: "metrics", name: "Show Metrics", type: "boolean", default_value: true, hotkey: "n" },
         ],
     },
     {
         id: "metrics",
         name: "Metrics",
         settings: [
-            { id: "fps_enabled", name: "Show FPS", type: "boolean", value: true },
-            { id: "ping_enabled", name: "Show Ping", type: "boolean", value: true },
-            { id: "bandwidth_enabled", name: "Show Bandwidth", type: "boolean", value: true },
-            { id: "render_time_enabled", name: "Show Render Time", type: "boolean", value: false },
+            { id: "fps_enabled", name: "Show FPS", type: "boolean", default_value: true },
+            { id: "ping_enabled", name: "Show Ping", type: "boolean", default_value: true },
+            { id: "bandwidth_enabled", name: "Show Bandwidth", type: "boolean", default_value: true },
+            { id: "render_time_enabled", name: "Show Render Time", type: "boolean", default_value: false },
         ],
     },
 ]);

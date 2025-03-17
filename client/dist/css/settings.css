@@ -45,3 +45,33 @@
         margin: 0;
     }
 }
+
+.settings-entry {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    align-items: center;
+}
+
+.settings-entry-value {
+    width: 30px;
+}
+
+.settings-entry-reset-button {
+    width: 20px;
+    height: 20px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    background-color: #333;
+    border: none;
+    border-radius: 5px;
+
+    transition: background-color 0.2s ease-in-out;
+
+    &:hover {
+        background-color: #555;
+    }
+}
