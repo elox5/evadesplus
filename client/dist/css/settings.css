@@ -39,7 +39,9 @@
 }
 
 .settings-entry-value {
-    width: 30px;
+    width: 40px;
+    font-weight: bold;
+    text-align: center;
 }
 
 .settings-entry-reset-button {
