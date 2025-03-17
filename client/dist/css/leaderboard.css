@@ -6,9 +6,6 @@
     display: flex;
     flex-direction: column;
     gap: 5px;
-
-    background-color: #00000077;
-    padding: 10px;
 }
 
 .leaderboard-map {

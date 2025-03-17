@@ -1,8 +1,4 @@
 #chat {
-    position: absolute;
-    top: 5px;
-    left: 5px;
-
     width: 350px;
     height: 500px;
 
@@ -10,9 +6,6 @@
     flex-direction: column;
     gap: 5px;
     align-items: stretch;
-
-    background-color: #00000077;
-    padding: 10px;
 }
 
 #chat-list {
@@ -22,7 +15,6 @@
     flex-direction: column;
     gap: 5px;
     align-items: stretch;
-
 
     flex-grow: 1;
 }

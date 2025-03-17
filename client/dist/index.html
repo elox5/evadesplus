@@ -54,42 +54,48 @@
                 <canvas id="main-canvas"></canvas>
             </div>
 
-            <div id="minimap-container">
-                <canvas id="area-minimap" class="minimap"></canvas>
-                <canvas id="hero-minimap" class="minimap"></canvas>
-            </div>
-
-            <div id="metrics-container">
-                <div id="fps-container" class="metric">
-                    <span>FPS:</span>
-                    <b><span id="fps-meter">-</span></b>
-                </div>
-                <div id="ping-container" class="metric">
-                    <span>Ping:</span>
-                    <b><span id="ping-meter">-</span> ms</b>
-                </div>
-                <div id="bandwidth-container" class="metric">
-                    <span>Bandwidth:</span>
-                    <b><span id="bandwidth-meter">-</span> kbps</b>
-                </div>
-                <div id="render-time-container" class="metric">
-                    <span>Render time:</span>
-                    <b><span id="render-time-meter">-</span> ms</b>
+            <div class="hud bottom-left">
+                <div id="minimap-container">
+                    <canvas id="area-minimap"></canvas>
+                    <canvas id="hero-minimap"></canvas>
                 </div>
             </div>
 
-            <div id="chat">
-                <div id="chat-list"></div>
-                <div id="chat-input-container">
-                    <input type="text" id="chat-input" placeholder="Enter message..." maxlength="100">
-                    <button id="chat-send-button">Send</button>
-                    <div id="chat-autocomplete" class="hidden"></div>
+            <div class="hud bottom-right">
+                <div id="metrics-container">
+                    <div id="fps-container" class="metric">
+                        <span>FPS:</span>
+                        <b><span id="fps-meter">-</span></b>
+                    </div>
+                    <div id="ping-container" class="metric">
+                        <span>Ping:</span>
+                        <b><span id="ping-meter">-</span> ms</b>
+                    </div>
+                    <div id="bandwidth-container" class="metric">
+                        <span>Bandwidth:</span>
+                        <b><span id="bandwidth-meter">-</span> kbps</b>
+                    </div>
+                    <div id="render-time-container" class="metric">
+                        <span>Render time:</span>
+                        <b><span id="render-time-meter">-</span> ms</b>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hud top-left">
+                <div id="chat" class="hud-panel">
+                    <div id="chat-list"></div>
+                    <div id="chat-input-container">
+                        <input type="text" id="chat-input" placeholder="Enter message..." maxlength="100">
+                        <button id="chat-send-button">Send</button>
+                        <div id="chat-autocomplete" class="hidden"></div>
+                    </div>
                 </div>
             </div>
 
             <div class="hud top-right">
-                <div id="leaderboard"></div>
-                <button id="settings-button" popovertarget="settings-popover">
+                <div id="leaderboard" class="hud-panel"></div>
+                <button id="settings-button" class="hud-button" popovertarget="settings-popover">
                     <svg xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 512 512"><!--!Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.-->
                         <path fill="#dddddd"
@@ -100,8 +106,7 @@
         </div>
 
         <div popover="auto" id="settings-popover">
-            <div id="settings-panel">
-            </div>
+            <div id="settings-panel" class="hud-panel"></div>
         </div>
 
         <div id="context-menu" class="hidden"></div>
