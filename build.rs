@@ -1,4 +1,6 @@
 fn main() {
+    println!("cargo:rerun-if-changed=client/src"); // only rebuild if client typescript changes
+
     // build client typescript
     let tsc = std::process::Command::new("npm")
         .arg("run")
