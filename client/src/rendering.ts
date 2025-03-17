@@ -1,4 +1,4 @@
-import { player_input } from "./game_input.js";
+import { player_input } from "./player_input.js";
 import Canvas from "./canvas.js";
 import { report_frame_start, report_render_end, report_render_start } from "./metrics.js";
 import { Portal, Rect, RenderNode, Vector2 } from "./types.js";

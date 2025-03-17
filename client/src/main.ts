@@ -1,5 +1,6 @@
 import { network_controller, NetworkModule } from "./network_controller.js";
 import { init_cache } from "./cache.js";
+import { setup_input } from "./input.js";
 
 const game_container = document.querySelector("#game-container") as HTMLDivElement;
 const connection_panel = document.querySelector("#connection-panel") as HTMLDivElement;
@@ -8,6 +9,8 @@ const connection_message_display = document.querySelector("#connection-message")
 
 async function main() {
     window.oncontextmenu = (e) => e.preventDefault();
+
+    setup_input();
 
     display_connection_message("Fetching cache...", "#dddddd");
 

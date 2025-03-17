@@ -1,5 +1,6 @@
 import { chat } from "./chat.js";
 import { try_execute_command } from "./commands.js";
+import { register_keydown_handler, register_keyup_handler } from "./input.js";
 import { network_controller, NetworkController, NetworkModule } from "./network_controller.js";
 import { render_settings } from "./rendering.js";
 import { settings } from "./settings.js";
@@ -26,9 +27,7 @@ let mouse_input: Vector2 = {
 }
 
 let range = 4;
-
 let mouse_input_active = false;
-
 let sneaking = false;
 
 function update_input() {
@@ -71,11 +70,11 @@ function get_keyboard_input() {
     return normalize(total);
 }
 
-function setup_input() {
+function setup_player_input() {
     range = settings.get("gameplay.mouse_input_range");
     settings.bind("gameplay.mouse_input_range", v => range = v);
 
-    window.onkeydown = (e) => {
+    register_keydown_handler(e => {
         if (chat.focused()) return;
         if (settings_popover.matches(":popover-open")) return;
 
@@ -105,9 +104,9 @@ function setup_input() {
         }
 
         update_input();
-    };
+    });
 
-    window.onkeyup = (e) => {
+    register_keyup_handler(e => {
         if (e.key === "Shift") {
             sneaking = false;
             update_input();
@@ -129,7 +128,7 @@ function setup_input() {
         }
 
         update_input();
-    };
+    });
 
     window.onmousemove = (e) => {
         if (!mouse_input_active) return;
@@ -196,7 +195,7 @@ function normalize(v: Vector2, magnitude: number | undefined = undefined) {
     return { x: v.x / magnitude, y: v.y / magnitude };
 }
 
-class InputModule implements NetworkModule {
+class PlayerInputModule implements NetworkModule {
     private lastInput: Vector2 = {
         x: 0,
         y: 0,
@@ -221,7 +220,7 @@ class InputModule implements NetworkModule {
     }
 
     on_game_load = {
-        callback: setup_input,
+        callback: setup_player_input,
         once: true,
     }
 
@@ -245,4 +244,4 @@ class InputModule implements NetworkModule {
     }
 }
 
-network_controller.register_module(new InputModule());
+network_controller.register_module(new PlayerInputModule());

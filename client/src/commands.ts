@@ -1,5 +1,5 @@
 import { chat } from "./chat.js";
-import { lock_mouse_input } from "./game_input.js";
+import { lock_mouse_input } from "./player_input.js";
 import { cache, CommandData } from "./cache.js";
 import { network_controller } from "./network_controller.js";
 import { player_info } from "./player_info.js";
