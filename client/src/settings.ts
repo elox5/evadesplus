@@ -228,6 +228,12 @@ export const settings = new Settings([
         name: "Gameplay",
         settings: [
             {
+                id: "mouse_input_enabled",
+                name: "Mouse Input Enabled",
+                type: "boolean",
+                default_value: true,
+            },
+            {
                 id: "mouse_input_range",
                 name: "Mouse Input Range",
                 type: "number",
@@ -237,6 +243,7 @@ export const settings = new Settings([
                     slider_step: 0.1
                 }
             },
+
         ],
     },
     {

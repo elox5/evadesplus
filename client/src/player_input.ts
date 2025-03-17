@@ -26,6 +26,8 @@ let mouse_input: Vector2 = {
     y: 0,
 }
 
+let mouse_input_enabled = true;
+
 let range = 4;
 let mouse_input_active = false;
 let sneaking = false;
@@ -73,6 +75,13 @@ function get_keyboard_input() {
 function setup_player_input() {
     range = settings.get("gameplay.mouse_input_range");
     settings.bind("gameplay.mouse_input_range", v => range = v);
+
+    settings.bind("gameplay.mouse_input_enabled", v => {
+        mouse_input_enabled = v;
+        if (v === false) {
+            lock_mouse_input();
+        }
+    });
 
     register_keydown_handler(e => {
         if (chat.focused()) return;
@@ -140,6 +149,7 @@ function setup_player_input() {
 
     canvas_container.onmousedown = (e) => {
         if (e.button !== 0) return;
+        if (!mouse_input_enabled) return;
         if (settings_popover.matches(":popover-open")) return;
 
         mouse_input_active = !mouse_input_active;
