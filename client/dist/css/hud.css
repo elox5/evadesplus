@@ -1,4 +1,11 @@
-.hud {
+#hud {
+    position: absolute;
+    inset: 0;
+
+    pointer-events: none;
+}
+
+.hud-dock {
     position: absolute;
     z-index: 1000;
 
@@ -7,33 +14,32 @@
     gap: 5px;
 }
 
-.hud.top-left {
+.hud-dock.top-left {
     top: 5px;
     left: 5px;
 
     flex-direction: row;
 }
 
-.hud.top-right {
+.hud-dock.top-right {
     top: 5px;
     right: 5px;
 
     flex-direction: row-reverse;
 }
 
-.hud.bottom-left {
+.hud-dock.bottom-left {
     bottom: 5px;
     left: 5px;
 }
 
-.hud.bottom-right {
+.hud-dock.bottom-right {
     bottom: 5px;
     right: 5px;
 }
 
 .hud-panel {
     background-color: #00000077;
-    backdrop-filter: blur(5px);
 
     border: none;
     border-radius: 5px;
@@ -43,6 +49,14 @@
     color: white;
 
     padding: 10px;
+
+    pointer-events: all;
+
+    transition: backdrop-filter 0.1s ease-in-out;
+}
+
+#hud.panel-blur .hud-panel {
+    backdrop-filter: blur(5px);
 }
 
 .hud-button {
@@ -57,6 +71,8 @@
     color: #ddd;
 
     transition: background-color 0.2s ease-in-out;
+
+    pointer-events: all;
 
     &:hover {
         background-color: #555;

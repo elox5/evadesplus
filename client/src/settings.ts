@@ -302,10 +302,11 @@ export const settings = new Settings([
         id: "hud",
         name: "HUD",
         settings: [
-            { id: "minimap", name: "Show Minimap", type: "boolean", default_value: true, hotkey: "m" },
-            { id: "chat", name: "Show Chat", type: "boolean", default_value: true, hotkey: "v" },
-            { id: "leaderboard", name: "Show Leaderboard", type: "boolean", default_value: true, hotkey: "b" },
-            { id: "metrics", name: "Show Metrics", type: "boolean", default_value: true, hotkey: "n" },
+            { id: "show_minimap", name: "Show Minimap", type: "boolean", default_value: true, hotkey: "m" },
+            { id: "show_chat", name: "Show Chat", type: "boolean", default_value: true, hotkey: "v" },
+            { id: "show_leaderboard", name: "Show Leaderboard", type: "boolean", default_value: true, hotkey: "b" },
+            { id: "show_metrics", name: "Show Metrics", type: "boolean", default_value: true, hotkey: "n" },
+            { id: "panel_blur", name: "Blur Panel Background", type: "boolean", default_value: true },
         ],
     },
     {
