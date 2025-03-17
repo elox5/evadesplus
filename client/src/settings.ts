@@ -35,83 +35,108 @@ class Settings {
         this.panel.appendChild(header);
 
         for (const section of sections) {
-            const section_element = document.createElement("section");
-            section_element.classList.add("settings-section");
+            this.create_section_element(section);
+        }
+    }
 
-            const header = document.createElement("h2");
-            header.textContent = section.name;
+    private create_section_element(section: Section) {
+        const section_element = document.createElement("section");
+        section_element.classList.add("settings-section");
 
-            section_element.appendChild(header);
+        const header = document.createElement("h2");
+        header.textContent = section.name;
 
-            for (const setting of section.settings) {
-                const element = document.createElement("div");
-                element.classList.add("settings-entry");
+        section_element.appendChild(header);
 
-                const name = document.createElement("span");
-                name.textContent = `${setting.name}:`;
-                element.appendChild(name);
+        for (const setting of section.settings) {
+            const entry = this.create_setting_entry(setting);
+            section_element.appendChild(entry);
+        }
 
-                if (typeof setting.value === "boolean") {
-                    const checkbox = document.createElement("input");
-                    checkbox.type = "checkbox";
-                    checkbox.defaultChecked = setting.default_value;
-                    checkbox.checked = setting.value;
+        this.panel.appendChild(section_element);
+    }
 
-                    checkbox.onchange = () => {
-                        this.update_setting(setting, checkbox.checked);
-                    }
+    private create_setting_entry(setting: Setting): HTMLDivElement {
+        const element = document.createElement("div");
+        element.classList.add("settings-entry");
 
-                    element.appendChild(checkbox);
-                }
-                else if (typeof setting.value === "number") {
-                    const value_display = document.createElement("span");
-                    value_display.classList.add("settings-entry-value");
-                    value_display.textContent = setting.value.toFixed(2);
-                    element.appendChild(value_display);
+        const name = document.createElement("span");
+        name.textContent = `${setting.name}:`;
+        element.appendChild(name);
 
-                    const slider = document.createElement("input");
-                    slider.type = "range";
-                    slider.min = setting.options?.min?.toString() ?? "0";
-                    slider.max = setting.options?.max?.toString() ?? "100";
-                    slider.step = setting.options?.slider_step?.toString() ?? "1";
-                    slider.defaultValue = setting.default_value.toFixed(2);
-                    slider.value = setting.value.toFixed(2);
+        if (typeof setting.value === "boolean") {
+            const checkbox = this.create_checkbox_element(setting);
+            element.appendChild(checkbox);
+        }
+        else if (typeof setting.value === "number") {
+            const { value_display, slider } = this.create_slider_element(setting);
 
-                    slider.oninput = () => {
-                        const value = parseFloat(slider.value);
+            element.appendChild(value_display);
+            element.appendChild(slider);
 
-                        this.update_setting(setting, value);
-                        value_display.textContent = value.toFixed(2);
-                    }
+            const reset_button = this.create_reset_button();
 
-                    element.appendChild(slider);
-
-                    const reset_button = document.createElement("button");
-                    reset_button.classList.add("settings-entry-reset-button");
-                    reset_button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--!Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.--><path fill="#dddddd" d="M125.7 160l50.3 0c17.7 0 32 14.3 32 32s-14.3 32-32 32L48 224c-17.7 0-32-14.3-32-32L16 64c0-17.7 14.3-32 32-32s32 14.3 32 32l0 51.2L97.6 97.6c87.5-87.5 229.3-87.5 316.8 0s87.5 229.3 0 316.8s-229.3 87.5-316.8 0c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0c62.5 62.5 163.8 62.5 226.3 0s62.5-163.8 0-226.3s-163.8-62.5-226.3 0L125.7 160z"/></svg>';
-                    reset_button.title = "Reset to default";
-
-                    reset_button.onclick = () => {
-                        this.update_setting(setting, setting.default_value);
-                        value_display.textContent = setting.default_value.toFixed(2);
-                        slider.value = slider.defaultValue;
-                    }
-
-                    element.appendChild(reset_button);
-                }
-                else {
-                    const value = document.createElement("span");
-                    value.classList.add("settings-entry-value");
-                    value.textContent = setting.value.toFixed(2);
-                    element.appendChild(value);
-                }
-
-
-                section_element.appendChild(element);
+            reset_button.onclick = () => {
+                this.update_setting(setting, setting.default_value);
+                value_display.textContent = setting.default_value.toFixed(2);
+                slider.value = slider.defaultValue;
             }
 
-            this.panel.appendChild(section_element);
+            element.appendChild(reset_button);
         }
+        else {
+            const value = document.createElement("span");
+            value.classList.add("settings-entry-value");
+            value.textContent = setting.value.toFixed(2);
+            element.appendChild(value);
+        }
+
+        return element;
+    }
+
+    private create_checkbox_element(setting: Setting): HTMLInputElement {
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.defaultChecked = setting.default_value;
+        checkbox.checked = setting.value;
+
+        checkbox.onchange = () => {
+            this.update_setting(setting, checkbox.checked);
+        }
+
+        return checkbox;
+    }
+
+    private create_slider_element(setting: Setting): { value_display: HTMLSpanElement, slider: HTMLInputElement } {
+        const value_display = document.createElement("span");
+        value_display.classList.add("settings-entry-value");
+        value_display.textContent = setting.value.toFixed(2);
+
+        const slider = document.createElement("input");
+        slider.type = "range";
+        slider.min = setting.options?.min?.toString() ?? "0";
+        slider.max = setting.options?.max?.toString() ?? "100";
+        slider.step = setting.options?.slider_step?.toString() ?? "1";
+        slider.defaultValue = setting.default_value.toFixed(2);
+        slider.value = setting.value.toFixed(2);
+
+        slider.oninput = () => {
+            const value = parseFloat(slider.value);
+
+            this.update_setting(setting, value);
+            value_display.textContent = value.toFixed(2);
+        }
+
+        return { value_display, slider };
+    }
+
+    private create_reset_button(): HTMLButtonElement {
+        const reset_button = document.createElement("button");
+        reset_button.classList.add("settings-entry-reset-button");
+        reset_button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--!Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.--><path fill="#dddddd" d="M125.7 160l50.3 0c17.7 0 32 14.3 32 32s-14.3 32-32 32L48 224c-17.7 0-32-14.3-32-32L16 64c0-17.7 14.3-32 32-32s32 14.3 32 32l0 51.2L97.6 97.6c87.5-87.5 229.3-87.5 316.8 0s87.5 229.3 0 316.8s-229.3 87.5-316.8 0c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0c62.5 62.5 163.8 62.5 226.3 0s62.5-163.8 0-226.3s-163.8-62.5-226.3 0L125.7 160z"/></svg>';
+        reset_button.title = "Reset to default";
+
+        return reset_button;
     }
 
     private save() {
@@ -269,8 +294,8 @@ export const settings = new Settings([
         name: "HUD",
         settings: [
             { id: "minimap", name: "Show Minimap", type: "boolean", default_value: true, hotkey: "m" },
-            { id: "leaderboard", name: "Show Leaderboard", type: "boolean", default_value: true, hotkey: "b" },
             { id: "chat", name: "Show Chat", type: "boolean", default_value: true, hotkey: "v" },
+            { id: "leaderboard", name: "Show Leaderboard", type: "boolean", default_value: true, hotkey: "b" },
             { id: "metrics", name: "Show Metrics", type: "boolean", default_value: true, hotkey: "n" },
         ],
     },
