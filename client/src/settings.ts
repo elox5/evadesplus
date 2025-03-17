@@ -1,4 +1,4 @@
-
+import { register_keydown_handler } from "./input.js";
 
 class Settings {
     private settings: Setting[] = [];
@@ -102,6 +102,14 @@ class Settings {
 
         checkbox.onchange = () => {
             this.update_setting(setting, checkbox.checked);
+        }
+
+        if (setting.hotkey !== undefined) {
+            register_keydown_handler(e => {
+                if (e.key === setting.hotkey) {
+                    this.update_setting(setting, !setting.value);
+                }
+            });
         }
 
         return checkbox;
