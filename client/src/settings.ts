@@ -13,6 +13,20 @@ class Settings {
 
         this.settings = sections.flatMap(s => s.settings);
 
+        const saved_settings = this.load();
+
+        if (saved_settings !== null) {
+            this.settings = this.settings.map(setting => {
+                const saved = saved_settings.find(s => s.id === setting.id);
+
+                if (saved !== undefined) {
+                    setting.value = saved.value;
+                }
+
+                return setting;
+            })
+        }
+
         this.panel = document.querySelector("#settings-panel") as HTMLDivElement;
 
         const header = document.createElement("h1");
@@ -42,13 +56,7 @@ class Settings {
                     checkbox.checked = setting.value;
 
                     checkbox.onchange = () => {
-                        setting.value = checkbox.checked;
-
-                        if (setting.handlers !== undefined) {
-                            for (const handler of setting.handlers) {
-                                handler(setting.value);
-                            }
-                        }
+                        this.update_setting(setting, checkbox.checked);
                     }
 
                     element.appendChild(checkbox);
@@ -62,13 +70,7 @@ class Settings {
                     slider.value = setting.value.toString();
 
                     slider.oninput = () => {
-                        setting.value = parseFloat(slider.value);
-
-                        if (setting.handlers !== undefined) {
-                            for (const handler of setting.handlers) {
-                                handler(setting.value);
-                            }
-                        }
+                        this.update_setting(setting, parseFloat(slider.value));
                     }
 
                     element.appendChild(slider);
@@ -84,6 +86,32 @@ class Settings {
 
             this.panel.appendChild(section_element);
         }
+    }
+
+    private save() {
+        localStorage.setItem("settings", JSON.stringify(this.settings));
+    }
+
+    private load(): Setting[] | null {
+        const settings = localStorage.getItem("settings");
+
+        if (settings !== null) {
+            return JSON.parse(settings);
+        }
+
+        return null;
+    }
+
+    private update_setting(setting: Setting, value: any) {
+        setting.value = value;
+
+        if (setting.handlers !== undefined) {
+            for (const handler of setting.handlers) {
+                handler(setting.value);
+            }
+        }
+
+        this.save();
     }
 
     private get_setting(id: string): Setting {
