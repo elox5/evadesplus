@@ -14,6 +14,14 @@
     gap: 5px;
 }
 
+.hud-dock.top {
+    top: 5px;
+    left: 50%;
+    translate: -50% 0;
+
+    flex-direction: column;
+}
+
 .hud-dock.top-left {
     top: 5px;
     left: 5px;

@@ -32,6 +32,7 @@
     <script type="module" src="scripts/canvas.js"></script>
     <script type="module" src="scripts/rendering.js"></script>
     <script type="module" src="scripts/input.js"></script>
+    <script type="module" src="scripts/timer.js"></script>
     <script type="module" src="scripts/player_input.js"></script>
     <script type="module" src="scripts/settings.js"></script>
     <script type="module" src="scripts/main.js"></script>
@@ -47,15 +48,19 @@
         </div>
 
         <div id="game-container" class="hidden">
-            <h1 id="area-name"></h1>
-            <h2 id="area-message-display"></h2>
-
             <div id="canvas-container">
                 <canvas id="area-canvas"></canvas>
                 <canvas id="main-canvas"></canvas>
             </div>
 
             <div id="hud">
+                <div class="hud-dock top">
+                    <h1 id="area-name"></h1>
+                    <h2 id="speedrun-timer">00:00</h2>
+                </div>
+
+                <h2 id="area-message-display"></h2>
+
                 <div class="hud-dock bottom-left">
                     <div id="minimap-container">
                         <canvas id="area-minimap"></canvas>
@@ -64,6 +69,7 @@
                 </div>
 
                 <div class="hud-dock bottom-right">
+
                     <div id="metrics-container">
                         <div id="fps-container" class="metric">
                             <span>FPS:</span>

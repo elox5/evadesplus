@@ -4,7 +4,10 @@ use super::{
     leaderboard::LeaderboardUpdate,
 };
 use crate::{
-    game::{area::Area, game::Game},
+    game::{
+        area::Area,
+        game::{Game, TimerSyncPacket},
+    },
     logger::{LogCategory, Logger},
     physics::vec2::Vec2,
 };
@@ -27,6 +30,7 @@ pub struct WebTransportServer {
     game: Arc<Mutex<Game>>,
     chat_tx: broadcast::Sender<ChatRequest>,
     chat_rx: broadcast::Receiver<ChatRequest>,
+    timer_sync_rx: broadcast::Receiver<TimerSyncPacket>,
 }
 
 impl WebTransportServer {
@@ -45,6 +49,7 @@ impl WebTransportServer {
         let endpoint = Endpoint::server(config)?;
 
         let game = game_arc.try_lock().unwrap();
+        let timer_sync_rx = game.timer_sync_rx.resubscribe();
         drop(game);
 
         Ok(Self {
@@ -52,6 +57,7 @@ impl WebTransportServer {
             game: game_arc,
             chat_tx: Chat::tx(),
             chat_rx: Chat::rx(),
+            timer_sync_rx,
         })
     }
 
@@ -81,6 +87,7 @@ impl WebTransportServer {
                 self.game.clone(),
                 self.chat_tx.clone(),
                 self.chat_rx.resubscribe(),
+                self.timer_sync_rx.resubscribe(),
                 id,
             ));
         }
@@ -93,9 +100,12 @@ impl WebTransportServer {
         game: Arc<Mutex<Game>>,
         chat_tx: broadcast::Sender<ChatRequest>,
         chat_rx: broadcast::Receiver<ChatRequest>,
+        timer_sync_rx: broadcast::Receiver<TimerSyncPacket>,
         id: u64,
     ) {
-        let result = Self::handle_session_impl(session, game.clone(), chat_tx, chat_rx, id).await;
+        let result =
+            Self::handle_session_impl(session, game.clone(), chat_tx, chat_rx, timer_sync_rx, id)
+                .await;
 
         let category = match &result {
             Ok(_) => LogCategory::Network,
@@ -117,6 +127,7 @@ impl WebTransportServer {
         game: Arc<Mutex<Game>>,
         chat_tx: broadcast::Sender<ChatRequest>,
         mut chat_rx: broadcast::Receiver<ChatRequest>,
+        mut timer_sync_rx: broadcast::Receiver<TimerSyncPacket>,
         id: u64,
     ) -> Result<ConnectionError> {
         let mut buffer = vec![0; 65536].into_boxed_slice();
@@ -159,6 +170,10 @@ impl WebTransportServer {
                 leaderboard_update = lb_rx.recv() => {
                     let leaderboard_update = leaderboard_update?;
                     handle_leaderboard_update(leaderboard_update, &connection).await?;
+                }
+                timer_sync = timer_sync_rx.recv() => {
+                    let timer_sync = timer_sync?;
+                    handle_timer_sync(timer_sync, &connection, id).await?;
                 }
                 chat_broadcast = chat_rx.recv() => {
                     let chat_broadcast = chat_broadcast?;
@@ -340,6 +355,21 @@ async fn handle_leaderboard_update(
 
     update_stream.write_all(&update.to_bytes()).await?;
     update_stream.finish().await?;
+
+    Ok(())
+}
+
+async fn handle_timer_sync(
+    packet: TimerSyncPacket,
+    connection: &Connection,
+    id: u64,
+) -> Result<()> {
+    if packet.player_id == id {
+        let mut update_stream = connection.open_uni().await?.await?;
+
+        update_stream.write_all(&packet.to_bytes()).await?;
+        update_stream.finish().await?;
+    }
 
     Ok(())
 }

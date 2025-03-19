@@ -313,6 +313,7 @@ export const settings = new Settings([
             { id: "show_chat", name: "Show Chat", type: "boolean", default_value: true, hotkey: "v" },
             { id: "show_leaderboard", name: "Show Leaderboard", type: "boolean", default_value: true, hotkey: "b" },
             { id: "show_metrics", name: "Show Metrics", type: "boolean", default_value: true, hotkey: "n" },
+            { id: "show_timer", name: "Show Timer", type: "boolean", default_value: true, hotkey: "t" },
             { id: "panel_blur", name: "Blur Panel Background", type: "boolean", default_value: true },
         ],
     },

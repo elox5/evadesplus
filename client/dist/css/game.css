@@ -27,16 +27,23 @@
     height: 100%;
 }
 
-#area-name {
-    position: absolute;
-    top: 10px;
-    left: 50%;
-    translate: -50% 0%;
-
-    z-index: 1;
+#area-name,
+#speedrun-timer {
+    text-align: center;
 
     text-shadow: 2px 2px 4px black;
 }
+
+#area-name {
+    margin-bottom: 0;
+
+    z-index: 1;
+}
+
+#speedrun-timer {
+    margin-top: 10px;
+}
+
 
 #area-message-display {
     position: absolute;

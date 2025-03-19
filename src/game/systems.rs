@@ -2,7 +2,7 @@ use super::{
     area::Area,
     components::*,
     game::{
-        TransferRequest, TransferRequestTargetPos, TransferRequestTargetPosX,
+        TimerSyncPacket, TransferRequest, TransferRequestTargetPos, TransferRequestTargetPosX,
         TransferRequestTargetPosY, TransferTarget,
     },
 };
@@ -299,6 +299,15 @@ pub fn system_send_render_packet(area: &mut Area) {
                 }
             }
         }
+    }
+}
+
+pub fn system_sync_timers(area: &mut Area) {
+    for (_, (timer, player_id)) in area.world.query_mut::<(&mut Timer, &PlayerId)>() {
+        let _ = area.timer_sync_tx.send(TimerSyncPacket {
+            player_id: player_id.0,
+            time: timer.0,
+        });
     }
 }
 

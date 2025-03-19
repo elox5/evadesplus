@@ -3,7 +3,7 @@ use super::{
         BounceOffBounds, Bounded, Color, Direction, Enemy, Hero, PlayerId, Position,
         RenderReceiver, Size, Speed, Timer, Velocity,
     },
-    game::TransferRequest,
+    game::{TimerSyncPacket, TransferRequest},
     portal::{Portal, PortalCreationContext, PortalData},
 };
 use crate::{
@@ -45,6 +45,7 @@ pub struct Area {
 
     pub flags: AreaFlags,
 
+    pub frame_count: u32,
     pub time: f32,
     pub delta_time: f32,
 
@@ -54,6 +55,7 @@ pub struct Area {
 
     pub transfer_tx: mpsc::Sender<TransferRequest>,
     pub leaderboard_tx: broadcast::Sender<LeaderboardUpdate>,
+    pub timer_sync_tx: broadcast::Sender<TimerSyncPacket>,
 }
 
 impl Area {
@@ -61,6 +63,7 @@ impl Area {
         template: &AreaTemplate,
         transfer_tx: mpsc::Sender<TransferRequest>,
         leaderboard_tx: broadcast::Sender<LeaderboardUpdate>,
+        timer_sync_tx: broadcast::Sender<TimerSyncPacket>,
     ) -> Self {
         let mut area = Self {
             key: template.key.clone(),
@@ -83,12 +86,15 @@ impl Area {
             portals: template.portals.clone(),
             flags: template.flags.clone(),
             world: World::new(),
+
+            frame_count: 0,
             time: 0.0,
             delta_time: 0.0,
             render_packet: None,
             loop_handle: None,
             transfer_tx,
             leaderboard_tx,
+            timer_sync_tx,
         };
 
         for group in &template.enemy_groups {

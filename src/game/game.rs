@@ -47,6 +47,9 @@ pub struct Game {
 
     pub chat_tx: broadcast::Sender<ChatRequest>,
 
+    timer_sync_tx: broadcast::Sender<TimerSyncPacket>,
+    pub timer_sync_rx: broadcast::Receiver<TimerSyncPacket>,
+
     frame_duration: Duration,
 }
 
@@ -54,6 +57,7 @@ impl Game {
     pub fn new() -> Arc<Mutex<Self>> {
         let (transfer_tx, mut transfer_rx) = mpsc::channel::<TransferRequest>(8);
         let (leaderboard_tx, leaderboard_rx) = broadcast::channel(8);
+        let (timer_sync_tx, timer_sync_rx) = broadcast::channel(8);
 
         let mut lb_rx_clone = leaderboard_rx.resubscribe();
 
@@ -82,6 +86,8 @@ impl Game {
             leaderboard_tx,
             leaderboard_rx,
             chat_tx: Chat::tx(),
+            timer_sync_tx,
+            timer_sync_rx,
             frame_duration,
         };
 
@@ -122,6 +128,7 @@ impl Game {
             template,
             self.transfer_tx.clone(),
             self.leaderboard_tx.clone(),
+            self.timer_sync_tx.clone(),
         );
         let area = Arc::new(Mutex::new(area));
         Self::start_update_loop(area.clone(), self.frame_duration);
@@ -161,6 +168,7 @@ impl Game {
     }
 
     async fn update_area(area: &mut Area, delta_time: f32) {
+        area.frame_count += 1;
         area.time += delta_time;
         area.delta_time = delta_time;
 
@@ -179,6 +187,10 @@ impl Game {
 
         system_render(area);
         system_send_render_packet(area);
+
+        if area.frame_count % 300 == 0 {
+            system_sync_timers(area);
+        }
     }
 
     fn start_update_loop(area: Arc<Mutex<Area>>, frame_duration: Duration) {
@@ -580,5 +592,21 @@ impl TransferRequestTargetPosY {
             TransferRequestTargetPosY::Center => bounds.center().y,
             TransferRequestTargetPosY::Resolved(x) => *x,
         }
+    }
+}
+
+#[derive(Clone)]
+pub struct TimerSyncPacket {
+    pub player_id: u64,
+    pub time: f32,
+}
+
+impl TimerSyncPacket {
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+
+        bytes.extend_from_slice(b"TIME");
+        bytes.extend_from_slice(&self.time.to_le_bytes());
+        bytes
     }
 }
