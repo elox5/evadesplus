@@ -89,6 +89,8 @@ async fn main() -> Result<()> {
         network_config.client_port_http,
     );
 
+    Logger::info(&format!("HTTP server litening on https://{https_addr}"));
+
     tokio::select! {
         _result = warp::serve(http_route).run(http_addr) => {
             Logger::info("HTTP server closed");
