@@ -14,6 +14,7 @@ maps = []
 
 [game]
 simulation_framerate = 60
+# spawn_map = "my_map"
 
 [logger]
 console = { enabled = true, level = "Info", headers = [
