@@ -259,7 +259,8 @@ impl FileHandler {
     }
 
     fn find_last_file(path: &str) -> Option<PathBuf> {
-        let files = std::fs::read_dir(&path).expect("Failed to read log directory");
+        let files =
+            std::fs::read_dir(&path).expect(&format!(r#"Failed to read directory "{path}""#));
 
         let last_file = files
             .flat_map(|f| f.ok())
