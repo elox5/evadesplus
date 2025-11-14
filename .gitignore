@@ -2,7 +2,8 @@
 
 Cargo.lock
 
-TODO
+todo/
+*.todo
 /logs
 config.toml
 
