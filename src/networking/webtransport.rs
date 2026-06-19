@@ -25,7 +25,7 @@ use wtransport::{
     Connection, Endpoint, Identity, RecvStream, SendStream, ServerConfig,
 };
 
-pub struct WebTransportServer {
+pub struct WtConnectionManager {
     endpoint: Endpoint<Server>,
     game: Arc<Mutex<Game>>,
     chat_tx: broadcast::Sender<ChatRequest>,
@@ -33,7 +33,7 @@ pub struct WebTransportServer {
     timer_sync_rx: broadcast::Receiver<TimerSyncPacket>,
 }
 
-impl WebTransportServer {
+impl WtConnectionManager {
     pub fn new(
         identity: Identity,
         game_arc: Arc<Mutex<Game>>,

@@ -4,7 +4,7 @@ use evadesplus::{
     config::CONFIG,
     game::{game::Game, map_table::get_map_list},
     logger::Logger,
-    networking::{chat::Chat, webtransport::WebTransportServer},
+    networking::{chat::Chat, webtransport::WtConnectionManager},
 };
 use std::{
     net::{IpAddr, SocketAddr},
@@ -47,7 +47,7 @@ async fn main() -> Result<()> {
     let key = identity.private_key().clone_key();
     let key = key.to_secret_pem();
 
-    let webtransport_server = WebTransportServer::new(
+    let webtransport_server = WtConnectionManager::new(
         identity,
         game,
         network_config.ip,
