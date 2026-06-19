@@ -9,6 +9,7 @@ use crate::{
         game::{Game, TimerSyncPacket},
     },
     logger::{LogCategory, Logger},
+    networking::new::connection_manager::ConnectionManager,
     physics::vec2::Vec2,
 };
 use anyhow::Result;
@@ -63,36 +64,6 @@ impl WtConnectionManager {
 
     pub fn local_addr(&self) -> SocketAddr {
         self.endpoint.local_addr().unwrap()
-    }
-
-    pub async fn serve(self) -> Result<()> {
-        Logger::info(format!(
-            "WebTransport server listening on https://{}",
-            &self.local_addr()
-        ));
-
-        for id in 0.. {
-            let incomming_session = self.endpoint.accept().await;
-
-            Logger::log(
-                format!(
-                    "Accepting session @{id} from {}",
-                    incomming_session.remote_address()
-                ),
-                LogCategory::Network,
-            );
-
-            tokio::spawn(Self::handle_session(
-                incomming_session,
-                self.game.clone(),
-                self.chat_tx.clone(),
-                self.chat_rx.resubscribe(),
-                self.timer_sync_rx.resubscribe(),
-                id,
-            ));
-        }
-
-        Ok(())
     }
 
     async fn handle_session(
@@ -186,6 +157,38 @@ impl WtConnectionManager {
     async fn finalize_connection(game: &Arc<Mutex<Game>>, id: u64) {
         let mut game = game.lock().await;
         let _ = game.despawn_hero(id).await;
+    }
+}
+
+impl ConnectionManager for WtConnectionManager {
+    async fn serve(self) -> Result<()> {
+        Logger::info(format!(
+            "WebTransport server listening on https://{}",
+            &self.local_addr()
+        ));
+
+        for id in 0.. {
+            let incomming_session = self.endpoint.accept().await;
+
+            Logger::log(
+                format!(
+                    "Accepting session @{id} from {}",
+                    incomming_session.remote_address()
+                ),
+                LogCategory::Network,
+            );
+
+            tokio::spawn(Self::handle_session(
+                incomming_session,
+                self.game.clone(),
+                self.chat_tx.clone(),
+                self.chat_rx.resubscribe(),
+                self.timer_sync_rx.resubscribe(),
+                id,
+            ));
+        }
+
+        Ok(())
     }
 }
 

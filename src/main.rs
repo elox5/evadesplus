@@ -4,7 +4,9 @@ use evadesplus::{
     config::CONFIG,
     game::{game::Game, map_table::get_map_list},
     logger::Logger,
-    networking::{chat::Chat, webtransport::WtConnectionManager},
+    networking::{
+        chat::Chat, new::connection_manager::ConnectionManager, webtransport::WtConnectionManager,
+    },
 };
 use std::{
     net::{IpAddr, SocketAddr},
