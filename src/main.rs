@@ -5,7 +5,8 @@ use evadesplus::{
     game::{game::Game, map_table::get_map_list},
     logger::Logger,
     networking::{
-        chat::Chat, new::connection_manager::ConnectionManager, webtransport::WtConnectionManager,
+        chat::Chat,
+        new::connection_manager::{ConnectionManager, WsConnectionManager},
     },
 };
 use std::{
@@ -33,6 +34,11 @@ async fn main() -> Result<()> {
 
     let game = Game::new();
 
+    let connection_manager = WsConnectionManager::new(SocketAddr::new(
+        IpAddr::V4(network_config.ip),
+        network_config.ws_port,
+    ));
+
     let identity =
         Identity::load_pemfiles(&network_config.ssl_cert_path, &network_config.ssl_key_path)
             .await
@@ -48,13 +54,6 @@ async fn main() -> Result<()> {
 
     let key = identity.private_key().clone_key();
     let key = key.to_secret_pem();
-
-    let webtransport_server = WtConnectionManager::new(
-        identity,
-        game,
-        network_config.ip,
-        network_config.webtransport_port,
-    )?;
 
     let root_route = warp::fs::dir(network_config.client_path.clone());
     let cache_route = warp::path("cache").and(warp::get()).then(move || {
@@ -100,8 +99,8 @@ async fn main() -> Result<()> {
         _result = warp::serve(routes).tls().cert(cert).key(key).run(https_addr) => {
             Logger::info("HTTPS server closed");
         }
-        _result = webtransport_server.serve() => {
-            Logger::info("WebTransport server closed");
+        _result = connection_manager.serve() => {
+            Logger::info("Connection manager closed");
         }
     }
 

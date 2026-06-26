@@ -29,6 +29,7 @@ pub struct NetworkConfig {
     pub client_port_https: u16,
     pub client_port_http: u16,
     pub webtransport_port: u16,
+    pub ws_port: u16,
     pub client_path: String,
     pub ssl_cert_path: String,
     pub ssl_key_path: String,

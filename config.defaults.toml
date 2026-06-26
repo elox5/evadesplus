@@ -4,6 +4,7 @@ ip = "127.0.0.1"
 client_port_https = 3333
 client_port_http = 3000
 webtransport_port = 3334
+ws_port = 3335
 client_path = "client/dist"
 ssl_cert_path = "ssl/cert.pem"
 ssl_key_path = "ssl/key.pem"

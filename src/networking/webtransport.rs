@@ -9,7 +9,7 @@ use crate::{
         game::{Game, TimerSyncPacket},
     },
     logger::{LogCategory, Logger},
-    networking::new::connection_manager::ConnectionManager,
+    networking::new::{client_message::ClientMessage, connection_manager::ConnectionManager},
     physics::vec2::Vec2,
 };
 use anyhow::Result;
@@ -32,6 +32,9 @@ pub struct WtConnectionManager {
     chat_tx: broadcast::Sender<ChatRequest>,
     chat_rx: broadcast::Receiver<ChatRequest>,
     timer_sync_rx: broadcast::Receiver<TimerSyncPacket>,
+
+    client_tx: broadcast::Sender<ClientMessage>,
+    client_rx: broadcast::Receiver<ClientMessage>,
 }
 
 impl WtConnectionManager {
@@ -53,12 +56,16 @@ impl WtConnectionManager {
         let timer_sync_rx = game.timer_sync_rx.resubscribe();
         drop(game);
 
+        let (client_tx, client_rx) = broadcast::channel(64);
+
         Ok(Self {
             endpoint,
             game: game_arc,
             chat_tx: Chat::tx(),
             chat_rx: Chat::rx(),
             timer_sync_rx,
+            client_tx,
+            client_rx,
         })
     }
 
@@ -70,13 +77,21 @@ impl WtConnectionManager {
         session: IncomingSession,
         game: Arc<Mutex<Game>>,
         chat_tx: broadcast::Sender<ChatRequest>,
+        client_tx: broadcast::Sender<ClientMessage>,
         chat_rx: broadcast::Receiver<ChatRequest>,
         timer_sync_rx: broadcast::Receiver<TimerSyncPacket>,
         id: u64,
     ) {
-        let result =
-            Self::handle_session_impl(session, game.clone(), chat_tx, chat_rx, timer_sync_rx, id)
-                .await;
+        let result = Self::handle_session_impl(
+            session,
+            game.clone(),
+            chat_tx,
+            client_tx,
+            chat_rx,
+            timer_sync_rx,
+            id,
+        )
+        .await;
 
         let category = match &result {
             Ok(_) => LogCategory::Network,
@@ -97,6 +112,7 @@ impl WtConnectionManager {
         session: IncomingSession,
         game: Arc<Mutex<Game>>,
         chat_tx: broadcast::Sender<ChatRequest>,
+        client_tx: broadcast::Sender<ClientMessage>,
         mut chat_rx: broadcast::Receiver<ChatRequest>,
         mut timer_sync_rx: broadcast::Receiver<TimerSyncPacket>,
         id: u64,
@@ -124,16 +140,16 @@ impl WtConnectionManager {
             tokio::select! {
                 stream = connection.accept_uni() => {
                     let stream = stream?;
-                    handle_uni_stream(stream, &mut buffer, &connection, &game, id, &chat_tx).await?;
+                    handle_uni_stream(stream, &mut buffer, &connection, &game, id, &chat_tx, &client_tx).await?;
                 }
                 streams = connection.accept_bi() => {
                     let streams = streams?;
                     let (send_stream, recv_stream) = streams;
-                    handle_bi_stream(send_stream, recv_stream, &mut buffer, &connection, &game, id).await?;
+                    handle_bi_stream(send_stream, recv_stream, &mut buffer, &connection, &game, id, &client_tx).await?;
                 }
                 dgram = connection.receive_datagram() => {
                     let dgram = dgram?;
-                    handle_datagram(dgram, &game, id).await;
+                    handle_datagram(dgram, &game, id, &client_tx).await;
                 }
                 connection_result = connection.closed() => {
                     return Ok(connection_result);
@@ -182,6 +198,7 @@ impl ConnectionManager for WtConnectionManager {
                 incomming_session,
                 self.game.clone(),
                 self.chat_tx.clone(),
+                self.client_tx.clone(),
                 self.chat_rx.resubscribe(),
                 self.timer_sync_rx.resubscribe(),
                 id,
@@ -189,6 +206,10 @@ impl ConnectionManager for WtConnectionManager {
         }
 
         Ok(())
+    }
+
+    fn client_messages(&self) -> broadcast::Receiver<ClientMessage> {
+        self.client_rx.resubscribe()
     }
 }
 
@@ -199,6 +220,7 @@ async fn handle_uni_stream(
     game: &Arc<Mutex<Game>>,
     id: u64,
     chat_tx: &broadcast::Sender<ChatRequest>,
+    client_tx: &broadcast::Sender<ClientMessage>,
 ) -> Result<()> {
     let bytes_read = match stream.read(buffer).await? {
         Some(bytes_read) => bytes_read,
@@ -264,6 +286,9 @@ async fn handle_uni_stream(
         _ => handle_unknown_header(header, id),
     }
 
+    let msg = ClientMessage::new(id as u16, &String::from_utf8_lossy(header), data.to_vec());
+    let _ = client_tx.send(msg);
+
     Ok(())
 }
 
@@ -274,6 +299,7 @@ async fn handle_bi_stream(
     connection: &Connection,
     game: &Arc<Mutex<Game>>,
     id: u64,
+    client_tx: &broadcast::Sender<ClientMessage>,
 ) -> Result<()> {
     let bytes_read = match recv_stream.read(buffer).await? {
         Some(bytes_read) => bytes_read,
@@ -331,12 +357,20 @@ async fn handle_bi_stream(
         _ => handle_unknown_header(header, id),
     }
 
+    let msg = ClientMessage::new(id as u16, &String::from_utf8_lossy(header), data.to_vec());
+    let _ = client_tx.send(msg);
+
     send_stream.finish().await?;
 
     Ok(())
 }
 
-async fn handle_datagram(datagram: Datagram, game: &Arc<Mutex<Game>>, id: u64) {
+async fn handle_datagram(
+    datagram: Datagram,
+    game: &Arc<Mutex<Game>>,
+    id: u64,
+    client_tx: &broadcast::Sender<ClientMessage>,
+) {
     let payload = datagram.payload();
 
     let x = f32::from_le_bytes([payload[0], payload[1], payload[2], payload[3]]);
@@ -348,6 +382,9 @@ async fn handle_datagram(datagram: Datagram, game: &Arc<Mutex<Game>>, id: u64) {
 
     let mut game = game.lock().await;
     let _ = game.update_player_input(id, Vec2::new(x, y)).await;
+
+    let msg = ClientMessage::new(id as u16, "MOVE", payload.to_vec());
+    let _ = client_tx.send(msg);
 }
 
 async fn handle_leaderboard_update(
