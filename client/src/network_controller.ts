@@ -28,7 +28,7 @@ export class NetworkController {
         const { value } = await reader.read();
 
         const response = value as Uint8Array;
-        const data = new BinaryReader(response.buffer);
+        const data = new BinaryReader(response.buffer as ArrayBuffer);
 
         const init_response = data.read_u8() as InitResponse;
 
@@ -122,7 +122,7 @@ export class NetworkController {
 
             report_bandwidth(data.byteLength);
 
-            const stream = new BinaryReader(data.buffer);
+            const stream = new BinaryReader(data.buffer as ArrayBuffer);
 
             for (const handler of this.datagram_handlers) {
                 handler.callback(stream);
@@ -158,7 +158,7 @@ export class NetworkController {
 
             report_bandwidth(data.byteLength);
 
-            const stream = new BinaryReader(data.buffer);
+            const stream = new BinaryReader(data.buffer as ArrayBuffer);
             const header = stream.read_string(4);
 
             for (const callback of callbacks) {
