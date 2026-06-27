@@ -1,5 +1,5 @@
 use super::{
-    chat::{Chat, ChatMessageType, ChatRequest},
+    chat::{ChatMessageType, ChatRequest},
     commands::{handle_command, CommandRequest},
     leaderboard::LeaderboardUpdate,
 };
@@ -29,8 +29,6 @@ use wtransport::{
 pub struct WtConnectionManager {
     endpoint: Endpoint<Server>,
     game: Arc<Mutex<Game>>,
-    chat_tx: broadcast::Sender<ChatRequest>,
-    chat_rx: broadcast::Receiver<ChatRequest>,
     timer_sync_rx: broadcast::Receiver<TimerSyncPacket>,
 
     client_tx: broadcast::Sender<ClientMessage>,
@@ -61,8 +59,6 @@ impl WtConnectionManager {
         Ok(Self {
             endpoint,
             game: game_arc,
-            chat_tx: Chat::tx(),
-            chat_rx: Chat::rx(),
             timer_sync_rx,
             client_tx,
             client_rx,
@@ -76,22 +72,12 @@ impl WtConnectionManager {
     async fn handle_session(
         session: IncomingSession,
         game: Arc<Mutex<Game>>,
-        chat_tx: broadcast::Sender<ChatRequest>,
         client_tx: broadcast::Sender<ClientMessage>,
-        chat_rx: broadcast::Receiver<ChatRequest>,
         timer_sync_rx: broadcast::Receiver<TimerSyncPacket>,
         id: u64,
     ) {
-        let result = Self::handle_session_impl(
-            session,
-            game.clone(),
-            chat_tx,
-            client_tx,
-            chat_rx,
-            timer_sync_rx,
-            id,
-        )
-        .await;
+        let result =
+            Self::handle_session_impl(session, game.clone(), client_tx, timer_sync_rx, id).await;
 
         let category = match &result {
             Ok(_) => LogCategory::Network,
@@ -111,9 +97,7 @@ impl WtConnectionManager {
     async fn handle_session_impl(
         session: IncomingSession,
         game: Arc<Mutex<Game>>,
-        chat_tx: broadcast::Sender<ChatRequest>,
         client_tx: broadcast::Sender<ClientMessage>,
-        mut chat_rx: broadcast::Receiver<ChatRequest>,
         mut timer_sync_rx: broadcast::Receiver<TimerSyncPacket>,
         id: u64,
     ) -> Result<ConnectionError> {
@@ -140,7 +124,7 @@ impl WtConnectionManager {
             tokio::select! {
                 stream = connection.accept_uni() => {
                     let stream = stream?;
-                    handle_uni_stream(stream, &mut buffer, &connection, &game, id, &chat_tx, &client_tx).await?;
+                    handle_uni_stream(stream, &mut buffer, &connection, &game, id, &client_tx).await?;
                 }
                 streams = connection.accept_bi() => {
                     let streams = streams?;
@@ -162,10 +146,10 @@ impl WtConnectionManager {
                     let timer_sync = timer_sync?;
                     handle_timer_sync(timer_sync, &connection, id).await?;
                 }
-                chat_broadcast = chat_rx.recv() => {
-                    let chat_broadcast = chat_broadcast?;
-                    handle_chat_broadcast(chat_broadcast, &connection, id).await?;
-                }
+                // chat_broadcast = chat_rx.recv() => {
+                //     let chat_broadcast = chat_broadcast?;
+                //     handle_chat_broadcast(chat_broadcast, &connection, id).await?;
+                // }
             }
         }
     }
@@ -197,9 +181,7 @@ impl ConnectionManager for WtConnectionManager {
             tokio::spawn(Self::handle_session(
                 incomming_session,
                 self.game.clone(),
-                self.chat_tx.clone(),
                 self.client_tx.clone(),
-                self.chat_rx.resubscribe(),
                 self.timer_sync_rx.resubscribe(),
                 id,
             ));
@@ -219,7 +201,6 @@ async fn handle_uni_stream(
     connection: &Connection,
     game: &Arc<Mutex<Game>>,
     id: u64,
-    chat_tx: &broadcast::Sender<ChatRequest>,
     client_tx: &broadcast::Sender<ClientMessage>,
 ) -> Result<()> {
     let bytes_read = match stream.read(buffer).await? {
@@ -270,7 +251,7 @@ async fn handle_uni_stream(
                     if message.recipient_filter == Some(vec![id]) {
                         let _ = send_chat_message(message, connection).await;
                     } else {
-                        let _ = chat_tx.send(message);
+                        // let _ = chat_tx.send(message);
                     }
                 }
             } else {
@@ -280,7 +261,7 @@ async fn handle_uni_stream(
                 let request =
                     ChatRequest::new(text.to_owned(), name, id, ChatMessageType::Normal, None);
 
-                let _ = chat_tx.send(request);
+                // let _ = chat_tx.send(request);
             }
         }
         _ => handle_unknown_header(header, id),

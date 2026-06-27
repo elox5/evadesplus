@@ -19,12 +19,19 @@ impl Default for ClientMessageLogger {
 }
 
 impl ClientMessageHandler for ClientMessageLogger {
-    fn accepted_headers() -> Vec<MessageHeader> {
-        return vec!["CHAT".into(), "INIT".into()];
+    fn accepted_headers(&self) -> Vec<MessageHeader> {
+        return vec!["INIT".into()];
     }
 
     fn handle(&self, msg: ClientMessage) -> anyhow::Result<()> {
-        Logger::log(msg.header.to_string(), self.cat.clone());
+        Logger::log(
+            format!(
+                "Received '{}' from client @{}",
+                msg.header.to_string(),
+                msg.client_id
+            ),
+            self.cat.clone(),
+        );
         Ok(())
     }
 }

@@ -48,7 +48,7 @@ async function handle_connection() {
     const encoder = new TextEncoder();
     const msg = encoder.encode(name);
 
-    conn.send("INIT", msg);
+    conn.send("CHAT", msg);
 
 
 

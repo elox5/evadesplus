@@ -3,13 +3,15 @@ use evadesplus::{
     cache::Cache,
     config::CONFIG,
     game::{game::Game, map_table::get_map_list},
-    logger::Logger,
+    logger::{LogCategory, Logger},
     networking::{
         chat::Chat,
         new::{
             connection_manager::{ConnectionManager, WsConnectionManager},
-            handlers::client_message_logger::ClientMessageLogger,
-            handlers::handler::ClientMessageHandler,
+            handlers::{
+                client_chat_handler::ClientChatHandler, client_message_logger::ClientMessageLogger,
+                handler::ClientMessageHandler,
+            },
         },
     },
 };
@@ -17,15 +19,13 @@ use std::{
     net::{IpAddr, SocketAddr},
     str::FromStr,
 };
-use tokio::sync::broadcast;
 use warp::hyper::Uri;
 use warp::Filter;
 use wtransport::Identity;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let (chat_tx, chat_rx) = broadcast::channel(8);
-    Chat::init(chat_tx, chat_rx);
+    let chat = Chat::new();
 
     let network_config = &CONFIG.network;
 
@@ -43,16 +43,48 @@ async fn main() -> Result<()> {
         network_config.ws_port,
     ));
 
-    let mut logger_rx = connection_manager.client_messages().resubscribe();
-    let logger = ClientMessageLogger::default();
+    {
+        let mut client_rx = connection_manager.client_messages().resubscribe();
+        let client_message_logger = ClientMessageLogger::default();
 
-    tokio::task::spawn(async move {
-        while let Ok(message) = logger_rx.recv().await {
-            if ClientMessageLogger::accepted_headers().contains(&message.header) {
-                let _ = logger.handle(message);
+        tokio::task::spawn(async move {
+            while let Ok(message) = client_rx.recv().await {
+                if client_message_logger
+                    .accepted_headers()
+                    .contains(&message.header)
+                {
+                    let _ = client_message_logger.handle(message);
+                }
             }
-        }
-    });
+        });
+    }
+
+    {
+        let mut client_rx = connection_manager.client_messages().resubscribe();
+        let chat_tx = chat.tx.clone();
+        let chat_handler = ClientChatHandler::new(chat_tx);
+
+        tokio::task::spawn(async move {
+            while let Ok(message) = client_rx.recv().await {
+                if chat_handler.accepted_headers().contains(&message.header) {
+                    let _ = chat_handler.handle(message);
+                }
+            }
+        });
+    }
+
+    {
+        let mut chat_rx = chat.rx.resubscribe();
+
+        tokio::task::spawn(async move {
+            while let Ok(message) = chat_rx.recv().await {
+                Logger::log(
+                    format!("{}: {}", message.sender_name, message.message),
+                    LogCategory::Chat,
+                );
+            }
+        });
+    }
 
     let identity =
         Identity::load_pemfiles(&network_config.ssl_cert_path, &network_config.ssl_key_path)

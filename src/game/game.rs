@@ -9,10 +9,7 @@ use crate::{
     config::CONFIG,
     game::components::Timer,
     logger::Logger,
-    networking::{
-        chat::{Chat, ChatMessageType, ChatRequest},
-        leaderboard::{AreaInfo, LeaderboardState, LeaderboardUpdate},
-    },
+    networking::leaderboard::{AreaInfo, LeaderboardState, LeaderboardUpdate},
     physics::{rect::Rect, vec2::Vec2},
 };
 use anyhow::{anyhow, Result};
@@ -44,8 +41,6 @@ pub struct Game {
 
     leaderboard_tx: broadcast::Sender<LeaderboardUpdate>,
     pub leaderboard_rx: broadcast::Receiver<LeaderboardUpdate>,
-
-    pub chat_tx: broadcast::Sender<ChatRequest>,
 
     timer_sync_tx: broadcast::Sender<TimerSyncPacket>,
     pub timer_sync_rx: broadcast::Receiver<TimerSyncPacket>,
@@ -85,7 +80,6 @@ impl Game {
             leaderboard_state: LeaderboardState::new(),
             leaderboard_tx,
             leaderboard_rx,
-            chat_tx: Chat::tx(),
             timer_sync_tx,
             timer_sync_rx,
             frame_duration,
@@ -238,7 +232,7 @@ impl Game {
             entity.id()
         ));
 
-        self.send_server_announcement(format!("{} joined the game", name));
+        // self.send_server_announcement(format!("{} joined the game", name));
     }
 
     pub async fn despawn_hero(&mut self, player_id: u64) -> Result<()> {
@@ -258,7 +252,7 @@ impl Game {
             player.name, player_id
         ));
 
-        self.send_server_announcement(format!("{} left the game", player.name));
+        // self.send_server_announcement(format!("{} left the game", player.name));
 
         if should_close {
             self.close_area(&area.key);
@@ -364,28 +358,28 @@ impl Game {
         if target_area.flags.victory && !new_player.victories.contains(&target_area.key) {
             new_player.victories.push(target_area.key.clone());
 
-            let world = &mut target_area.world;
-            let timer = world.query_one_mut::<&mut Timer>(entity).ok();
+            // let world = &mut target_area.world;
+            // let timer = world.query_one_mut::<&mut Timer>(entity).ok();
 
-            if let Some(timer) = timer {
-                let minutes = timer.0 / 60.0;
-                let seconds = (timer.0.floor() as u32) % 60;
+            // if let Some(timer) = timer {
+            //     let minutes = timer.0 / 60.0;
+            //     let seconds = (timer.0.floor() as u32) % 60;
 
-                let announcement_name = match &target_area.route_name {
-                    Some(route) => route,
-                    None => match &target_area.flags.final_victory {
-                        true => &target_area.map_name,
-                        false => &target_area.full_name,
-                    },
-                };
+            //     let announcement_name = match &target_area.route_name {
+            //         Some(route) => route,
+            //         None => match &target_area.flags.final_victory {
+            //             true => &target_area.map_name,
+            //             false => &target_area.full_name,
+            //         },
+            //     };
 
-                self.send_server_announcement(format!(
-                    "{} just completed {} in {:02.0}:{:02.0}!",
-                    player.name, announcement_name, minutes, seconds
-                ));
-            } else {
-                Logger::error("Expected Timer component on hero when transferring to victory area");
-            }
+            //     self.send_server_announcement(format!(
+            //         "{} just completed {} in {:02.0}:{:02.0}!",
+            //         player.name, announcement_name, minutes, seconds
+            //     ));
+            // } else {
+            //     Logger::error("Expected Timer component on hero when transferring to victory area");
+            // }
         }
 
         let player_arcswap = self.get_player_arcswap(req.player_id)?;
@@ -487,16 +481,15 @@ impl Game {
             .ok_or(anyhow!("Player '{name}' not found"))
     }
 
-    fn send_server_announcement(&self, message: String) {
-        let chat_broadcast = ChatRequest::new(
-            message,
-            String::new(),
-            u64::MAX,
-            ChatMessageType::ServerAnnouncement,
-            None,
-        );
-        let _ = self.chat_tx.send(chat_broadcast);
-    }
+    // fn send_server_announcement(&self, message: String) {
+    //     let chat_broadcast = ChatRequest::new(
+    //         message,
+    //         String::new(),
+    //         u64::MAX,
+    //         ChatMessageType::ServerAnnouncement,
+    //         None,
+    //     );
+    // }
 }
 
 pub struct Player {

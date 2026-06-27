@@ -1,6 +1,6 @@
 use crate::{
     config::{FileLogMode, LogHeaderType, LogLevel, CONFIG},
-    networking::chat::{Chat, ChatMessageType, ChatRequest},
+    networking::chat::{ChatMessageType, ChatRequest},
 };
 use colored::{Color, Colorize};
 use std::{
@@ -33,7 +33,8 @@ impl Logger {
         }
 
         if CONFIG.logger.chat.enabled {
-            sinks.push(Box::new(ChatLogSink::new(Chat::tx().clone())));
+            // sinks.push(Box::new(ChatLogSink::new(None)));
+            // Chat sink temporarily out of order
         }
 
         Self {
