@@ -1,6 +1,7 @@
 import { network_controller, NetworkModule } from "./network_controller.js";
 import { init_cache } from "./cache.js";
 import { setup_input } from "./input.js";
+import { WsConnector } from "./ws_connector.js";
 
 const game_container = document.querySelector("#game-container") as HTMLDivElement;
 const connection_panel = document.querySelector("#connection-panel") as HTMLDivElement;
@@ -35,47 +36,59 @@ async function main() {
 }
 window.onload = main;
 
+const conn = new WsConnector();
+
 async function handle_connection() {
-    const name_input = document.querySelector("#name-input") as HTMLInputElement;
-    const name = name_input.value.trim();
 
-    console.log("Connecting...");
-    display_connection_message("Connecting...", "#bfff3f");
+    await conn.init();
+    await conn.ready();
 
-    if (name.length === 0) {
-        display_connection_message("Please enter a name", "#ffbf3f");
-        return;
-    }
+    const encoder = new TextEncoder();
+    const msg = encoder.encode("Hello");
 
-    try {
-        const connection_response = await network_controller.connect(name);
+    conn.send("CHAT", msg);
 
-        if (connection_response === "already_connected") {
-            display_connection_message("WebTransport connection already established", "#ffbf3f");
-            return;
-        }
 
-        if (connection_response === "name_invalid") {
-            display_connection_message("Invalid name! Forbidden characters: #, @, $, ^, :, /, \\, *", "#ffbf3f");
-            return;
-        }
+    // const name_input = document.querySelector("#name-input") as HTMLInputElement;
+    // const name = name_input.value.trim();
 
-        if (typeof connection_response === "object") {
-            display_connection_message(`Error encountered during initialization:\n ${connection_response.message}`, "#ff3f3f");
-            return;
-        }
+    // console.log("Connecting...");
+    // display_connection_message("Connecting...", "#bfff3f");
 
-        show_game();
+    // if (name.length === 0) {
+    //     display_connection_message("Please enter a name", "#ffbf3f");
+    //     return;
+    // }
 
-        network_controller.run_game_load_callbacks();
+    // try {
+    //     const connection_response = await network_controller.connect(name);
 
-        clear_connection_message();
-        connect_button.disabled = true;
-    }
-    catch (err) {
-        display_connection_message("Failed to establish WebTransport connection. Check the console for more info", "#ff3f3f");
-        console.error("Failed to establish WebTransport connection:\n", err);
-    }
+    //     if (connection_response === "already_connected") {
+    //         display_connection_message("WebTransport connection already established", "#ffbf3f");
+    //         return;
+    //     }
+
+    //     if (connection_response === "name_invalid") {
+    //         display_connection_message("Invalid name! Forbidden characters: #, @, $, ^, :, /, \\, *", "#ffbf3f");
+    //         return;
+    //     }
+
+    //     if (typeof connection_response === "object") {
+    //         display_connection_message(`Error encountered during initialization:\n ${connection_response.message}`, "#ff3f3f");
+    //         return;
+    //     }
+
+    //     show_game();
+
+    //     network_controller.run_game_load_callbacks();
+
+    //     clear_connection_message();
+    //     connect_button.disabled = true;
+    // }
+    // catch (err) {
+    //     display_connection_message("Failed to establish WebTransport connection. Check the console for more info", "#ff3f3f");
+    //     console.error("Failed to establish WebTransport connection:\n", err);
+    // }
 }
 
 function show_game() {
