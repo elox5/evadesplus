@@ -286,7 +286,7 @@ async fn handle_uni_stream(
         _ => handle_unknown_header(header, id),
     }
 
-    let msg = ClientMessage::new(id as u16, &String::from_utf8_lossy(header), data.to_vec());
+    let msg = ClientMessage::new(id as u16, header, data.to_vec());
     let _ = client_tx.send(msg);
 
     Ok(())
@@ -357,7 +357,7 @@ async fn handle_bi_stream(
         _ => handle_unknown_header(header, id),
     }
 
-    let msg = ClientMessage::new(id as u16, &String::from_utf8_lossy(header), data.to_vec());
+    let msg = ClientMessage::new(id as u16, header, data.to_vec());
     let _ = client_tx.send(msg);
 
     send_stream.finish().await?;

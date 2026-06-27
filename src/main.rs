@@ -6,7 +6,11 @@ use evadesplus::{
     logger::Logger,
     networking::{
         chat::Chat,
-        new::connection_manager::{ConnectionManager, WsConnectionManager},
+        new::{
+            connection_manager::{ConnectionManager, WsConnectionManager},
+            handlers::client_message_logger::ClientMessageLogger,
+            handlers::handler::ClientMessageHandler,
+        },
     },
 };
 use std::{
@@ -38,6 +42,17 @@ async fn main() -> Result<()> {
         IpAddr::V4(network_config.ip),
         network_config.ws_port,
     ));
+
+    let mut logger_rx = connection_manager.client_messages().resubscribe();
+    let logger = ClientMessageLogger::default();
+
+    tokio::task::spawn(async move {
+        while let Ok(message) = logger_rx.recv().await {
+            if ClientMessageLogger::accepted_headers().contains(&message.header) {
+                let _ = logger.handle(message);
+            }
+        }
+    });
 
     let identity =
         Identity::load_pemfiles(&network_config.ssl_cert_path, &network_config.ssl_key_path)

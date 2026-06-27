@@ -89,7 +89,7 @@ impl WsConnectionManager {
             let bytes = msg.as_bytes();
             let (header, data) = bytes.split_at(4);
 
-            let msg = ClientMessage::new(id, &String::from_utf8_lossy(header), data.to_vec());
+            let msg = ClientMessage::new(id, header, data.to_vec());
 
             let _ = client_tx.send(msg);
         }
