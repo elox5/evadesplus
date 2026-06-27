@@ -9,7 +9,10 @@ use crate::{
         game::{Game, TimerSyncPacket},
     },
     logger::{LogCategory, Logger},
-    networking::new::{client_message::ClientMessage, connection_manager::ConnectionManager},
+    networking::{
+        helpers::validate_player_name,
+        new::{client_message::ClientMessage, connection_manager::ConnectionManager},
+    },
     physics::vec2::Vec2,
 };
 use anyhow::Result;
@@ -407,15 +410,6 @@ async fn handle_chat_broadcast(
     }
 
     send_chat_message(request, connection).await
-}
-
-//
-
-const FORBIDDEN_PLAYER_NAME_CHARACTERS: [char; 8] = ['#', '@', '$', '^', ':', '/', '\\', '*'];
-
-fn validate_player_name(name: &str) -> bool {
-    name.chars()
-        .all(|c| !FORBIDDEN_PLAYER_NAME_CHARACTERS.contains(&c))
 }
 
 async fn send_chat_message(request: ChatRequest, connection: &Connection) -> Result<()> {

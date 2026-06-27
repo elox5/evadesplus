@@ -27,7 +27,7 @@ pub trait ConnectionManager {
     fn client_messages(&self) -> broadcast::Receiver<ClientMessage>;
 }
 
-static NEXT_CONNECTION_ID: AtomicU16 = AtomicU16::new(1);
+static NEXT_CLIENT_ID: AtomicU16 = AtomicU16::new(1);
 
 pub struct WsConnectionManager {
     addr: SocketAddr,
@@ -58,7 +58,7 @@ impl WsConnectionManager {
         client_tx: broadcast::Sender<ClientMessage>,
         connection_map: Arc<ArcSwap<WsConnectionMap>>,
     ) {
-        let id: ClientId = NEXT_CONNECTION_ID.fetch_add(1, Ordering::Relaxed);
+        let id: ClientId = NEXT_CLIENT_ID.fetch_add(1, Ordering::Relaxed);
 
         let (user_sink, mut user_stream) = ws.split();
 
@@ -132,7 +132,7 @@ struct WsConnectionMap {
 }
 
 impl WsConnectionMap {
-    fn get(&self, id: u16) -> Option<Arc<Mutex<WsSink>>> {
+    fn get(&self, id: ClientId) -> Option<Arc<Mutex<WsSink>>> {
         self.map.get(&id).cloned()
     }
 
@@ -140,7 +140,7 @@ impl WsConnectionMap {
         self.map.values().cloned().collect()
     }
 
-    fn insert(&mut self, id: u16, tx: Arc<Mutex<WsSink>>) {
+    fn insert(&mut self, id: ClientId, tx: Arc<Mutex<WsSink>>) {
         self.map.insert(id, tx);
     }
 }

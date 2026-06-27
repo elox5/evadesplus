@@ -9,9 +9,12 @@ use evadesplus::{
         new::{
             connection_manager::{ConnectionManager, WsConnectionManager},
             handlers::{
-                client_chat_handler::ClientChatHandler, client_message_logger::ClientMessageLogger,
+                client_chat_handler::ClientChatHandler,
+                client_message_logger::ClientMessageLogger,
                 handler::ClientMessageHandler,
+                init_handler::{self, InitHandler},
             },
+            user_registry::create_user_registry,
         },
     },
 };
@@ -27,6 +30,10 @@ use wtransport::Identity;
 async fn main() -> Result<()> {
     let chat = Chat::new();
 
+    let user_registry = create_user_registry();
+
+    let game = Game::new();
+
     let network_config = &CONFIG.network;
 
     if !std::path::Path::new(&network_config.client_path).is_dir() {
@@ -35,8 +42,6 @@ async fn main() -> Result<()> {
 
     let cache = Cache::new(get_map_list());
     let cache_hash = cache.get_hash();
-
-    let game = Game::new();
 
     let connection_manager = WsConnectionManager::new(SocketAddr::new(
         IpAddr::V4(network_config.ip),
@@ -68,6 +73,19 @@ async fn main() -> Result<()> {
             while let Ok(message) = client_rx.recv().await {
                 if chat_handler.accepted_headers().contains(&message.header) {
                     let _ = chat_handler.handle(message);
+                }
+            }
+        });
+    }
+
+    {
+        let mut client_rx = connection_manager.client_messages().resubscribe();
+        let init_handler = InitHandler::new(user_registry.clone());
+
+        tokio::task::spawn(async move {
+            while let Ok(message) = client_rx.recv().await {
+                if init_handler.accepted_headers().contains(&message.header) {
+                    let _ = init_handler.handle(message);
                 }
             }
         });
