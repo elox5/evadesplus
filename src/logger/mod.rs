@@ -16,36 +16,36 @@ use tokio::sync::broadcast;
 static LOGGER: LazyLock<Logger> = LazyLock::new(Logger::new);
 
 pub struct Logger {
-    handlers: Vec<Box<dyn Handler + Send + Sync>>,
+    sinks: Vec<Box<dyn LogSink + Send + Sync>>,
     panic_on_error: bool,
 }
 
 impl Logger {
     fn new() -> Self {
-        let mut handlers: Vec<Box<dyn Handler + Send + Sync>> = Vec::new();
+        let mut sinks: Vec<Box<dyn LogSink + Send + Sync>> = Vec::new();
 
         if CONFIG.logger.console.enabled {
-            handlers.push(Box::new(ConsoleHandler::new()));
+            sinks.push(Box::new(ConsoleLogSink::new()));
         }
 
         if CONFIG.logger.file.enabled {
-            handlers.push(Box::new(FileHandler::new()));
+            sinks.push(Box::new(FileLogSink::new()));
         }
 
         if CONFIG.logger.chat.enabled {
-            handlers.push(Box::new(ChatHandler::new(Chat::tx().clone())));
+            sinks.push(Box::new(ChatLogSink::new(Chat::tx().clone())));
         }
 
         Self {
-            handlers,
+            sinks,
             panic_on_error: CONFIG.logger.panic_on_error,
         }
     }
 
     fn handle_log(&self, entry: LogEntry) {
-        for handler in &self.handlers {
-            if entry.category.get_level() >= *handler.log_level() {
-                handler.handle(&entry);
+        for sink in &self.sinks {
+            if entry.category.get_level() >= *sink.log_level() {
+                sink.process(&entry);
             }
         }
 
@@ -170,16 +170,16 @@ impl LogEntry {
         message
     }
 }
-trait Handler {
-    fn handle(&self, entry: &LogEntry);
+trait LogSink {
+    fn process(&self, entry: &LogEntry);
     fn log_level(&self) -> &LogLevel;
 }
 
-struct ConsoleHandler {
+struct ConsoleLogSink {
     level: LogLevel,
 }
 
-impl ConsoleHandler {
+impl ConsoleLogSink {
     fn new() -> Self {
         let config = &CONFIG.logger.console;
 
@@ -189,8 +189,8 @@ impl ConsoleHandler {
     }
 }
 
-impl Handler for ConsoleHandler {
-    fn handle(&self, entry: &LogEntry) {
+impl LogSink for ConsoleLogSink {
+    fn process(&self, entry: &LogEntry) {
         let config = &CONFIG.logger.console;
 
         let message = entry.get_message(&config.headers, false);
@@ -207,12 +207,12 @@ impl Handler for ConsoleHandler {
     }
 }
 
-struct FileHandler {
+struct FileLogSink {
     file: Arc<Mutex<File>>,
     level: LogLevel,
 }
 
-impl FileHandler {
+impl FileLogSink {
     fn new() -> Self {
         let config = &CONFIG.logger.file;
 
@@ -279,8 +279,8 @@ impl FileHandler {
     }
 }
 
-impl Handler for FileHandler {
-    fn handle(&self, entry: &LogEntry) {
+impl LogSink for FileLogSink {
+    fn process(&self, entry: &LogEntry) {
         let config = &CONFIG.logger.file;
 
         let message = entry.get_message(&config.headers, true);
@@ -297,12 +297,12 @@ impl Handler for FileHandler {
     }
 }
 
-struct ChatHandler {
+struct ChatLogSink {
     tx: broadcast::Sender<ChatRequest>,
     level: LogLevel,
 }
 
-impl ChatHandler {
+impl ChatLogSink {
     fn new(tx: broadcast::Sender<ChatRequest>) -> Self {
         let config = &CONFIG.logger.chat;
 
@@ -320,8 +320,8 @@ impl ChatHandler {
     }
 }
 
-impl Handler for ChatHandler {
-    fn handle(&self, entry: &LogEntry) {
+impl LogSink for ChatLogSink {
+    fn process(&self, entry: &LogEntry) {
         self.tx
             .send(ChatRequest {
                 sender_name: String::new(),
