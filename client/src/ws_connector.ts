@@ -54,9 +54,6 @@ export class WsConnector {
         msg.set(headerBytes, 0);
         msg.set(data, 4);
 
-        console.log(msg);
-
-
         this.ws?.send(msg);
     }
 }

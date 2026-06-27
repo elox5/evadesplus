@@ -39,18 +39,18 @@ window.onload = main;
 const conn = new WsConnector();
 
 async function handle_connection() {
+    const name_input = document.querySelector("#name-input") as HTMLInputElement;
+    const name = name_input.value.trim();
 
     await conn.init();
     await conn.ready();
 
     const encoder = new TextEncoder();
-    const msg = encoder.encode("Hello");
+    const msg = encoder.encode(name);
 
-    conn.send("CHAT", msg);
+    conn.send("INIT", msg);
 
 
-    // const name_input = document.querySelector("#name-input") as HTMLInputElement;
-    // const name = name_input.value.trim();
 
     // console.log("Connecting...");
     // display_connection_message("Connecting...", "#bfff3f");
