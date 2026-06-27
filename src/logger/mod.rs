@@ -78,6 +78,7 @@ impl Logger {
     }
 }
 
+#[derive(Clone)]
 pub enum LogCategory {
     Info,
     Warning,
