@@ -72,7 +72,7 @@ impl UserRegistryHandle {
         };
     }
 
-    pub fn create_user(&self, name: String, client_id: ClientId) {
+    pub fn create_user(&self, name: String, client_id: ClientId) -> UserId {
         let data = UserData {
             name,
             joined_at: Instant::now(),
@@ -82,6 +82,7 @@ impl UserRegistryHandle {
 
         let id = NEXT_USER_ID.fetch_add(1, Ordering::Relaxed);
         let id = UserId(id);
+        let id_clone = id.clone();
 
         self.registry.rcu(move |r| {
             let mut new = (**r).clone();
@@ -89,6 +90,8 @@ impl UserRegistryHandle {
             new.add_to_client_map(id.clone(), client_id);
             new
         });
+
+        id_clone
     }
 
     pub fn remove(&self, id: &UserId) {

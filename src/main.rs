@@ -9,10 +9,8 @@ use evadesplus::{
         new::{
             connection_manager::{ConnectionManager, WsConnectionManager},
             handlers::{
-                client_chat_handler::ClientChatHandler,
-                client_message_logger::ClientMessageLogger,
-                handler::ClientMessageHandler,
-                init_handler::{self, InitHandler},
+                client_chat_handler::ClientChatHandler, client_message_logger::ClientMessageLogger,
+                handler::ClientMessageHandler, init_handler::InitHandler,
             },
             user_registry::create_user_registry,
         },
@@ -80,7 +78,8 @@ async fn main() -> Result<()> {
 
     {
         let mut client_rx = connection_manager.client_messages().resubscribe();
-        let init_handler = InitHandler::new(user_registry.clone());
+        let server_tx = connection_manager.server_messages().clone();
+        let init_handler = InitHandler::new(user_registry.clone(), server_tx);
 
         tokio::task::spawn(async move {
             while let Ok(message) = client_rx.recv().await {
