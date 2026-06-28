@@ -54,6 +54,10 @@ impl UserRegistry {
     fn get_all(&self) -> Vec<UserData> {
         self.users.values().cloned().collect()
     }
+
+    fn add_to_client_map(&mut self, id: UserId, client_id: ClientId) {
+        self.client_to_user_id.insert(client_id, id);
+    }
 }
 
 #[derive(Clone)]
@@ -68,14 +72,6 @@ impl UserRegistryHandle {
         };
     }
 
-    fn add(&self, id: UserId, data: UserData) {
-        self.registry.rcu(move |r| {
-            let mut new = (**r).clone();
-            new.add(id.clone(), data.clone());
-            new
-        });
-    }
-
     pub fn create_user(&self, name: String, client_id: ClientId) {
         let data = UserData {
             name,
@@ -85,8 +81,14 @@ impl UserRegistryHandle {
         };
 
         let id = NEXT_USER_ID.fetch_add(1, Ordering::Relaxed);
+        let id = UserId(id);
 
-        self.add(UserId(id), data);
+        self.registry.rcu(move |r| {
+            let mut new = (**r).clone();
+            new.add(id.clone(), data.clone());
+            new.add_to_client_map(id.clone(), client_id);
+            new
+        });
     }
 
     pub fn remove(&self, id: &UserId) {

@@ -11,7 +11,10 @@ use crate::{
     logger::{LogCategory, Logger},
     networking::{
         helpers::validate_player_name,
-        new::{client_message::ClientMessage, connection_manager::ConnectionManager},
+        new::{
+            client_message::ClientMessage, connection_manager::ConnectionManager,
+            server_message::ServerMessage,
+        },
     },
     physics::vec2::Vec2,
 };
@@ -21,7 +24,7 @@ use std::{
     sync::Arc,
     time::Duration,
 };
-use tokio::sync::{broadcast, Mutex};
+use tokio::sync::{broadcast, mpsc, Mutex};
 use wtransport::{
     datagram::Datagram,
     endpoint::{endpoint_side::Server, IncomingSession},
@@ -36,6 +39,8 @@ pub struct WtConnectionManager {
 
     client_tx: broadcast::Sender<ClientMessage>,
     client_rx: broadcast::Receiver<ClientMessage>,
+
+    server_tx: mpsc::Sender<ServerMessage>,
 }
 
 impl WtConnectionManager {
@@ -58,6 +63,8 @@ impl WtConnectionManager {
         drop(game);
 
         let (client_tx, client_rx) = broadcast::channel(64);
+        let (server_tx, server_rx) = mpsc::channel(64);
+        // TODO: unhandled server messages
 
         Ok(Self {
             endpoint,
@@ -65,6 +72,7 @@ impl WtConnectionManager {
             timer_sync_rx,
             client_tx,
             client_rx,
+            server_tx,
         })
     }
 
@@ -195,6 +203,10 @@ impl ConnectionManager for WtConnectionManager {
 
     fn client_messages(&self) -> broadcast::Receiver<ClientMessage> {
         self.client_rx.resubscribe()
+    }
+
+    fn server_messages(&self) -> mpsc::Sender<ServerMessage> {
+        self.server_tx.clone()
     }
 }
 

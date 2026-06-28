@@ -1,6 +1,6 @@
 use anyhow::Result;
 use arc_swap::ArcSwap;
-use futures_util::{stream::SplitSink, StreamExt};
+use futures_util::{stream::SplitSink, SinkExt, StreamExt};
 use std::{
     collections::HashMap,
     future::Future,
@@ -10,7 +10,7 @@ use std::{
         Arc,
     },
 };
-use tokio::sync::{broadcast, Mutex};
+use tokio::sync::{broadcast, mpsc, Mutex};
 use warp::{
     filters::ws::{self, WebSocket},
     Filter,
@@ -18,13 +18,18 @@ use warp::{
 
 use crate::{
     logger::Logger,
-    networking::new::{client_id::ClientId, client_message::ClientMessage},
+    networking::new::{
+        client_id::ClientId,
+        client_message::ClientMessage,
+        server_message::{ServerMessage, ServerMessageTarget},
+    },
 };
 
 pub trait ConnectionManager {
     fn serve(self) -> impl Future<Output = Result<()>> + Send + Sync;
 
     fn client_messages(&self) -> broadcast::Receiver<ClientMessage>;
+    fn server_messages(&self) -> mpsc::Sender<ServerMessage>;
 }
 
 static NEXT_CLIENT_ID: AtomicU16 = AtomicU16::new(1);
@@ -35,20 +40,29 @@ pub struct WsConnectionManager {
     client_tx: broadcast::Sender<ClientMessage>,
     client_rx: broadcast::Receiver<ClientMessage>,
 
+    server_tx: mpsc::Sender<ServerMessage>,
+
     connection_map: Arc<ArcSwap<WsConnectionMap>>,
 }
 
 impl WsConnectionManager {
     pub fn new(addr: impl Into<SocketAddr>) -> Self {
         let (client_tx, client_rx) = broadcast::channel(64);
+        let (server_tx, server_rx) = mpsc::channel(64);
 
         let map = WsConnectionMap::default();
         let map_arc = Arc::new(ArcSwap::from_pointee(map));
+        let map_arc_clone = map_arc.clone();
+
+        tokio::task::spawn(async move {
+            Self::process_server_messages(server_rx, map_arc_clone).await;
+        });
 
         Self {
             addr: addr.into(),
             client_tx,
             client_rx,
+            server_tx,
             connection_map: map_arc,
         }
     }
@@ -94,6 +108,35 @@ impl WsConnectionManager {
             let _ = client_tx.send(msg);
         }
     }
+
+    async fn process_server_messages(
+        mut srx: mpsc::Receiver<ServerMessage>,
+        map: Arc<ArcSwap<WsConnectionMap>>,
+    ) {
+        while let Some(message) = srx.recv().await {
+            let map = map.load();
+
+            let targets = match message.target {
+                ServerMessageTarget::All => map.get_all(),
+                ServerMessageTarget::Single(id) => Vec::from([map.get(id).unwrap()]),
+                ServerMessageTarget::Group(ids) => {
+                    ids.iter().map(|id| map.get(*id).unwrap()).collect()
+                }
+            };
+
+            let message = ws::Message::binary(message.data);
+
+            for sink in targets {
+                let mut sink = sink.lock().await;
+
+                let result = sink.send(message.clone()).await;
+
+                if let Err(e) = result {
+                    Logger::error(format!("Failed to send message: {e}"));
+                }
+            }
+        }
+    }
 }
 
 impl ConnectionManager for WsConnectionManager {
@@ -121,6 +164,10 @@ impl ConnectionManager for WsConnectionManager {
 
     fn client_messages(&self) -> broadcast::Receiver<ClientMessage> {
         self.client_rx.resubscribe()
+    }
+
+    fn server_messages(&self) -> mpsc::Sender<ServerMessage> {
+        self.server_tx.clone()
     }
 }
 
