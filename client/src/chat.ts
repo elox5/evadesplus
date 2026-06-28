@@ -3,6 +3,7 @@ import { BinaryReader } from "./binary_reader.js";
 import { try_execute_command, try_get_command } from "./commands.js";
 import { network_controller, NetworkModule } from "./network_controller.js";
 import { player_info } from "./player_info.js";
+import { ws_connector } from "./ws_connector.js";
 
 class Chat {
     private messages: ChatMessage[];
@@ -430,16 +431,9 @@ export class ChatModule implements NetworkModule {
 
     async send_message_raw(msg: string) {
         const encoder = new TextEncoder();
-        const message = encoder.encode(`CHAT${msg}`);
+        const bytes = encoder.encode(msg);
 
-        const writer = await network_controller.create_uni_writer();
-
-        if (writer === null) {
-            console.error("Failed to create network writer");
-            return;
-        }
-
-        await writer.write(message);
+        await ws_connector.send("CHAT", bytes);
     }
 }
 
