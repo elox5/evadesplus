@@ -17,7 +17,7 @@ use warp::{
 };
 
 use crate::{
-    logger::Logger,
+    logger::{LogCategory, Logger},
     networking::new::{
         client_id::ClientId,
         client_message::ClientMessage,
@@ -127,6 +127,15 @@ impl WsConnectionManager {
             let mut bytes: Vec<u8> = Vec::new();
             bytes.extend_from_slice(&message.header.header);
             bytes.extend_from_slice(&message.data);
+
+            Logger::log(
+                format!(
+                    "Sending {} message to clients {:?}",
+                    message.header.to_string(),
+                    message.target
+                ),
+                LogCategory::Network,
+            );
 
             let ws_message = ws::Message::binary(bytes);
 

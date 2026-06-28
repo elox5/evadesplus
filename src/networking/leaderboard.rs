@@ -12,7 +12,23 @@ pub struct AreaInfo {
 }
 
 impl AreaInfo {
-    pub fn new(area: &Area) -> Self {
+    pub fn new(
+        map_id: String,
+        name: String,
+        order: u16,
+        color: Option<String>,
+        victory: bool,
+    ) -> Self {
+        Self {
+            map_id,
+            name,
+            order,
+            color,
+            victory,
+        }
+    }
+
+    pub fn from_area(area: &Area) -> Self {
         Self {
             map_id: area.key.map_id().to_owned(),
             name: area.name.clone(),

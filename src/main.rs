@@ -87,7 +87,8 @@ async fn main() -> Result<()> {
         let mut client_rx = connection_manager.client_messages().resubscribe();
         let server_tx = connection_manager.server_messages().clone();
         let lb_store = lb_store.clone();
-        let init_handler = InitHandler::new(user_registry.clone(), server_tx, lb_store);
+        let lb_tx = leaderboard.tx.clone();
+        let init_handler = InitHandler::new(user_registry.clone(), server_tx, lb_tx, lb_store);
 
         tokio::task::spawn(async move {
             while let Ok(message) = client_rx.recv().await {

@@ -9,7 +9,6 @@ use crate::{
     config::CONFIG,
     game::components::Timer,
     logger::Logger,
-    networking::leaderboard::{AreaInfo, LeaderboardUpdate},
     physics::{rect::Rect, vec2::Vec2},
 };
 use anyhow::{anyhow, Result};

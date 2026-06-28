@@ -1,6 +1,7 @@
 import { BinaryReader } from "./binary_reader.js";
 import { cache } from "./cache.js";
 import { network_controller, NetworkModule } from "./network_controller.js";
+import { ws_connector } from "./ws_connector.js";
 
 class PlayerInfo implements NetworkModule {
     private players: PlayerData[];
@@ -47,6 +48,9 @@ class PlayerInfo implements NetworkModule {
     // Handlers
 
     private handle_add(data: BinaryReader) {
+        console.log("Adding player");
+
+
         const player_id = data.read_u64();
         const player_name = data.read_length_u8_string()!;
         const [downed] = data.read_flags();
@@ -165,4 +169,7 @@ type AreaInfo = {
 
 export const player_info = new PlayerInfo();
 
-network_controller.register_module(player_info);
+ws_connector.register_handler(player_info.uni_handlers[0]);
+ws_connector.register_handler(player_info.uni_handlers[1]);
+ws_connector.register_handler(player_info.uni_handlers[2]);
+ws_connector.register_handler(player_info.uni_handlers[3]);
