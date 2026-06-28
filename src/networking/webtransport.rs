@@ -129,8 +129,6 @@ impl WtConnectionManager {
             LogCategory::Network,
         );
 
-        let mut lb_rx = game.lock().await.leaderboard_rx.resubscribe();
-
         loop {
             tokio::select! {
                 stream = connection.accept_uni() => {
@@ -149,10 +147,10 @@ impl WtConnectionManager {
                 connection_result = connection.closed() => {
                     return Ok(connection_result);
                 }
-                leaderboard_update = lb_rx.recv() => {
-                    let leaderboard_update = leaderboard_update?;
-                    handle_leaderboard_update(leaderboard_update, &connection).await?;
-                }
+                // leaderboard_update = lb_rx.recv() => {
+                //     let leaderboard_update = leaderboard_update?;
+                //     handle_leaderboard_update(leaderboard_update, &connection).await?;
+                // }
                 timer_sync = timer_sync_rx.recv() => {
                     let timer_sync = timer_sync?;
                     handle_timer_sync(timer_sync, &connection, id).await?;

@@ -8,10 +8,7 @@ use super::{
 };
 use crate::{
     game::components::{Direction, Position, Speed, Velocity},
-    networking::{
-        leaderboard::LeaderboardUpdate,
-        rendering::{RenderNode, RenderPacket},
-    },
+    networking::rendering::{RenderNode, RenderPacket},
 };
 use hecs::{With, Without};
 
@@ -212,12 +209,14 @@ pub fn system_enemy_collision(area: &mut Area) {
         }
     }
 
-    for (entity, player_id) in to_down {
+    for (entity, _player_id) in to_down {
         let _ = area.world.insert_one(entity, Downed);
 
-        let _ = area
-            .leaderboard_tx
-            .send(LeaderboardUpdate::set_downed(player_id, true));
+        // let _ = area
+        //     .leaderboard_tx
+        //     .send(LeaderboardUpdate::set_downed(player_id, true));
+
+        // TODO: LB FIX
     }
 }
 
@@ -243,13 +242,15 @@ pub fn system_hero_collision(area: &mut Area) {
         }
     }
 
-    for (entity, player_id) in to_revive {
+    for (entity, _player_id) in to_revive {
         let result = area.world.remove_one::<Downed>(entity);
 
         if result.is_ok() {
-            let _ = area
-                .leaderboard_tx
-                .send(LeaderboardUpdate::set_downed(player_id, false));
+            // let _ = area
+            //     .leaderboard_tx
+            //     .send(LeaderboardUpdate::set_downed(player_id, false));
+
+            // TODO: LB FIX
         }
     }
 }

@@ -37,9 +37,6 @@ pub struct Game {
     transfer_tx: mpsc::Sender<TransferRequest>,
     transfer_queue: Vec<u64>,
 
-    leaderboard_tx: broadcast::Sender<LeaderboardUpdate>,
-    pub leaderboard_rx: broadcast::Receiver<LeaderboardUpdate>,
-
     timer_sync_tx: broadcast::Sender<TimerSyncPacket>,
     pub timer_sync_rx: broadcast::Receiver<TimerSyncPacket>,
 
@@ -49,10 +46,7 @@ pub struct Game {
 impl Game {
     pub fn new() -> Arc<Mutex<Self>> {
         let (transfer_tx, mut transfer_rx) = mpsc::channel::<TransferRequest>(8);
-        let (leaderboard_tx, leaderboard_rx) = broadcast::channel(8);
         let (timer_sync_tx, timer_sync_rx) = broadcast::channel(8);
-
-        let mut lb_rx_clone = leaderboard_rx.resubscribe();
 
         let config = &CONFIG.game;
 
@@ -75,8 +69,6 @@ impl Game {
             spawn_area_key,
             transfer_tx: transfer_tx.clone(),
             transfer_queue: Vec::new(),
-            leaderboard_tx,
-            leaderboard_rx,
             timer_sync_tx,
             timer_sync_rx,
             frame_duration,
@@ -109,7 +101,6 @@ impl Game {
         let area = Area::new(
             template,
             self.transfer_tx.clone(),
-            self.leaderboard_tx.clone(),
             self.timer_sync_tx.clone(),
         );
         let area = Arc::new(Mutex::new(area));
@@ -206,12 +197,14 @@ impl Game {
         let player = Player::new(id, name.to_owned(), entity, area.key.clone());
         self.players.insert(id, ArcSwap::new(Arc::new(player)));
 
-        let _ = self.leaderboard_tx.send(LeaderboardUpdate::add(
-            id,
-            name.to_owned(),
-            false,
-            AreaInfo::new(&area),
-        ));
+        // let _ = self.leaderboard_tx.send(LeaderboardUpdate::add(
+        //     id,
+        //     name.to_owned(),
+        //     false,
+        //     AreaInfo::new(&area),
+        // ));
+
+        // TODO: LB FIX
 
         Logger::info(format!(
             "Spawning hero '{}' (id @{}, entity {})...",
@@ -221,6 +214,8 @@ impl Game {
         ));
 
         // self.send_server_announcement(format!("{} joined the game", name));
+
+        // TODO: CHAT FIX
     }
 
     pub async fn despawn_hero(&mut self, player_id: u64) -> Result<()> {
@@ -231,9 +226,11 @@ impl Game {
 
         let (_, should_close) = area.despawn_player(player.entity);
 
-        let _ = self
-            .leaderboard_tx
-            .send(LeaderboardUpdate::remove(player_id));
+        // let _ = self
+        //     .leaderboard_tx
+        //     .send(LeaderboardUpdate::remove(player_id));
+
+        // TODO: LB FIX
 
         Logger::info(format!(
             "Despawning hero '{}' (id @{})...",
@@ -241,6 +238,8 @@ impl Game {
         ));
 
         // self.send_server_announcement(format!("{} left the game", player.name));
+
+        // TODO: CHAT FIX
 
         if should_close {
             self.close_area(&area.key);
@@ -262,9 +261,11 @@ impl Game {
 
         let player = self.get_player(player_id)?;
 
-        let _ = self
-            .leaderboard_tx
-            .send(LeaderboardUpdate::set_downed(player_id, false));
+        // let _ = self
+        //     .leaderboard_tx
+        //     .send(LeaderboardUpdate::set_downed(player_id, false));
+
+        // TODO: LB FIX
 
         let area = self.get_or_create_area(&player.area_key)?;
         let mut area = area.lock().await;
@@ -321,10 +322,12 @@ impl Game {
 
         let _ = target_area.world.remove_one::<CrossingPortal>(entity);
 
-        let _ = self.leaderboard_tx.send(LeaderboardUpdate::transfer(
-            req.player_id,
-            AreaInfo::new(&target_area),
-        ));
+        // let _ = self.leaderboard_tx.send(LeaderboardUpdate::transfer(
+        //     req.player_id,
+        //     AreaInfo::new(&target_area),
+        // ));
+
+        // TODO: LB FIX
 
         let target_pos = match req.target_pos {
             Some(target_pos) => {
@@ -368,6 +371,8 @@ impl Game {
             // } else {
             //     Logger::error("Expected Timer component on hero when transferring to victory area");
             // }
+
+            // TODO: CHAT FIX
         }
 
         let player_arcswap = self.get_player_arcswap(req.player_id)?;

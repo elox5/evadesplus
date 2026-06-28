@@ -7,7 +7,7 @@ use super::{
     portal::{Portal, PortalCreationContext, PortalData},
 };
 use crate::{
-    networking::{leaderboard::LeaderboardUpdate, rendering::RenderPacket},
+    networking::rendering::RenderPacket,
     physics::{rect::Rect, vec2::Vec2},
 };
 use anyhow::Result;
@@ -54,7 +54,6 @@ pub struct Area {
     pub loop_handle: Option<AbortHandle>,
 
     pub transfer_tx: mpsc::Sender<TransferRequest>,
-    pub leaderboard_tx: broadcast::Sender<LeaderboardUpdate>,
     pub timer_sync_tx: broadcast::Sender<TimerSyncPacket>,
 }
 
@@ -62,7 +61,6 @@ impl Area {
     pub fn new(
         template: &AreaTemplate,
         transfer_tx: mpsc::Sender<TransferRequest>,
-        leaderboard_tx: broadcast::Sender<LeaderboardUpdate>,
         timer_sync_tx: broadcast::Sender<TimerSyncPacket>,
     ) -> Self {
         let mut area = Self {
@@ -93,7 +91,6 @@ impl Area {
             render_packet: None,
             loop_handle: None,
             transfer_tx,
-            leaderboard_tx,
             timer_sync_tx,
         };
 
