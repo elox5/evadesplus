@@ -28,14 +28,14 @@ static NEXT_USER_ID: AtomicU64 = AtomicU64::new(1);
 struct UserRegistry {
     users: HashMap<UserId, UserData>,
 
-    client_to_user_id: HashMap<ClientId, UserId>,
+    client_to_user_id_map: HashMap<ClientId, UserId>,
 }
 
 impl UserRegistry {
     fn new() -> Self {
         Self {
             users: HashMap::new(),
-            client_to_user_id: HashMap::new(),
+            client_to_user_id_map: HashMap::new(),
         }
     }
 
@@ -56,7 +56,7 @@ impl UserRegistry {
     }
 
     fn add_to_client_map(&mut self, id: UserId, client_id: ClientId) {
-        self.client_to_user_id.insert(client_id, id);
+        self.client_to_user_id_map.insert(client_id, id);
     }
 }
 
@@ -108,6 +108,14 @@ impl UserRegistryHandle {
 
     pub fn get_all(&self) -> Vec<UserData> {
         self.registry.load().get_all()
+    }
+
+    pub fn client_to_user_id(&self, client_id: ClientId) -> Option<UserId> {
+        self.registry
+            .load()
+            .client_to_user_id_map
+            .get(&client_id)
+            .cloned()
     }
 }
 

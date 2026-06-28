@@ -1,20 +1,22 @@
-use tokio::sync::broadcast;
-
 use crate::networking::{
     chat::{ChatMessageType, ChatRequest},
     new::{
         client_message::{ClientMessage, MessageHeader},
         handlers::handler::ClientMessageHandler,
+        user_registry::UserRegistryHandle,
     },
 };
+use anyhow::anyhow;
+use tokio::sync::broadcast;
 
 pub struct ClientChatHandler {
     chat_tx: broadcast::Sender<ChatRequest>,
+    users: UserRegistryHandle,
 }
 
 impl ClientChatHandler {
-    pub fn new(chat_tx: broadcast::Sender<ChatRequest>) -> Self {
-        Self { chat_tx }
+    pub fn new(chat_tx: broadcast::Sender<ChatRequest>, users: UserRegistryHandle) -> Self {
+        Self { chat_tx, users }
     }
 }
 
@@ -26,16 +28,22 @@ impl ClientMessageHandler for ClientChatHandler {
     fn handle(&self, msg: ClientMessage) -> anyhow::Result<()> {
         let message = String::from_utf8_lossy(&msg.data);
 
-        let request = ChatRequest {
-            message: message.to_string(),
-            message_type: ChatMessageType::Normal,
-            recipient_filter: None,
-            sender_id: msg.client_id as u64,
-            sender_name: "Anonymous".to_owned(),
-        };
+        if let Some(user_id) = self.users.client_to_user_id(msg.client_id) {
+            let user_data = self.users.get(&user_id);
 
-        let _ = self.chat_tx.send(request);
+            let request = ChatRequest {
+                message: message.to_string(),
+                message_type: ChatMessageType::Normal,
+                recipient_filter: None,
+                sender_id: user_id.0,
+                sender_name: user_data.map_or("[Anonymous]".to_owned(), |d| d.name),
+            };
 
-        Ok(())
+            let _ = self.chat_tx.send(request);
+
+            Ok(())
+        } else {
+            Err(anyhow!("a"))
+        }
     }
 }

@@ -64,8 +64,7 @@ async fn main() -> Result<()> {
 
     {
         let mut client_rx = connection_manager.client_messages().resubscribe();
-        let chat_tx = chat.tx.clone();
-        let chat_handler = ClientChatHandler::new(chat_tx);
+        let chat_handler = ClientChatHandler::new(chat.tx.clone(), user_registry.clone());
 
         tokio::task::spawn(async move {
             while let Ok(message) = client_rx.recv().await {
