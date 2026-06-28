@@ -3,6 +3,7 @@ import { init_cache } from "./cache.js";
 import { setup_input } from "./input.js";
 import { MessageHandler, ws_connector, WsConnector } from "./ws_connector.js";
 import { BinaryReader } from "./binary_reader.js";
+import { chat, ChatMessageProperties, MessageType } from "./chat.js";
 
 const game_container = document.querySelector("#game-container") as HTMLDivElement;
 const connection_panel = document.querySelector("#connection-panel") as HTMLDivElement;
@@ -50,7 +51,7 @@ async function handle_connection() {
     await ws_connector.init();
     await ws_connector.ready();
 
-    const handler: MessageHandler = {
+    const init_handler: MessageHandler = {
         header: "INIT",
         callback: (message: BinaryReader) => {
             const response = message.read_u8();
@@ -63,7 +64,10 @@ async function handle_connection() {
         }
     };
 
-    ws_connector.register_handler(handler);
+    const chat_handler = { header: "CHAT", callback: handle_broadcast }
+
+    ws_connector.register_handler(init_handler);
+    ws_connector.register_handler(chat_handler);
 
     const encoder = new TextEncoder();
     const name_bytes = encoder.encode(name);
@@ -102,6 +106,19 @@ function post_connect(response: "ok" | "already_connected" | "name_invalid" | In
         display_connection_message("Failed to establish WebTransport connection. Check the console for more info", "#ff3f3f");
         console.error("Failed to establish WebTransport connection:\n", err);
     }
+}
+
+function handle_broadcast(data: BinaryReader) {
+    const message_type = data.read_u8() as MessageType;
+    const sender_id = data.read_u64();
+    const message = data.read_length_u8_string()!;
+
+    let properties: ChatMessageProperties | undefined = undefined;
+    if (message_type === MessageType.Whisper) {
+        properties = { target_id: data.read_u64() };
+    }
+
+    chat.receive_message(message, sender_id, message_type, properties);
 }
 
 function show_game() {

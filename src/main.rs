@@ -12,6 +12,7 @@ use evadesplus::{
                 client_chat_handler::ClientChatHandler, client_message_logger::ClientMessageLogger,
                 handler::ClientMessageHandler, init_handler::InitHandler,
             },
+            server_message::{ServerMessage, ServerMessageTarget},
             user_registry::create_user_registry,
         },
     },
@@ -91,6 +92,7 @@ async fn main() -> Result<()> {
 
     {
         let mut chat_rx = chat.rx.resubscribe();
+        let server_tx = connection_manager.server_messages().clone();
 
         tokio::task::spawn(async move {
             while let Ok(message) = chat_rx.recv().await {
@@ -98,6 +100,16 @@ async fn main() -> Result<()> {
                     format!("{}: {}", message.sender_name, message.message),
                     LogCategory::Chat,
                 );
+
+                let bytes = message.to_bytes();
+
+                let response = ServerMessage {
+                    header: "CHAT".into(),
+                    data: bytes,
+                    target: ServerMessageTarget::All,
+                };
+
+                let _ = server_tx.try_send(response);
             }
         });
     }

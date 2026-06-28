@@ -42,7 +42,6 @@ impl ChatRequest {
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
 
-        bytes.extend_from_slice(b"CHBR"); // 4 bytes (chat broadcast)
         bytes.push(self.message_type.clone() as u8); // 1 byte
         bytes.extend_from_slice(&self.sender_id.to_le_bytes()); // 8 bytes
         bytes.push(self.message.len() as u8); // 1 byte

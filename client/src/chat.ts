@@ -376,7 +376,7 @@ type ChatMessage = {
     element: HTMLElement;
 }
 
-type ChatMessageProperties = {
+export type ChatMessageProperties = {
     target_id?: bigint
 }
 
