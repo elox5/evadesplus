@@ -1,6 +1,6 @@
 use crate::networking::new::{client_id::ClientId, client_message::MessageHeader};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum ServerMessageTarget {
     Single(ClientId),
     Group(Vec<ClientId>),

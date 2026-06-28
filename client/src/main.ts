@@ -1,7 +1,8 @@
 import { network_controller, NetworkModule } from "./network_controller.js";
 import { init_cache } from "./cache.js";
 import { setup_input } from "./input.js";
-import { WsConnector } from "./ws_connector.js";
+import { MessageHandler, WsConnector } from "./ws_connector.js";
+import { BinaryReader } from "./binary_reader.js";
 
 const game_container = document.querySelector("#game-container") as HTMLDivElement;
 const connection_panel = document.querySelector("#connection-panel") as HTMLDivElement;
@@ -44,6 +45,21 @@ async function handle_connection() {
 
     await conn.init();
     await conn.ready();
+
+    const handler: MessageHandler = {
+        header: "INIT",
+        callback: (message: BinaryReader) => {
+            const response = message.read_u8();
+            const user_id = message.read_u64();
+
+            console.log(`Received INIT response: ${response}`);
+            console.log(`User ID: ${user_id}`);
+
+
+        }
+    };
+
+    conn.register_handler(handler);
 
     const encoder = new TextEncoder();
     const name_bytes = encoder.encode(name);

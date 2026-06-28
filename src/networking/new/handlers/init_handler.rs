@@ -43,7 +43,7 @@ impl ClientMessageHandler for InitHandler {
             target: ServerMessageTarget::Single(msg.client_id),
         };
 
-        let _ = self.server_tx.send(response);
+        let _ = self.server_tx.try_send(response);
 
         Ok(())
     }

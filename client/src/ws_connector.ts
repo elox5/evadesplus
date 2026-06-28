@@ -3,6 +3,8 @@ import { BinaryReader } from "./binary_reader.js";
 export class WsConnector {
     private ws: WebSocket | null = null;
 
+    private handlers: MessageHandler[] = [];
+
     private connected(): boolean {
         return this.ws !== null;
     }
@@ -22,7 +24,7 @@ export class WsConnector {
         ws.onmessage = (message) => {
             const data = new BinaryReader(message.data);
 
-            console.log("Message from server: ", data.read_string(5));
+            this.handle_message(data);
         }
 
         ws.onclose = () => {
@@ -34,6 +36,20 @@ export class WsConnector {
         }
 
         this.ws = ws;
+    }
+
+    register_handler(handler: MessageHandler) {
+        this.handlers.push(handler);
+    }
+
+    async handle_message(message: BinaryReader) {
+        const header = message.read_string(4);
+
+        for (const handler of this.handlers) {
+            if (handler.header === header) {
+                handler.callback(message);
+            }
+        }
     }
 
     ready() {
@@ -56,4 +72,9 @@ export class WsConnector {
 
         this.ws?.send(msg);
     }
+}
+
+export type MessageHandler = {
+    header: string,
+    callback: (data: BinaryReader) => void
 }

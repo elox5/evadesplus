@@ -116,7 +116,7 @@ impl WsConnectionManager {
         while let Some(message) = srx.recv().await {
             let map = map.load();
 
-            let targets = match message.target {
+            let targets = match message.target.clone() {
                 ServerMessageTarget::All => map.get_all(),
                 ServerMessageTarget::Single(id) => Vec::from([map.get(id).unwrap()]),
                 ServerMessageTarget::Group(ids) => {
@@ -124,12 +124,16 @@ impl WsConnectionManager {
                 }
             };
 
-            let message = ws::Message::binary(message.data);
+            let mut bytes: Vec<u8> = Vec::new();
+            bytes.extend_from_slice(&message.header.header);
+            bytes.extend_from_slice(&message.data);
+
+            let ws_message = ws::Message::binary(bytes);
 
             for sink in targets {
                 let mut sink = sink.lock().await;
 
-                let result = sink.send(message.clone()).await;
+                let result = sink.send(ws_message.clone()).await;
 
                 if let Err(e) = result {
                     Logger::error(format!("Failed to send message: {e}"));
