@@ -441,7 +441,9 @@ async fn spawn_hero(
     id: u64,
 ) -> Result<Vec<u8>> {
     let mut game = game.lock().await;
-    let leaderboard_state = game.leaderboard_state.clone();
+    // let leaderboard_state = game.leaderboard_state.clone();
+
+    // this is gonna be completely broken now but it's dead code anyways
 
     game.spawn_hero(id, name, connection.clone()).await;
 
@@ -453,7 +455,8 @@ async fn spawn_hero(
     let mut response = Vec::new();
 
     response.extend_from_slice(&id.to_le_bytes());
-    response.extend_from_slice(&leaderboard_state.to_bytes());
+    response.push(0);
+    // response.extend_from_slice(&leaderboard_state.to_bytes());
 
     Ok(response)
 }

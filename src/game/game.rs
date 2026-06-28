@@ -9,7 +9,7 @@ use crate::{
     config::CONFIG,
     game::components::Timer,
     logger::Logger,
-    networking::leaderboard::{AreaInfo, LeaderboardState, LeaderboardUpdate},
+    networking::leaderboard::{AreaInfo, LeaderboardUpdate},
     physics::{rect::Rect, vec2::Vec2},
 };
 use anyhow::{anyhow, Result};
@@ -36,8 +36,6 @@ pub struct Game {
 
     transfer_tx: mpsc::Sender<TransferRequest>,
     transfer_queue: Vec<u64>,
-
-    pub leaderboard_state: LeaderboardState,
 
     leaderboard_tx: broadcast::Sender<LeaderboardUpdate>,
     pub leaderboard_rx: broadcast::Receiver<LeaderboardUpdate>,
@@ -77,7 +75,6 @@ impl Game {
             spawn_area_key,
             transfer_tx: transfer_tx.clone(),
             transfer_queue: Vec::new(),
-            leaderboard_state: LeaderboardState::new(),
             leaderboard_tx,
             leaderboard_rx,
             timer_sync_tx,
@@ -87,21 +84,12 @@ impl Game {
 
         let arc = Arc::new(Mutex::new(game));
         let transfer_arc = arc.clone();
-        let lb_arc = arc.clone();
 
         tokio::spawn(async move {
             while let Some(req) = transfer_rx.recv().await {
                 let mut game = transfer_arc.lock().await;
 
                 let _ = game.transfer_hero(req).await;
-            }
-        });
-
-        tokio::spawn(async move {
-            while let Ok(update) = lb_rx_clone.recv().await {
-                let mut game = lb_arc.lock().await;
-
-                game.leaderboard_state.update(update);
             }
         });
 

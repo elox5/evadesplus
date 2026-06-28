@@ -1,3 +1,5 @@
+use tokio::sync::broadcast;
+
 use crate::game::area::Area;
 
 #[derive(Clone, Debug)]
@@ -92,17 +94,19 @@ impl LeaderboardUpdate {
         }
     }
 
-    pub fn to_bytes(&self) -> Vec<u8> {
-        let mut bytes = Vec::new();
-
-        let header = match &self.mode {
+    pub fn header(&self) -> String {
+        match &self.mode {
             LeaderboardUpdateMode::Add { .. } => "PADD",
             LeaderboardUpdateMode::Remove => "PRMV",
             LeaderboardUpdateMode::Transfer { .. } => "PTRF",
             LeaderboardUpdateMode::SetDowned(_) => "PSDN",
-        };
+        }
+        .to_owned()
+    }
 
-        bytes.extend_from_slice(header.as_bytes()); // 4 bytes
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+
         bytes.extend_from_slice(&self.player_id.to_le_bytes()); // 8 bytes
 
         match &self.mode {
@@ -153,16 +157,27 @@ impl LeaderboardStateEntry {
     }
 }
 
-#[derive(Clone)]
-pub struct LeaderboardState {
-    entries: Vec<LeaderboardStateEntry>,
+pub struct Leaderboard {
+    pub rx: broadcast::Receiver<LeaderboardUpdate>,
+    pub tx: broadcast::Sender<LeaderboardUpdate>,
 }
 
-impl LeaderboardState {
+impl Leaderboard {
     pub fn new() -> Self {
-        Self {
-            entries: Vec::new(),
-        }
+        let (tx, rx) = broadcast::channel(16);
+
+        Self { rx, tx }
+    }
+}
+
+#[derive(Clone)]
+pub struct LeaderboardStore {
+    state: Vec<LeaderboardStateEntry>,
+}
+
+impl LeaderboardStore {
+    pub fn new() -> Self {
+        Self { state: Vec::new() }
     }
 
     pub fn update(&mut self, update: LeaderboardUpdate) {
@@ -186,27 +201,27 @@ impl LeaderboardState {
     }
 
     fn add(&mut self, entry: LeaderboardStateEntry) {
-        self.entries.push(entry);
+        self.state.push(entry);
     }
 
     fn remove(&mut self, player_id: u64) {
         let index = self
-            .entries
+            .state
             .iter()
             .position(|e| e.player_id == player_id)
             .unwrap();
 
-        self.entries.swap_remove(index);
+        self.state.swap_remove(index);
     }
 
     fn transfer(&mut self, player_id: u64, area_info: AreaInfo) {
         let old_entry_index = self
-            .entries
+            .state
             .iter()
             .position(|e| e.player_id == player_id)
             .unwrap();
 
-        let old_entry = self.entries.swap_remove(old_entry_index);
+        let old_entry = self.state.swap_remove(old_entry_index);
 
         self.add(LeaderboardStateEntry {
             player_id,
@@ -217,7 +232,7 @@ impl LeaderboardState {
     }
 
     fn set_downed(&mut self, player_id: u64, downed: bool) {
-        for entry in &mut self.entries {
+        for entry in &mut self.state {
             if entry.player_id == player_id {
                 entry.downed = downed;
             }
@@ -225,15 +240,15 @@ impl LeaderboardState {
     }
 
     pub fn is_empty(&self) -> bool {
-        self.entries.is_empty()
+        self.state.is_empty()
     }
 
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
 
-        bytes.push(self.entries.len() as u8);
+        bytes.push(self.state.len() as u8);
 
-        for entry in &self.entries {
+        for entry in &self.state {
             bytes.extend_from_slice(&entry.to_bytes());
         }
 

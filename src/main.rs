@@ -6,6 +6,7 @@ use evadesplus::{
     logger::{LogCategory, Logger},
     networking::{
         chat::Chat,
+        leaderboard::{Leaderboard, LeaderboardStore},
         new::{
             connection_manager::{ConnectionManager, WsConnectionManager},
             handlers::{
@@ -20,7 +21,9 @@ use evadesplus::{
 use std::{
     net::{IpAddr, SocketAddr},
     str::FromStr,
+    sync::Arc,
 };
+use tokio::sync::Mutex;
 use warp::hyper::Uri;
 use warp::Filter;
 use wtransport::Identity;
@@ -28,6 +31,10 @@ use wtransport::Identity;
 #[tokio::main]
 async fn main() -> Result<()> {
     let chat = Chat::new();
+    let leaderboard = Leaderboard::new();
+
+    let lb_store = LeaderboardStore::new();
+    let lb_store = Arc::new(Mutex::new(lb_store));
 
     let user_registry = create_user_registry();
 
@@ -79,7 +86,8 @@ async fn main() -> Result<()> {
     {
         let mut client_rx = connection_manager.client_messages().resubscribe();
         let server_tx = connection_manager.server_messages().clone();
-        let init_handler = InitHandler::new(user_registry.clone(), server_tx);
+        let lb_store = lb_store.clone();
+        let init_handler = InitHandler::new(user_registry.clone(), server_tx, lb_store);
 
         tokio::task::spawn(async move {
             while let Ok(message) = client_rx.recv().await {
@@ -109,7 +117,27 @@ async fn main() -> Result<()> {
                     target: ServerMessageTarget::All,
                 };
 
-                let _ = server_tx.try_send(response);
+                let _ = server_tx.send(response).await;
+            }
+        });
+    }
+
+    {
+        let mut lb_rx = leaderboard.rx.resubscribe();
+        let lb_store = lb_store.clone();
+        let server_tx = connection_manager.server_messages().clone();
+
+        tokio::spawn(async move {
+            while let Ok(update) = lb_rx.recv().await {
+                lb_store.lock().await.update(update.clone());
+
+                let msg = ServerMessage {
+                    header: update.header().as_str().into(),
+                    data: update.to_bytes(),
+                    target: ServerMessageTarget::All,
+                };
+
+                let _ = server_tx.send(msg).await;
             }
         });
     }
