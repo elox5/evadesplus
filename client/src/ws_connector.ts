@@ -74,6 +74,8 @@ export class WsConnector {
     }
 }
 
+export const ws_connector = new WsConnector();
+
 export type MessageHandler = {
     header: string,
     callback: (data: BinaryReader) => void

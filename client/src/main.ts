@@ -1,7 +1,7 @@
-import { network_controller, NetworkModule } from "./network_controller.js";
+import { InitError, network_controller, NetworkModule } from "./network_controller.js";
 import { init_cache } from "./cache.js";
 import { setup_input } from "./input.js";
-import { MessageHandler, WsConnector } from "./ws_connector.js";
+import { MessageHandler, ws_connector, WsConnector } from "./ws_connector.js";
 import { BinaryReader } from "./binary_reader.js";
 
 const game_container = document.querySelector("#game-container") as HTMLDivElement;
@@ -37,14 +37,18 @@ async function main() {
 }
 window.onload = main;
 
-const conn = new WsConnector();
-
 async function handle_connection() {
     const name_input = document.querySelector("#name-input") as HTMLInputElement;
     const name = name_input.value.trim();
 
-    await conn.init();
-    await conn.ready();
+    if (name.length === 0) {
+        display_connection_message("Please enter a name", "#ffbf3f");
+        return;
+    }
+
+
+    await ws_connector.init();
+    await ws_connector.ready();
 
     const handler: MessageHandler = {
         header: "INIT",
@@ -55,56 +59,49 @@ async function handle_connection() {
             console.log(`Received INIT response: ${response}`);
             console.log(`User ID: ${user_id}`);
 
-
+            post_connect("ok");
         }
     };
 
-    conn.register_handler(handler);
+    ws_connector.register_handler(handler);
 
     const encoder = new TextEncoder();
     const name_bytes = encoder.encode(name);
 
-    conn.send("INIT", name_bytes);
+    ws_connector.send("INIT", name_bytes);
 
+    console.log("Connecting...");
+    display_connection_message("Connecting...", "#bfff3f");
+}
 
+function post_connect(response: "ok" | "already_connected" | "name_invalid" | InitError) {
+    try {
+        if (response === "already_connected") {
+            display_connection_message("Websocket connection already established", "#ffbf3f");
+            return;
+        }
 
-    // console.log("Connecting...");
-    // display_connection_message("Connecting...", "#bfff3f");
+        if (response === "name_invalid") {
+            display_connection_message("Invalid name! Forbidden characters: #, @, $, ^, :, /, \\, *", "#ffbf3f");
+            return;
+        }
 
-    // if (name.length === 0) {
-    //     display_connection_message("Please enter a name", "#ffbf3f");
-    //     return;
-    // }
+        if (typeof response === "object") {
+            display_connection_message(`Error encountered during initialization:\n ${response.message}`, "#ff3f3f");
+            return;
+        }
 
-    // try {
-    //     const connection_response = await network_controller.connect(name);
+        show_game();
 
-    //     if (connection_response === "already_connected") {
-    //         display_connection_message("WebTransport connection already established", "#ffbf3f");
-    //         return;
-    //     }
+        // network_controller.run_game_load_callbacks();
 
-    //     if (connection_response === "name_invalid") {
-    //         display_connection_message("Invalid name! Forbidden characters: #, @, $, ^, :, /, \\, *", "#ffbf3f");
-    //         return;
-    //     }
-
-    //     if (typeof connection_response === "object") {
-    //         display_connection_message(`Error encountered during initialization:\n ${connection_response.message}`, "#ff3f3f");
-    //         return;
-    //     }
-
-    //     show_game();
-
-    //     network_controller.run_game_load_callbacks();
-
-    //     clear_connection_message();
-    //     connect_button.disabled = true;
-    // }
-    // catch (err) {
-    //     display_connection_message("Failed to establish WebTransport connection. Check the console for more info", "#ff3f3f");
-    //     console.error("Failed to establish WebTransport connection:\n", err);
-    // }
+        clear_connection_message();
+        connect_button.disabled = true;
+    }
+    catch (err) {
+        display_connection_message("Failed to establish WebTransport connection. Check the console for more info", "#ff3f3f");
+        console.error("Failed to establish WebTransport connection:\n", err);
+    }
 }
 
 function show_game() {
