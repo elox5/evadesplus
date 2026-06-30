@@ -60,10 +60,7 @@ async fn main() -> Result<()> {
 
         tokio::task::spawn(async move {
             while let Ok(message) = client_rx.recv().await {
-                if client_message_logger
-                    .accepted_headers()
-                    .contains(&message.header)
-                {
+                if client_message_logger.accept_header(&message.header) {
                     let _ = client_message_logger.handle(message);
                 }
             }
@@ -76,7 +73,7 @@ async fn main() -> Result<()> {
 
         tokio::task::spawn(async move {
             while let Ok(message) = client_rx.recv().await {
-                if chat_handler.accepted_headers().contains(&message.header) {
+                if chat_handler.accept_header(&message.header) {
                     let _ = chat_handler.handle(message);
                 }
             }
@@ -92,7 +89,7 @@ async fn main() -> Result<()> {
 
         tokio::task::spawn(async move {
             while let Ok(message) = client_rx.recv().await {
-                if init_handler.accepted_headers().contains(&message.header) {
+                if init_handler.accept_header(&message.header) {
                     let _ = init_handler.handle(message);
                 }
             }

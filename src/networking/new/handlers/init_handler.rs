@@ -36,8 +36,8 @@ impl InitHandler {
 }
 
 impl ClientMessageHandler for InitHandler {
-    fn accepted_headers(&self) -> Vec<MessageHeader> {
-        return vec!["INIT".into()];
+    fn accept_header(&self, header: &MessageHeader) -> bool {
+        return header.header == *b"INIT";
     }
 
     fn handle(&self, msg: ClientMessage) -> anyhow::Result<()> {

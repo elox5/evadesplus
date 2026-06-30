@@ -21,8 +21,8 @@ impl ClientChatHandler {
 }
 
 impl ClientMessageHandler for ClientChatHandler {
-    fn accepted_headers(&self) -> Vec<MessageHeader> {
-        return vec!["CHAT".into()];
+    fn accept_header(&self, header: &MessageHeader) -> bool {
+        return header.header == *b"CHAT";
     }
 
     fn handle(&self, msg: ClientMessage) -> anyhow::Result<()> {

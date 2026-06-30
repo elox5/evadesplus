@@ -19,8 +19,8 @@ impl Default for ClientMessageLogger {
 }
 
 impl ClientMessageHandler for ClientMessageLogger {
-    fn accepted_headers(&self) -> Vec<MessageHeader> {
-        return vec!["INIT".into()];
+    fn accept_header(&self, _header: &MessageHeader) -> bool {
+        return true;
     }
 
     fn handle(&self, msg: ClientMessage) -> anyhow::Result<()> {

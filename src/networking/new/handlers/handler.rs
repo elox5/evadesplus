@@ -2,6 +2,6 @@ use crate::networking::new::client_message::{ClientMessage, MessageHeader};
 use anyhow::Result;
 
 pub trait ClientMessageHandler {
-    fn accepted_headers(&self) -> Vec<MessageHeader>;
+    fn accept_header(&self, header: &MessageHeader) -> bool;
     fn handle(&self, msg: ClientMessage) -> Result<()>;
 }
