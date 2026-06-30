@@ -1,9 +1,8 @@
 use crate::networking::{
     chat::{ChatMessageType, ChatRequest},
     new::{
-        client_message::{ClientMessage, MessageHeader},
-        handlers::handler::ClientMessageHandler,
-        user_registry::UserRegistryHandle,
+        client_message::ClientMessage, handlers::handler::ClientMessageHandler,
+        message_header::MessageHeader, user_registry::UserRegistryHandle,
     },
 };
 use anyhow::anyhow;
@@ -22,7 +21,7 @@ impl ClientChatHandler {
 
 impl ClientMessageHandler for ClientChatHandler {
     fn accept_header(&self, header: &MessageHeader) -> bool {
-        return header.header == *b"CHAT";
+        return header.bytes == *b"CHAT";
     }
 
     fn handle(&self, msg: ClientMessage) -> anyhow::Result<()> {

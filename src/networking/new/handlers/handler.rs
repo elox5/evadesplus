@@ -1,4 +1,4 @@
-use crate::networking::new::client_message::{ClientMessage, MessageHeader};
+use crate::networking::new::{client_message::ClientMessage, message_header::MessageHeader};
 use anyhow::Result;
 
 pub trait ClientMessageHandler {

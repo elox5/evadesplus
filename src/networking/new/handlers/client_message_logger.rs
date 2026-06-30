@@ -1,8 +1,8 @@
 use crate::{
     logger::{LogCategory, Logger},
     networking::new::{
-        client_message::{ClientMessage, MessageHeader},
-        handlers::handler::ClientMessageHandler,
+        client_message::ClientMessage, handlers::handler::ClientMessageHandler,
+        message_header::MessageHeader,
     },
 };
 

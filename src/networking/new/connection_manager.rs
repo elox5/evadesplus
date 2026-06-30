@@ -125,7 +125,7 @@ impl WsConnectionManager {
             };
 
             let mut bytes: Vec<u8> = Vec::new();
-            bytes.extend_from_slice(&message.header.header);
+            bytes.extend_from_slice(&message.header.bytes);
             bytes.extend_from_slice(&message.data);
 
             Logger::log(

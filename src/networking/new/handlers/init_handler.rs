@@ -5,8 +5,9 @@ use tokio::sync::{broadcast, mpsc, Mutex};
 use crate::networking::{
     leaderboard::{AreaInfo, LeaderboardStore, LeaderboardUpdate},
     new::{
-        client_message::{ClientMessage, MessageHeader},
+        client_message::ClientMessage,
         handlers::handler::ClientMessageHandler,
+        message_header::MessageHeader,
         server_message::{ServerMessage, ServerMessageTarget},
         user_registry::UserRegistryHandle,
     },
@@ -37,7 +38,7 @@ impl InitHandler {
 
 impl ClientMessageHandler for InitHandler {
     fn accept_header(&self, header: &MessageHeader) -> bool {
-        return header.header == *b"INIT";
+        return header.bytes == *b"INIT";
     }
 
     fn handle(&self, msg: ClientMessage) -> anyhow::Result<()> {

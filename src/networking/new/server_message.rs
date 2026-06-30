@@ -1,4 +1,4 @@
-use crate::networking::new::{client_id::ClientId, client_message::MessageHeader};
+use crate::networking::new::{client_id::ClientId, message_header::MessageHeader};
 
 #[derive(Clone, Debug)]
 pub enum ServerMessageTarget {
