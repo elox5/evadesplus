@@ -1,9 +1,8 @@
 import { BinaryReader } from "./binary_reader.js";
 import { cache } from "./cache.js";
-import { network_controller, NetworkModule } from "./network_controller.js";
-import { ws_connector } from "./ws_connector.js";
+import { ws_connector, WsModule } from "./ws_connector.js";
 
-class PlayerInfo implements NetworkModule {
+class PlayerInfo implements WsModule {
     private players: PlayerData[];
     private self_id: bigint | null;
 
@@ -105,8 +104,6 @@ class PlayerInfo implements NetworkModule {
     }
 
     private handle_init(data: BinaryReader) {
-        console.log("player_info:", data.length());
-
         data.step(1);
 
         player_info.self_id = data.read_u64();
@@ -140,26 +137,13 @@ class PlayerInfo implements NetworkModule {
 
     // NetworkModule implementation
 
-    uni_handlers = [
+    handlers = [
         { header: "PADD", callback: this.handle_add.bind(this) },
         { header: "PRMV", callback: this.handle_remove.bind(this) },
         { header: "PTRF", callback: this.handle_transfer.bind(this) },
         { header: "PSDN", callback: this.handle_set_downed.bind(this) },
         { header: "INIT", callback: this.handle_init.bind(this) },
     ];
-
-    init = {
-        callback: (data: BinaryReader) => {
-            player_info.self_id = data.read_u64();
-
-            const entry_count = data.read_u8();
-
-            for (let i = 0; i < entry_count; i++) {
-                this.handle_add(data);
-            }
-        },
-        order: 0,
-    }
 
     cleanup() {
         player_info.players = [];
@@ -184,8 +168,4 @@ type AreaInfo = {
 
 export const player_info = new PlayerInfo();
 
-ws_connector.register_handler(player_info.uni_handlers[0]);
-ws_connector.register_handler(player_info.uni_handlers[1]);
-ws_connector.register_handler(player_info.uni_handlers[2]);
-ws_connector.register_handler(player_info.uni_handlers[3]);
-ws_connector.register_handler(player_info.uni_handlers[4]);
+ws_connector.register_module(player_info);

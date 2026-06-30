@@ -1,9 +1,8 @@
 import { AutocompleteMatch, get_autocomplete } from "./autocomplete.js";
 import { BinaryReader } from "./binary_reader.js";
 import { try_execute_command, try_get_command } from "./commands.js";
-import { network_controller, NetworkModule } from "./network_controller.js";
 import { player_info } from "./player_info.js";
-import { ws_connector } from "./ws_connector.js";
+import { ws_connector, WsModule } from "./ws_connector.js";
 
 class Chat {
     private messages: ChatMessage[];
@@ -390,9 +389,9 @@ export enum MessageType {
 
 export const chat = new Chat();
 
-export class ChatModule implements NetworkModule {
-    uni_handlers = [
-        { header: "CHBR", callback: this.handle_broadcast.bind(this) }
+export class ChatModule implements WsModule {
+    handlers = [
+        { header: "CHAT", callback: this.handle_broadcast.bind(this) }
     ]
 
     async cleanup() {
@@ -438,4 +437,4 @@ export class ChatModule implements NetworkModule {
 }
 
 const module = new ChatModule();
-network_controller.register_module(module);
+ws_connector.register_module(module);

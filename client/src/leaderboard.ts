@@ -1,8 +1,8 @@
 import { cache } from "./cache.js";
-import { network_controller, NetworkModule } from "./network_controller.js";
 import { player_info, PlayerData } from "./player_info.js";
+import { ws_connector, WsModule } from "./ws_connector.js";
 
-class Leaderboard implements NetworkModule {
+class Leaderboard implements WsModule {
     private maps: Map<string, LeaderboardMap>;
     private element: HTMLElement;
 
@@ -217,4 +217,4 @@ class LeaderboardEntry {
 
 const leaderboard = new Leaderboard();
 
-network_controller.register_module(leaderboard);
+ws_connector.register_module(leaderboard);

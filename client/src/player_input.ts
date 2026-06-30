@@ -1,10 +1,10 @@
 import { chat } from "./chat.js";
 import { try_execute_command } from "./commands.js";
 import { register_keydown_handler, register_keyup_handler } from "./input.js";
-import { network_controller, NetworkController, NetworkModule } from "./network_controller.js";
 import { render_settings } from "./rendering.js";
 import { settings } from "./settings.js";
 import { Vector2 } from "./types.js";
+import { ws_connector, WsModule } from "./ws_connector.js";
 
 const canvas_container = document.querySelector("#canvas-container") as HTMLDivElement;
 const settings_popover = document.querySelector("#settings-popover") as HTMLDivElement;
@@ -205,7 +205,7 @@ function normalize(v: Vector2, magnitude: number | undefined = undefined) {
     return { x: v.x / magnitude, y: v.y / magnitude };
 }
 
-class PlayerInputModule implements NetworkModule {
+class PlayerInputModule implements WsModule {
     private lastInput: Vector2 = {
         x: 0,
         y: 0,
@@ -213,25 +213,10 @@ class PlayerInputModule implements NetworkModule {
 
     private interval: number | undefined;
 
-    setup = {
-        callback: (controller: NetworkController) => {
-            const input_writer = controller.create_datagram_writer();
-
-            if (input_writer === null) {
-                console.warn("Failed to register input module");
-                return;
-            }
-
-            this.interval = setInterval(async () => {
-                this.send_input(input_writer, player_input);
-            }, 1000 / 60);
-        },
-        once: false,
-    }
-
-    on_game_load = {
-        callback: setup_player_input,
-        once: true,
+    setup = () => {
+        this.interval = setInterval(async () => {
+            this.send_input(player_input);
+        }, 1000 / 60);
     }
 
     cleanup() {
@@ -239,7 +224,12 @@ class PlayerInputModule implements NetworkModule {
         lock_mouse_input();
     }
 
-    private async send_input(writer: WritableStreamDefaultWriter, input: Vector2) {
+    on_game_load = {
+        callback: setup_player_input,
+        once: true,
+    }
+
+    private async send_input(input: Vector2) {
         if (this.lastInput.x === input.x && this.lastInput.y === input.y) {
             return;
         }
@@ -250,8 +240,8 @@ class PlayerInputModule implements NetworkModule {
         this.lastInput.x = input.x;
         this.lastInput.y = input.y;
 
-        await writer.write(data);
+        ws_connector.send("MOVE", data);
     }
 }
 
-network_controller.register_module(new PlayerInputModule());
+ws_connector.register_module(new PlayerInputModule());

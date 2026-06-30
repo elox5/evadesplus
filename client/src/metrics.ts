@@ -1,6 +1,5 @@
-import { BinaryReader } from "./binary_reader.js";
-import { network_controller, NetworkController, NetworkModule } from "./network_controller.js";
 import { settings } from "./settings.js";
+import { ws_connector, WsModule } from "./ws_connector.js";
 
 const fps_container = document.getElementById("fps-container") as HTMLDivElement;
 const ping_container = document.getElementById("ping-container") as HTMLDivElement;
@@ -156,38 +155,28 @@ export function report_bandwidth(bytes: number) {
     bandwidth_meter.textContent = (sum_bits / time_delta).toFixed(0); // (sum_bits / 1000 [kb]) / (time_delta / 1000 [s]) = sum_bits / time_delta
 }
 
-export class PingModule implements NetworkModule {
+export class PingModule implements WsModule {
     private interval: number | undefined;
 
-    setup = {
-        callback: async (controller: NetworkController) => {
-
-            this.interval = setInterval(async () => {
-                if (controller.is_closed()) return;
-                if (!enabled_flags.ping) return;
-
-                start_ping();
-
-                const ping_stream = await controller.create_bi_stream();
-
-                const readable = ping_stream.readable;
-                const writer = ping_stream.writable.getWriter();
-
-                await writer.write(new TextEncoder().encode("PING"));
-                await writer.close();
-
-                const { value } = await readable.getReader().read();
-                const stream = new BinaryReader(value);
-
-                if (stream.read_string(4) !== "PONG") {
-                    console.error("Invalid ping response");
-                    return;
-                }
-
+    handlers = [
+        {
+            header: "PONG",
+            callback: () => {
                 this.report_ping();
-            }, metric_settings.ping_frequency);
-        },
-        once: false,
+            }
+        }
+    ]
+
+    setup = () => {
+        this.interval = setInterval(async () => {
+            if (!ws_connector.connected()) return;
+            if (!enabled_flags.ping) return;
+
+            start_ping();
+
+            ws_connector.send("PING", new Uint8Array());
+
+        }, metric_settings.ping_frequency)
     }
 
     on_game_load = {
@@ -228,5 +217,5 @@ export class PingModule implements NetworkModule {
 }
 
 setTimeout(() => {
-    network_controller.register_module(new PingModule());
+    ws_connector.register_module(new PingModule());
 })

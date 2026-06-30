@@ -5,7 +5,7 @@ export class WsConnector {
 
     private handlers: MessageHandler[] = [];
 
-    private connected(): boolean {
+    connected(): boolean {
         return this.ws !== null;
     }
 
@@ -40,6 +40,14 @@ export class WsConnector {
 
     register_handler(handler: MessageHandler) {
         this.handlers.push(handler);
+    }
+
+    register_module(module: WsModule) {
+        if (module.handlers !== undefined) {
+            for (const handler of module.handlers) {
+                this.handlers.push(handler);
+            }
+        }
     }
 
     async handle_message(message: BinaryReader) {
@@ -79,4 +87,15 @@ export const ws_connector = new WsConnector();
 export type MessageHandler = {
     header: string,
     callback: (data: BinaryReader) => void
+}
+
+export class WsModule {
+    handlers?: MessageHandler[] = [];
+
+    setup?: () => void;
+    cleanup?: () => void;
+    on_game_load?: {
+        callback: () => void;
+        once: boolean,
+    };
 }

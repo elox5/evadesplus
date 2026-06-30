@@ -2,11 +2,11 @@ import { player_input } from "./player_input.js";
 import Canvas from "./canvas.js";
 import { report_frame_start, report_render_end, report_render_start } from "./metrics.js";
 import { Portal, Rect, RenderNode, Vector2 } from "./types.js";
-import { network_controller, NetworkModule } from "./network_controller.js";
 import { BinaryReader } from "./binary_reader.js";
 import { cache } from "./cache.js";
 import { player_info } from "./player_info.js";
 import { settings } from "./settings.js";
+import { ws_connector, WsModule } from "./ws_connector.js";
 
 export let render_settings = {
     tile_size: 40,
@@ -366,7 +366,7 @@ function draw_downed_radar(source: Vector2, target: Vector2) {
 
 }
 
-class RenderingModule implements NetworkModule {
+class RenderingModule implements WsModule {
     private nodes: RenderNode[];
 
     private area_name_heading: HTMLHeadingElement;
@@ -376,11 +376,8 @@ class RenderingModule implements NetworkModule {
         this.area_name_heading = document.querySelector("#area-name") as HTMLHeadingElement;
     }
 
-    uni_handlers = [
-        { header: "ADEF", callback: this.handle_area_update.bind(this) }
-    ];
-
-    datagram_handlers = [
+    handlers = [
+        { header: "ADEF", callback: this.handle_area_update.bind(this) },
         { header: "REND", callback: this.handle_render_update.bind(this) }
     ];
 
@@ -516,4 +513,4 @@ class RenderingModule implements NetworkModule {
     }
 }
 
-network_controller.register_module(new RenderingModule());
+ws_connector.register_module(new RenderingModule());

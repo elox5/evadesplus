@@ -1,5 +1,5 @@
 import { BinaryReader } from "./binary_reader.js";
-import { network_controller, NetworkModule } from "./network_controller.js";
+import { ws_connector, WsModule } from "./ws_connector.js";
 
 const timer_display = document.getElementById("speedrun-timer") as HTMLDivElement;
 
@@ -31,8 +31,8 @@ function update_timer() {
     timer_display.textContent = `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
 }
 
-class TimerModule implements NetworkModule {
-    uni_handlers = [
+class TimerModule implements WsModule {
+    handlers = [
         {
             header: "TIME",
             callback: (data: BinaryReader) => {
@@ -53,4 +53,4 @@ class TimerModule implements NetworkModule {
     }
 }
 
-network_controller.register_module(new TimerModule());
+ws_connector.register_module(new TimerModule());
