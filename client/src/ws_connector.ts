@@ -47,7 +47,7 @@ export class WsConnector {
 
         for (const handler of this.handlers) {
             if (handler.header === header) {
-                handler.callback(message);
+                handler.callback(message.clone());
             }
         }
     }

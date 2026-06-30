@@ -104,6 +104,20 @@ class PlayerInfo implements NetworkModule {
         }
     }
 
+    private handle_init(data: BinaryReader) {
+        console.log("player_info:", data.length());
+
+        data.step(1);
+
+        player_info.self_id = data.read_u64();
+
+        const entry_count = data.read_u8();
+
+        for (let i = 0; i < entry_count; i++) {
+            this.handle_add(data);
+        }
+    }
+
     // Private helpers
 
     private parse_area_info(data: BinaryReader): AreaInfo {
@@ -131,6 +145,7 @@ class PlayerInfo implements NetworkModule {
         { header: "PRMV", callback: this.handle_remove.bind(this) },
         { header: "PTRF", callback: this.handle_transfer.bind(this) },
         { header: "PSDN", callback: this.handle_set_downed.bind(this) },
+        { header: "INIT", callback: this.handle_init.bind(this) },
     ];
 
     init = {
@@ -173,3 +188,4 @@ ws_connector.register_handler(player_info.uni_handlers[0]);
 ws_connector.register_handler(player_info.uni_handlers[1]);
 ws_connector.register_handler(player_info.uni_handlers[2]);
 ws_connector.register_handler(player_info.uni_handlers[3]);
+ws_connector.register_handler(player_info.uni_handlers[4]);

@@ -6,11 +6,15 @@ export class BinaryReader {
 
     private decoder: TextDecoder;
 
-    constructor(data: ArrayBuffer) {
+    constructor(data: ArrayBuffer, index: number = 0) {
         this.buffer = data;
-        this.index = 0;
+        this.index = index;
 
         this.decoder = new TextDecoder("utf-8");
+    }
+
+    clone(): BinaryReader {
+        return new BinaryReader(this.buffer.slice(), this.index);
     }
 
     length(): number {
