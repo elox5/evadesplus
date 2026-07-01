@@ -54,7 +54,7 @@ impl ClientMessageHandler for InitHandler {
             false,
         );
 
-        let lb_update = LeaderboardUpdate::add(user_id.0, name, false, dummy_area);
+        let lb_update = LeaderboardUpdate::add(user_id.clone(), name, false, dummy_area);
         let _ = self.lb_tx.send(lb_update);
 
         let store = self.lb_store.try_lock().unwrap(); // FIX lol

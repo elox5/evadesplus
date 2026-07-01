@@ -10,7 +10,7 @@ use std::{
 };
 use tokio::time::Instant;
 
-#[derive(Clone, Hash, Eq, PartialEq)]
+#[derive(Clone, Hash, Eq, PartialEq, Debug)]
 pub struct UserId(pub u64);
 
 #[derive(Clone)]

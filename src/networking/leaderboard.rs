@@ -1,6 +1,6 @@
 use tokio::sync::broadcast;
 
-use crate::game::area::Area;
+use crate::{game::area::Area, networking::new::user_registry::UserId};
 
 #[derive(Clone, Debug)]
 pub struct AreaInfo {
@@ -61,7 +61,7 @@ impl AreaInfo {
 
 #[derive(Clone, Debug)]
 pub struct LeaderboardUpdate {
-    player_id: u64,
+    user_id: UserId,
     pub mode: LeaderboardUpdateMode,
 }
 
@@ -78,9 +78,9 @@ pub enum LeaderboardUpdateMode {
 }
 
 impl LeaderboardUpdate {
-    pub fn add(player_id: u64, player_name: String, downed: bool, area_info: AreaInfo) -> Self {
+    pub fn add(user_id: UserId, player_name: String, downed: bool, area_info: AreaInfo) -> Self {
         Self {
-            player_id,
+            user_id,
             mode: LeaderboardUpdateMode::Add {
                 player_name,
                 downed,
@@ -89,23 +89,23 @@ impl LeaderboardUpdate {
         }
     }
 
-    pub fn remove(player_id: u64) -> Self {
+    pub fn remove(user_id: UserId) -> Self {
         Self {
-            player_id,
+            user_id,
             mode: LeaderboardUpdateMode::Remove,
         }
     }
 
-    pub fn transfer(player_id: u64, area_info: AreaInfo) -> Self {
+    pub fn transfer(user_id: UserId, area_info: AreaInfo) -> Self {
         Self {
-            player_id,
+            user_id,
             mode: LeaderboardUpdateMode::Transfer(area_info),
         }
     }
 
-    pub fn set_downed(player_id: u64, downed: bool) -> Self {
+    pub fn set_downed(user_id: UserId, downed: bool) -> Self {
         Self {
-            player_id,
+            user_id,
             mode: LeaderboardUpdateMode::SetDowned(downed),
         }
     }
@@ -123,7 +123,7 @@ impl LeaderboardUpdate {
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
 
-        bytes.extend_from_slice(&self.player_id.to_le_bytes()); // 8 bytes
+        bytes.extend_from_slice(&self.user_id.0.to_le_bytes()); // 8 bytes
 
         match &self.mode {
             LeaderboardUpdateMode::Add {
@@ -152,7 +152,7 @@ impl LeaderboardUpdate {
 
 #[derive(Clone)]
 struct LeaderboardStateEntry {
-    player_id: u64,
+    user_id: UserId,
     player_name: String,
     area_info: AreaInfo,
     downed: bool,
@@ -162,7 +162,7 @@ impl LeaderboardStateEntry {
     fn to_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
 
-        bytes.extend_from_slice(&self.player_id.to_le_bytes()); // 8 bytes
+        bytes.extend_from_slice(&self.user_id.0.to_le_bytes()); // 8 bytes
         bytes.push(self.player_name.len() as u8); // 1 byte
         bytes.extend_from_slice(self.player_name.as_bytes()); // player_name.len() bytes
         bytes.push(self.downed as u8); // 1 byte
@@ -203,16 +203,16 @@ impl LeaderboardStore {
                 downed,
                 area_info,
             } => self.add(LeaderboardStateEntry {
-                player_id: update.player_id,
+                user_id: update.user_id,
                 player_name,
                 downed,
                 area_info,
             }),
             LeaderboardUpdateMode::Transfer(area_info) => {
-                self.transfer(update.player_id, area_info);
+                self.transfer(update.user_id, area_info);
             }
-            LeaderboardUpdateMode::Remove => self.remove(update.player_id),
-            LeaderboardUpdateMode::SetDowned(downed) => self.set_downed(update.player_id, downed),
+            LeaderboardUpdateMode::Remove => self.remove(update.user_id),
+            LeaderboardUpdateMode::SetDowned(downed) => self.set_downed(update.user_id, downed),
         }
     }
 
@@ -220,36 +220,36 @@ impl LeaderboardStore {
         self.state.push(entry);
     }
 
-    fn remove(&mut self, player_id: u64) {
+    fn remove(&mut self, user_id: UserId) {
         let index = self
             .state
             .iter()
-            .position(|e| e.player_id == player_id)
+            .position(|e| e.user_id == user_id)
             .unwrap();
 
         self.state.swap_remove(index);
     }
 
-    fn transfer(&mut self, player_id: u64, area_info: AreaInfo) {
+    fn transfer(&mut self, user_id: UserId, area_info: AreaInfo) {
         let old_entry_index = self
             .state
             .iter()
-            .position(|e| e.player_id == player_id)
+            .position(|e| e.user_id == user_id)
             .unwrap();
 
         let old_entry = self.state.swap_remove(old_entry_index);
 
         self.add(LeaderboardStateEntry {
-            player_id,
+            user_id: user_id,
             player_name: old_entry.player_name,
             downed: old_entry.downed,
             area_info,
         });
     }
 
-    fn set_downed(&mut self, player_id: u64, downed: bool) {
+    fn set_downed(&mut self, user_id: UserId, downed: bool) {
         for entry in &mut self.state {
-            if entry.player_id == player_id {
+            if entry.user_id == user_id {
                 entry.downed = downed;
             }
         }

@@ -34,7 +34,7 @@ impl ClientMessageHandler for CloseHandler {
         if let Some(user_id) = self.user_registry.client_to_user_id(msg.client_id) {
             self.user_registry.remove(&user_id);
 
-            let lb_update = LeaderboardUpdate::remove(user_id.0);
+            let lb_update = LeaderboardUpdate::remove(user_id);
             let _ = self.lb_tx.send(lb_update);
 
             return Ok(());
