@@ -36,6 +36,9 @@ pub struct Game {
 
     spawn_area_key: AreaKey,
 
+    input_rx: mpsc::Receiver<GameInputMessage>,
+    output_tx: broadcast::Sender<GameOutputMessage>,
+
     transfer_tx: mpsc::Sender<TransferRequest>,
     transfer_queue: Vec<u64>,
 
@@ -46,9 +49,12 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn new() -> Arc<Mutex<Self>> {
+    pub fn new() -> GameHandle {
         let (transfer_tx, mut transfer_rx) = mpsc::channel::<TransferRequest>(8);
         let (timer_sync_tx, timer_sync_rx) = broadcast::channel(8);
+
+        let (input_tx, input_rx) = mpsc::channel(64);
+        let (output_tx, output_rx) = broadcast::channel(64);
 
         let config = &CONFIG.game;
 
@@ -69,6 +75,8 @@ impl Game {
             areas: HashMap::new(),
             players: HashMap::new(),
             spawn_area_key,
+            input_rx,
+            output_tx,
             transfer_tx: transfer_tx.clone(),
             transfer_queue: Vec::new(),
             timer_sync_tx,
@@ -87,7 +95,7 @@ impl Game {
             }
         });
 
-        arc
+        GameHandle::new(input_tx, output_rx)
     }
 
     fn try_create_area(&mut self, key: &AreaKey) -> Result<Arc<Mutex<Area>>> {
@@ -486,3 +494,35 @@ impl Game {
     //     );
     // }
 }
+
+pub struct GameHandle {
+    input_tx: mpsc::Sender<GameInputMessage>,
+    output_rx: broadcast::Receiver<GameOutputMessage>,
+}
+
+impl GameHandle {
+    fn new(
+        input_tx: mpsc::Sender<GameInputMessage>,
+        output_rx: broadcast::Receiver<GameOutputMessage>,
+    ) -> Self {
+        Self {
+            input_tx,
+            output_rx,
+        }
+    }
+}
+
+impl Clone for GameHandle {
+    fn clone(&self) -> Self {
+        Self {
+            input_tx: self.input_tx.clone(),
+            output_rx: self.output_rx.resubscribe(),
+        }
+    }
+}
+
+#[derive(Clone)]
+pub enum GameInputMessage {}
+
+#[derive(Clone)]
+pub enum GameOutputMessage {}
