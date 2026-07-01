@@ -1,13 +1,12 @@
-use super::{
-    area::Area,
-    components::*,
-    game::{
-        TimerSyncPacket, TransferRequest, TransferRequestTargetPos, TransferRequestTargetPosX,
-        TransferRequestTargetPosY, TransferTarget,
-    },
-};
+use super::{area::Area, components::*, timer_sync_packet::TimerSyncPacket};
 use crate::{
-    game::components::{Direction, Position, Speed, Velocity},
+    game::{
+        components::{Direction, Position, Speed, Velocity},
+        transfer_request::{
+            TransferRequest, TransferRequestTargetPos, TransferRequestTargetPosX,
+            TransferRequestTargetPosY, TransferTarget,
+        },
+    },
     networking::rendering::{RenderNode, RenderPacket},
 };
 use hecs::{With, Without};

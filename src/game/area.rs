@@ -3,10 +3,11 @@ use super::{
         BounceOffBounds, Bounded, Color, Direction, Enemy, Hero, PlayerId, Position,
         RenderReceiver, Size, Speed, Timer, Velocity,
     },
-    game::{TimerSyncPacket, TransferRequest},
     portal::{Portal, PortalCreationContext, PortalData},
+    timer_sync_packet::TimerSyncPacket,
 };
 use crate::{
+    game::transfer_request::TransferRequest,
     networking::rendering::RenderPacket,
     physics::{rect::Rect, vec2::Vec2},
 };

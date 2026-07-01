@@ -4,10 +4,7 @@ use super::{
     leaderboard::LeaderboardUpdate,
 };
 use crate::{
-    game::{
-        area::Area,
-        game::{Game, TimerSyncPacket},
-    },
+    game::{area::Area, game::Game, timer_sync_packet::TimerSyncPacket},
     logger::{LogCategory, Logger},
     networking::{
         helpers::validate_player_name,

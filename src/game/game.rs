@@ -2,18 +2,21 @@ use super::{
     area::{Area, AreaKey},
     components::{CrossingPortal, Downed, Position, RenderReceiver},
     map_table::try_get_map,
-    portal::{PortalTargetPosX, PortalTargetPosY},
     systems::*,
 };
 use crate::{
     config::CONFIG,
-    game::components::Timer,
+    game::{
+        components::Timer,
+        player::Player,
+        timer_sync_packet::TimerSyncPacket,
+        transfer_request::{TransferRequest, TransferTarget},
+    },
     logger::Logger,
-    physics::{rect::Rect, vec2::Vec2},
+    physics::vec2::Vec2,
 };
 use anyhow::{anyhow, Result};
 use arc_swap::{ArcSwap, Guard};
-use hecs::Entity;
 use std::{collections::HashMap, sync::Arc, time::Duration};
 use tokio::{
     join,
@@ -482,116 +485,4 @@ impl Game {
     //         None,
     //     );
     // }
-}
-
-pub struct Player {
-    pub id: u64,
-    pub name: String,
-    pub entity: Entity,
-    pub area_key: AreaKey,
-    pub victories: Vec<AreaKey>,
-}
-
-impl Player {
-    pub fn new(id: u64, name: String, entity: Entity, area_key: AreaKey) -> Self {
-        Self {
-            id,
-            entity,
-            area_key,
-            name,
-            victories: Vec::new(),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct TransferRequest {
-    pub player_id: u64,
-    pub target: TransferTarget,
-    pub target_pos: Option<TransferRequestTargetPos>,
-}
-
-#[derive(Clone, Debug)]
-pub enum TransferTarget {
-    Area(AreaKey),
-    MapStart(String),
-    Spawn,
-}
-
-#[derive(Clone, Debug)]
-pub struct TransferRequestTargetPos {
-    pub x: TransferRequestTargetPosX,
-    pub y: TransferRequestTargetPosY,
-}
-
-#[derive(Clone, Debug)]
-pub enum TransferRequestTargetPosX {
-    FromLeft(f32),
-    FromRight(f32),
-    Center,
-    Resolved(f32),
-}
-
-impl TransferRequestTargetPosX {
-    pub fn new(data: PortalTargetPosX, player_x: f32) -> Self {
-        match data {
-            PortalTargetPosX::FromLeft(x) => Self::FromLeft(x),
-            PortalTargetPosX::FromRight(x) => Self::FromRight(x),
-            PortalTargetPosX::Center => Self::Center,
-            PortalTargetPosX::KeepPlayer => Self::Resolved(player_x),
-        }
-    }
-
-    pub fn resolve(&self, bounds: &Rect) -> f32 {
-        match self {
-            TransferRequestTargetPosX::FromLeft(x) => *x,
-            TransferRequestTargetPosX::FromRight(x) => bounds.right() - x,
-            TransferRequestTargetPosX::Center => bounds.center().x,
-            TransferRequestTargetPosX::Resolved(x) => *x,
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub enum TransferRequestTargetPosY {
-    FromBottom(f32),
-    FromTop(f32),
-    Center,
-    Resolved(f32),
-}
-
-impl TransferRequestTargetPosY {
-    pub fn new(data: PortalTargetPosY, player_y: f32) -> Self {
-        match data {
-            PortalTargetPosY::FromBottom(y) => Self::FromBottom(y),
-            PortalTargetPosY::FromTop(y) => Self::FromTop(y),
-            PortalTargetPosY::Center => Self::Center,
-            PortalTargetPosY::KeepPlayer => Self::Resolved(player_y),
-        }
-    }
-
-    pub fn resolve(&self, bounds: &Rect) -> f32 {
-        match self {
-            TransferRequestTargetPosY::FromBottom(x) => *x,
-            TransferRequestTargetPosY::FromTop(x) => bounds.top() - x,
-            TransferRequestTargetPosY::Center => bounds.center().y,
-            TransferRequestTargetPosY::Resolved(x) => *x,
-        }
-    }
-}
-
-#[derive(Clone)]
-pub struct TimerSyncPacket {
-    pub player_id: u64,
-    pub time: f32,
-}
-
-impl TimerSyncPacket {
-    pub fn to_bytes(&self) -> Vec<u8> {
-        let mut bytes = Vec::new();
-
-        bytes.extend_from_slice(b"TIME");
-        bytes.extend_from_slice(&self.time.to_le_bytes());
-        bytes
-    }
 }

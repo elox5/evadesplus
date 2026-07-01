@@ -1,9 +1,9 @@
 use super::chat::{ChatMessageType, ChatRequest};
 use crate::cache::CommandCache;
 use crate::game::game::Game;
-use crate::game::game::TransferRequest;
-use crate::game::game::TransferTarget;
 use crate::game::map_table::map_exists;
+use crate::game::transfer_request::TransferRequest;
+use crate::game::transfer_request::TransferTarget;
 use anyhow::anyhow;
 use anyhow::Result;
 use std::{
