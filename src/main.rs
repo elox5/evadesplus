@@ -56,7 +56,8 @@ async fn main() -> Result<()> {
 
     {
         let mut client_rx = connection_manager.client_messages().resubscribe();
-        let client_message_logger = ClientMessageLogger::default();
+        let client_message_logger =
+            ClientMessageLogger::new(vec!["PING".to_owned(), "MOVE".to_owned()]);
 
         tokio::task::spawn(async move {
             while let Ok(message) = client_rx.recv().await {
