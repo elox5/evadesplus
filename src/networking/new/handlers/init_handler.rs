@@ -44,7 +44,9 @@ impl ClientMessageHandler for InitHandler {
     fn handle(&self, msg: ClientMessage) -> anyhow::Result<()> {
         let name = String::from_utf8_lossy(&msg.data).to_string();
 
-        let user_id = self.user_registry.create_user(name.clone(), msg.client_id);
+        let user_id = self
+            .user_registry
+            .create_user(name.clone(), msg.client_id.clone());
 
         let dummy_area = AreaInfo::new(
             "tt".to_owned(),

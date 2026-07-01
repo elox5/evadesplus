@@ -72,7 +72,8 @@ impl WsConnectionManager {
         client_tx: broadcast::Sender<ClientMessage>,
         connection_map: Arc<ArcSwap<WsConnectionMap>>,
     ) {
-        let id: ClientId = NEXT_CLIENT_ID.fetch_add(1, Ordering::Relaxed);
+        let id: u16 = NEXT_CLIENT_ID.fetch_add(1, Ordering::Relaxed);
+        let id: ClientId = ClientId(id);
 
         let (user_sink, mut user_stream) = ws.split();
 
@@ -84,19 +85,19 @@ impl WsConnectionManager {
             map
         });
 
-        Logger::info(format!("WebSocket connection @{id} established"));
+        Logger::info(format!("WebSocket connection {id} established"));
 
         while let Some(msg) = user_stream.next().await {
             let msg = match msg {
                 Ok(msg) => msg,
                 Err(e) => {
-                    Logger::error(format!("WebSocket error for user @{id}: {e}"));
+                    Logger::error(format!("WebSocket error for user {id}: {e}"));
                     break;
                 }
             };
 
             if msg.is_close() {
-                Logger::info(format!("WebSocket connection @{id} closed"));
+                Logger::info(format!("WebSocket connection {id} closed"));
 
                 let msg = ClientMessage::new(id, "CLSE", Vec::new());
                 let _ = client_tx.send(msg);

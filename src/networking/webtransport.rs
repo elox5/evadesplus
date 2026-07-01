@@ -12,8 +12,8 @@ use crate::{
     networking::{
         helpers::validate_player_name,
         new::{
-            client_message::ClientMessage, connection_manager::ConnectionManager,
-            server_message::ServerMessage,
+            client_id::ClientId, client_message::ClientMessage,
+            connection_manager::ConnectionManager, server_message::ServerMessage,
         },
     },
     physics::vec2::Vec2,
@@ -280,7 +280,7 @@ async fn handle_uni_stream(
         _ => handle_unknown_header(header, id),
     }
 
-    let msg = ClientMessage::new(id as u16, header, data.to_vec());
+    let msg = ClientMessage::new(ClientId(id as u16), header, data.to_vec());
     let _ = client_tx.send(msg);
 
     Ok(())
@@ -351,7 +351,7 @@ async fn handle_bi_stream(
         _ => handle_unknown_header(header, id),
     }
 
-    let msg = ClientMessage::new(id as u16, header, data.to_vec());
+    let msg = ClientMessage::new(ClientId(id as u16), header, data.to_vec());
     let _ = client_tx.send(msg);
 
     send_stream.finish().await?;
@@ -377,7 +377,7 @@ async fn handle_datagram(
     let mut game = game.lock().await;
     let _ = game.update_player_input(id, Vec2::new(x, y)).await;
 
-    let msg = ClientMessage::new(id as u16, "MOVE", payload.to_vec());
+    let msg = ClientMessage::new(ClientId(id as u16), "MOVE", payload.to_vec());
     let _ = client_tx.send(msg);
 }
 

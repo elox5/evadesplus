@@ -37,7 +37,7 @@ impl ClientMessageHandler for ClientMessageLogger {
     fn handle(&self, msg: ClientMessage) -> anyhow::Result<()> {
         Logger::log(
             format!(
-                "Received '{}' from client @{}",
+                "Received '{}' from client {}",
                 msg.header.to_string(),
                 msg.client_id
             ),
