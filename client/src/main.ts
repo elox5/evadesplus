@@ -93,6 +93,8 @@ function post_connect(response: "ok" | "already_connected" | "name_invalid" | In
 
         show_game();
 
+        ws_connector.run_game_load_callbacks();
+
         clear_connection_message();
         connect_button.disabled = true;
     }

@@ -4,6 +4,9 @@ export class WsConnector {
     private ws: WebSocket | null = null;
 
     private handlers: MessageHandler[] = [];
+    private modules: WsModule[] = [];
+
+    private game_load_handled: boolean = false;
 
     connected(): boolean {
         return this.ws !== null;
@@ -35,7 +38,17 @@ export class WsConnector {
             console.error("WebSocket error:", error);
         }
 
+        this.run_setup_callbacks();
+
         this.ws = ws;
+    }
+
+    async close() {
+        if (!this.connected()) return;
+
+        this.ws?.close();
+
+        await this.wait_for_close();
     }
 
     register_handler(handler: MessageHandler) {
@@ -43,9 +56,38 @@ export class WsConnector {
     }
 
     register_module(module: WsModule) {
+        this.modules.push(module);
         if (module.handlers !== undefined) {
             for (const handler of module.handlers) {
                 this.handlers.push(handler);
+            }
+        }
+    }
+
+    run_setup_callbacks() {
+        for (const mod of this.modules) {
+            if (mod.setup !== undefined) {
+                mod.setup();
+            }
+        }
+    }
+
+    run_game_load_callbacks() {
+        for (const mod of this.modules) {
+            if (mod.on_game_load !== undefined) {
+                if (this.game_load_handled && mod.on_game_load.once) continue;
+
+                mod.on_game_load.callback();
+            }
+        }
+
+        this.game_load_handled = true;
+    }
+
+    run_cleanup_callbacks() {
+        for (const mod of this.modules) {
+            if (mod.cleanup !== undefined) {
+                mod.cleanup();
             }
         }
     }
@@ -65,6 +107,14 @@ export class WsConnector {
             if (this.ws?.readyState == WebSocket.OPEN) return resolve();
             this.ws?.addEventListener('open', () => resolve(), { once: true });
             this.ws?.addEventListener('error', reject, { once: true });
+        })
+    }
+
+    private wait_for_close() {
+        return new Promise<void>((resolve, _) => {
+            if (this.ws?.readyState == WebSocket.CLOSED) return resolve();
+            this.ws?.addEventListener('close', () => resolve(), { once: true });
+            this.ws?.addEventListener('close', () => resolve(), { once: true });
         })
     }
 
