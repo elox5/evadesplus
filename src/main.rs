@@ -11,7 +11,8 @@ use evadesplus::{
             connection_manager::{ConnectionManager, WsConnectionManager},
             handlers::{
                 client_chat_handler::ClientChatHandler, client_message_logger::ClientMessageLogger,
-                handler::ClientMessageHandler, init_handler::InitHandler,
+                close_handler::CloseHandler, handler::ClientMessageHandler,
+                init_handler::InitHandler,
             },
             server_message::{ServerMessage, ServerMessageTarget},
             user_registry::create_user_registry,
@@ -92,6 +93,20 @@ async fn main() -> Result<()> {
             while let Ok(message) = client_rx.recv().await {
                 if init_handler.accept_header(&message.header) {
                     let _ = init_handler.handle(message);
+                }
+            }
+        });
+    }
+
+    {
+        let mut client_rx = connection_manager.client_messages().resubscribe();
+        let lb_tx = leaderboard.tx.clone();
+        let close_handler = CloseHandler::new(user_registry.clone(), lb_tx);
+
+        tokio::task::spawn(async move {
+            while let Ok(message) = client_rx.recv().await {
+                if close_handler.accept_header(&message.header) {
+                    let _ = close_handler.handle(message);
                 }
             }
         });

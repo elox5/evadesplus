@@ -97,6 +97,16 @@ impl WsConnectionManager {
 
             if msg.is_close() {
                 Logger::info(format!("WebSocket connection @{id} closed"));
+
+                let msg = ClientMessage::new(id, "CLSE", Vec::new());
+                let _ = client_tx.send(msg);
+
+                connection_map.rcu(|map| {
+                    let mut map = (**map).clone();
+                    map.remove(&id);
+                    map
+                });
+
                 break;
             }
 
@@ -202,5 +212,9 @@ impl WsConnectionMap {
 
     fn insert(&mut self, id: ClientId, tx: Arc<Mutex<WsSink>>) {
         self.map.insert(id, tx);
+    }
+
+    fn remove(&mut self, id: &ClientId) {
+        self.map.remove(id);
     }
 }
