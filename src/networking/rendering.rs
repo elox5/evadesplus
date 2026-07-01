@@ -81,7 +81,6 @@ pub struct RenderNode {
     pub has_border: bool,
     pub is_hero: bool,
     pub downed: bool,
-    pub entity: Entity,
     pub player_id: Option<u64>,
 }
 

@@ -258,7 +258,7 @@ pub fn system_render(area: &mut Area) {
     area.render_packet = Some(RenderPacket::new());
     let nodes = &mut area.render_packet.as_mut().unwrap().nodes;
 
-    for (entity, (pos, size, color, hero, enemy, downed, player_id)) in area.world.query_mut::<(
+    for (_, (pos, size, color, hero, enemy, downed, player_id)) in area.world.query_mut::<(
         &Position,
         &Size,
         &Color,
@@ -281,7 +281,6 @@ pub fn system_render(area: &mut Area) {
             has_border: enemy.is_some(),
             is_hero: hero.is_some(),
             downed: downed.is_some(),
-            entity,
             player_id: player_id.map(|p| p.0),
         };
         nodes.push(node);
