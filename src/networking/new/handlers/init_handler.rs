@@ -59,7 +59,7 @@ impl InitHandler {
         let user_id = self.user_registry.create_user(
             name.clone(),
             msg.client_id.clone(),
-            spawn_result.entity,
+            spawn_result.player_id,
         );
 
         let chat_broadcast = create_server_announcement(format!("{name} joined the game"));

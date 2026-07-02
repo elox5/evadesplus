@@ -8,7 +8,7 @@ use crate::{
     config::CONFIG,
     game::{
         components::Timer,
-        player::Player,
+        player::{Player, PlayerId},
         timer_sync_packet::TimerSyncPacket,
         transfer_request::{TransferRequest, TransferTarget},
     },
@@ -18,7 +18,6 @@ use crate::{
 };
 use anyhow::{anyhow, Result};
 use arc_swap::{ArcSwap, Guard};
-use hecs::Entity;
 use std::{collections::HashMap, sync::Arc, time::Duration};
 use tokio::{
     join,
@@ -106,7 +105,10 @@ impl Game {
         Logger::info(format!("Spawning hero..."));
 
         GameSpawnResult {
-            entity,
+            player_id: PlayerId {
+                entity,
+                area: area.key.clone(),
+            },
             area_info: AreaInfo::from_area(&area),
         }
     }
@@ -493,6 +495,6 @@ impl Clone for GameHandle {
 pub enum GameOutputMessage {}
 
 pub struct GameSpawnResult {
-    pub entity: Entity,
+    pub player_id: PlayerId,
     pub area_info: AreaInfo,
 }

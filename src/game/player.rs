@@ -2,6 +2,12 @@ use hecs::Entity;
 
 use crate::game::area::AreaKey;
 
+#[derive(Clone)]
+pub struct PlayerId {
+    pub entity: Entity,
+    pub area: AreaKey,
+}
+
 pub struct Player {
     pub id: u64,
     pub name: String,

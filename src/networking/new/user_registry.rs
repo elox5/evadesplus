@@ -1,6 +1,5 @@
-use crate::networking::new::client_id::ClientId;
+use crate::{game::player::PlayerId, networking::new::client_id::ClientId};
 use arc_swap::ArcSwap;
-use hecs::Entity;
 use std::{
     collections::HashMap,
     sync::{
@@ -16,7 +15,7 @@ pub struct UserId(pub u64);
 #[derive(Clone)]
 pub struct UserData {
     pub client_id: Option<ClientId>,
-    pub entity: Option<Entity>,
+    pub player_id: Option<PlayerId>,
 
     pub name: String,
     pub joined_at: Instant,
@@ -72,12 +71,12 @@ impl UserRegistryHandle {
         };
     }
 
-    pub fn create_user(&self, name: String, client_id: ClientId, entity: Entity) -> UserId {
+    pub fn create_user(&self, name: String, client_id: ClientId, player_id: PlayerId) -> UserId {
         let data = UserData {
             name,
             joined_at: Instant::now(),
             client_id: Some(client_id),
-            entity: Some(entity),
+            player_id: Some(player_id),
         };
 
         let id = NEXT_USER_ID.fetch_add(1, Ordering::Relaxed);
