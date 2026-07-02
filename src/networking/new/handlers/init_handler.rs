@@ -2,14 +2,17 @@ use std::sync::Arc;
 
 use tokio::sync::{broadcast, mpsc, Mutex};
 
-use crate::networking::{
-    leaderboard::{AreaInfo, LeaderboardStore, LeaderboardUpdate},
-    new::{
-        client_message::ClientMessage,
-        handlers::handler::ClientMessageHandler,
-        message_header::MessageHeader,
-        server_message::{ServerMessage, ServerMessageTarget},
-        user_registry::UserRegistryHandle,
+use crate::{
+    game::game::GameHandle,
+    networking::{
+        leaderboard::{AreaInfo, LeaderboardStore, LeaderboardUpdate},
+        new::{
+            client_message::ClientMessage,
+            handlers::handler::ClientMessageHandler,
+            message_header::MessageHeader,
+            server_message::{ServerMessage, ServerMessageTarget},
+            user_registry::UserRegistryHandle,
+        },
     },
 };
 
@@ -18,6 +21,7 @@ pub struct InitHandler {
     server_tx: mpsc::Sender<ServerMessage>,
     lb_tx: broadcast::Sender<LeaderboardUpdate>,
     lb_store: Arc<Mutex<LeaderboardStore>>,
+    game: GameHandle,
 }
 
 impl InitHandler {
@@ -26,37 +30,34 @@ impl InitHandler {
         server_tx: mpsc::Sender<ServerMessage>,
         lb_tx: broadcast::Sender<LeaderboardUpdate>,
         lb_store: Arc<Mutex<LeaderboardStore>>,
+        game: GameHandle,
     ) -> Self {
         Self {
             user_registry,
             server_tx,
             lb_tx,
             lb_store,
+            game,
         }
     }
 }
 
-impl ClientMessageHandler for InitHandler {
-    fn accept_header(&self, header: &MessageHeader) -> bool {
+impl InitHandler {
+    pub fn accept_header(&self, header: &MessageHeader) -> bool {
         return header.bytes == *b"INIT";
     }
 
-    fn handle(&self, msg: ClientMessage) -> anyhow::Result<()> {
+    pub async fn handle(&self, msg: ClientMessage) -> anyhow::Result<()> {
         let name = String::from_utf8_lossy(&msg.data).to_string();
 
         let user_id = self
             .user_registry
             .create_user(name.clone(), msg.client_id.clone());
 
-        let dummy_area = AreaInfo::new(
-            "tt".to_owned(),
-            "Testing Territory".to_owned(),
-            0,
-            Some("#ffffff".to_owned()),
-            false,
-        );
+        let spawn_result = self.game.send_spawn_request().await;
 
-        let lb_update = LeaderboardUpdate::add(user_id.clone(), name, false, dummy_area);
+        let lb_update =
+            LeaderboardUpdate::add(user_id.clone(), name, false, spawn_result.area_info);
         let _ = self.lb_tx.send(lb_update);
 
         let store = self.lb_store.try_lock().unwrap(); // FIX lol

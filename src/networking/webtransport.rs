@@ -440,7 +440,7 @@ async fn spawn_hero(
 
     // this is gonna be completely broken now but it's dead code anyways
 
-    game.spawn_hero(id, name, connection.clone()).await;
+    // game.spawn_hero(id, name, connection.clone()).await;
 
     let area_key = &game.get_player(id)?.area_key;
     let area = game.get_or_create_area(area_key)?;

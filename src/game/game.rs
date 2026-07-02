@@ -13,10 +13,12 @@ use crate::{
         transfer_request::{TransferRequest, TransferTarget},
     },
     logger::Logger,
+    networking::leaderboard::AreaInfo,
     physics::vec2::Vec2,
 };
 use anyhow::{anyhow, Result};
 use arc_swap::{ArcSwap, Guard};
+use hecs::Entity;
 use std::{collections::HashMap, sync::Arc, time::Duration};
 use tokio::{
     join,
@@ -27,7 +29,6 @@ use tokio::{
     },
     time::{interval, Instant},
 };
-use wtransport::Connection;
 
 pub struct Game {
     areas: HashMap<AreaKey, Arc<Mutex<Area>>>,
@@ -36,7 +37,6 @@ pub struct Game {
 
     spawn_area_key: AreaKey,
 
-    input_rx: mpsc::Receiver<GameInputMessage>,
     output_tx: broadcast::Sender<GameOutputMessage>,
 
     transfer_tx: mpsc::Sender<TransferRequest>,
@@ -53,7 +53,6 @@ impl Game {
         let (transfer_tx, mut transfer_rx) = mpsc::channel::<TransferRequest>(8);
         let (timer_sync_tx, timer_sync_rx) = broadcast::channel(8);
 
-        let (input_tx, input_rx) = mpsc::channel(64);
         let (output_tx, output_rx) = broadcast::channel(64);
 
         let config = &CONFIG.game;
@@ -75,7 +74,6 @@ impl Game {
             areas: HashMap::new(),
             players: HashMap::new(),
             spawn_area_key,
-            input_rx,
             output_tx,
             transfer_tx: transfer_tx.clone(),
             transfer_queue: Vec::new(),
@@ -86,6 +84,7 @@ impl Game {
 
         let arc = Arc::new(Mutex::new(game));
         let transfer_arc = arc.clone();
+        let handle_arc = arc.clone();
 
         tokio::spawn(async move {
             while let Some(req) = transfer_rx.recv().await {
@@ -95,7 +94,21 @@ impl Game {
             }
         });
 
-        GameHandle::new(input_tx, output_rx)
+        GameHandle::new(handle_arc, output_rx)
+    }
+
+    async fn handle_spawn_request(&mut self) -> GameSpawnResult {
+        let area = self.get_spawn_area();
+        let mut area = area.lock().await;
+
+        let entity = area.spawn_player();
+
+        Logger::info(format!("Spawning hero..."));
+
+        GameSpawnResult {
+            entity,
+            area_info: AreaInfo::from_area(&area),
+        }
     }
 
     fn try_create_area(&mut self, key: &AreaKey) -> Result<Arc<Mutex<Area>>> {
@@ -196,36 +209,6 @@ impl Game {
         });
 
         area.try_lock().unwrap().loop_handle = Some(handle.abort_handle());
-    }
-
-    pub async fn spawn_hero(&mut self, id: u64, name: &str, connection: Connection) {
-        let area = self.get_spawn_area();
-        let mut area = area.lock().await;
-
-        let entity = area.spawn_player(id, connection);
-
-        let player = Player::new(id, name.to_owned(), entity, area.key.clone());
-        self.players.insert(id, ArcSwap::new(Arc::new(player)));
-
-        // let _ = self.leaderboard_tx.send(LeaderboardUpdate::add(
-        //     id,
-        //     name.to_owned(),
-        //     false,
-        //     AreaInfo::new(&area),
-        // ));
-
-        // TODO: LB FIX
-
-        Logger::info(format!(
-            "Spawning hero '{}' (id @{}, entity {})...",
-            name,
-            id,
-            entity.id()
-        ));
-
-        // self.send_server_announcement(format!("{} joined the game", name));
-
-        // TODO: CHAT FIX
     }
 
     pub async fn despawn_hero(&mut self, player_id: u64) -> Result<()> {
@@ -496,33 +479,34 @@ impl Game {
 }
 
 pub struct GameHandle {
-    input_tx: mpsc::Sender<GameInputMessage>,
-    output_rx: broadcast::Receiver<GameOutputMessage>,
+    game: Arc<Mutex<Game>>,
+    pub output_rx: broadcast::Receiver<GameOutputMessage>,
 }
 
 impl GameHandle {
-    fn new(
-        input_tx: mpsc::Sender<GameInputMessage>,
-        output_rx: broadcast::Receiver<GameOutputMessage>,
-    ) -> Self {
-        Self {
-            input_tx,
-            output_rx,
-        }
+    fn new(game: Arc<Mutex<Game>>, output_rx: broadcast::Receiver<GameOutputMessage>) -> Self {
+        Self { game, output_rx }
+    }
+
+    pub async fn send_spawn_request(&self) -> GameSpawnResult {
+        let mut game = self.game.lock().await;
+        game.handle_spawn_request().await
     }
 }
 
 impl Clone for GameHandle {
     fn clone(&self) -> Self {
         Self {
-            input_tx: self.input_tx.clone(),
+            game: self.game.clone(),
             output_rx: self.output_rx.resubscribe(),
         }
     }
 }
 
 #[derive(Clone)]
-pub enum GameInputMessage {}
-
-#[derive(Clone)]
 pub enum GameOutputMessage {}
+
+pub struct GameSpawnResult {
+    pub entity: Entity,
+    pub area_info: AreaInfo,
+}

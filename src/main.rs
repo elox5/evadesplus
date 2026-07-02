@@ -87,12 +87,18 @@ async fn main() -> Result<()> {
         let server_tx = connection_manager.server_messages().clone();
         let lb_store = lb_store.clone();
         let lb_tx = leaderboard.tx.clone();
-        let init_handler = InitHandler::new(user_registry.clone(), server_tx, lb_tx, lb_store);
+        let init_handler = InitHandler::new(
+            user_registry.clone(),
+            server_tx,
+            lb_tx,
+            lb_store,
+            game.clone(),
+        );
 
         tokio::task::spawn(async move {
             while let Ok(message) = client_rx.recv().await {
                 if init_handler.accept_header(&message.header) {
-                    let _ = init_handler.handle(message);
+                    let _ = init_handler.handle(message).await;
                 }
             }
         });

@@ -144,7 +144,7 @@ impl Area {
         self.world.spawn_batch(enemies);
     }
 
-    pub fn spawn_player(&mut self, id: u64, connection: Connection) -> Entity {
+    pub fn spawn_player(&mut self) -> Entity {
         self.world.spawn((
             Position(self.spawn_pos),
             Velocity(Vec2::ZERO),
@@ -152,8 +152,6 @@ impl Area {
             Direction(Vec2::ZERO),
             Size(1.0),
             Color::rgb(rand::random(), rand::random(), rand::random()),
-            RenderReceiver { connection },
-            PlayerId(id),
             Hero,
             Bounded,
             Timer(0.0),
