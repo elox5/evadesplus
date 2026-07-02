@@ -2,6 +2,7 @@ use super::{area::Area, components::*, timer_sync_packet::TimerSyncPacket};
 use crate::{
     game::{
         components::{Direction, Position, Speed, Velocity},
+        player::PlayerId,
         transfer_request::{
             TransferRequest, TransferRequestTargetPos, TransferRequestTargetPosX,
             TransferRequestTargetPosY, TransferTarget,
@@ -183,9 +184,9 @@ pub fn system_safe_zone_collision(area: &mut Area) {
 pub fn system_enemy_collision(area: &mut Area) {
     let mut to_down = Vec::new();
 
-    for (entity, (hero_pos, hero_size, player_id)) in area
+    for (entity, (hero_pos, hero_size)) in area
         .world
-        .query::<Without<Without<With<(&Position, &Size, &PlayerId), &Hero>, &CrossingPortal>, &Downed>>()
+        .query::<Without<Without<With<(&Position, &Size), &Hero>, &CrossingPortal>, &Downed>>()
         .iter()
     {
         let hero_pos = hero_pos.0;
@@ -203,12 +204,12 @@ pub fn system_enemy_collision(area: &mut Area) {
             let radius_sum = (hero_size + enemy_size) * 0.5;
 
             if distance_sq < radius_sum * radius_sum {
-                to_down.push((entity, player_id.0));
+                to_down.push(entity);
             }
         }
     }
 
-    for (entity, _player_id) in to_down {
+    for entity in to_down {
         let _ = area.world.insert_one(entity, Downed);
 
         // let _ = area
@@ -227,21 +228,21 @@ pub fn system_hero_collision(area: &mut Area) {
         .query::<Without<With<(&Position, &Size), &Hero>, &Downed>>()
         .iter()
     {
-        for (entity, (pos_2, size_2, player_id)) in area
+        for (entity, (pos_2, size_2)) in area
             .world
-            .query::<With<(&Position, &Size, &PlayerId), (&Hero, &Downed)>>()
+            .query::<With<(&Position, &Size), (&Hero, &Downed)>>()
             .iter()
         {
             let distance_sq = (pos_1.0 - pos_2.0).magnitude_sq();
             let radius_sum = (size_1.0 + size_2.0) * 0.5;
 
             if distance_sq < radius_sum * radius_sum {
-                to_revive.push((entity, player_id.0));
+                to_revive.push(entity);
             }
         }
     }
 
-    for (entity, _player_id) in to_revive {
+    for entity in to_revive {
         let result = area.world.remove_one::<Downed>(entity);
 
         if result.is_ok() {
@@ -281,7 +282,7 @@ pub fn system_render(area: &mut Area) {
             has_border: enemy.is_some(),
             is_hero: hero.is_some(),
             downed: downed.is_some(),
-            player_id: player_id.map(|p| p.0),
+            player_id: player_id.cloned(),
         };
         nodes.push(node);
     }
@@ -304,7 +305,7 @@ pub fn system_send_render_packet(area: &mut Area) {
 pub fn system_sync_timers(area: &mut Area) {
     for (_, (timer, player_id)) in area.world.query_mut::<(&mut Timer, &PlayerId)>() {
         let _ = area.timer_sync_tx.send(TimerSyncPacket {
-            player_id: player_id.0,
+            player_id: player_id.clone(),
             time: timer.0,
         });
     }
@@ -313,18 +314,21 @@ pub fn system_sync_timers(area: &mut Area) {
 pub async fn system_portals(area: &mut Area) {
     let mut to_cross = Vec::new();
 
-    for (entity, (pos, size, player_id)) in area
+    for (entity, (pos, size)) in area
         .world
-        .query_mut::<With<(&mut Position, &Size, &PlayerId), &Hero>>()
+        .query_mut::<With<(&mut Position, &Size), &Hero>>()
     {
         for portal in &area.portals {
             if portal.rect.contains_circle(pos.0, size.0 / 2.0) {
                 let area_key = portal.target.get_area_key();
 
-                if let Ok(area_key) = area_key {
+                if let Ok(target_area_key) = area_key {
                     let req = TransferRequest {
-                        player_id: player_id.0,
-                        target: TransferTarget::Area(area_key),
+                        player: PlayerId {
+                            entity,
+                            area: area.key.clone(),
+                        },
+                        target: TransferTarget::Area(target_area_key),
                         target_pos: Some(TransferRequestTargetPos {
                             x: TransferRequestTargetPosX::new(portal.target_x.clone(), pos.0.x),
                             y: TransferRequestTargetPosY::new(portal.target_y.clone(), pos.0.y),

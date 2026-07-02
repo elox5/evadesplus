@@ -162,7 +162,7 @@ impl WtConnectionManager {
 
     async fn finalize_connection(game: &Arc<Mutex<Game>>, id: u64) {
         let mut game = game.lock().await;
-        let _ = game.despawn_hero(id).await;
+        // let _ = game.despawn_hero(id).await;
     }
 }
 
@@ -266,10 +266,10 @@ async fn handle_uni_stream(
                 }
             } else {
                 let game = game.lock().await;
-                let name = game.get_player(id)?.name.clone();
+                // let name = game.get_player(id)?.name.clone();
 
-                let request =
-                    ChatRequest::new(text.to_owned(), name, id, ChatMessageType::Normal, None);
+                // let request =
+                //     ChatRequest::new(text.to_owned(), name, id, ChatMessageType::Normal, None);
 
                 // let _ = chat_tx.send(request);
             }
@@ -372,7 +372,7 @@ async fn handle_datagram(
     // ));
 
     let mut game = game.lock().await;
-    let _ = game.update_player_input(id, Vec2::new(x, y)).await;
+    // let _ = game.update_player_input(id, Vec2::new(x, y)).await;
 
     let msg = ClientMessage::new(ClientId(id as u16), "MOVE", payload.to_vec());
     let _ = client_tx.send(msg);
@@ -395,12 +395,12 @@ async fn handle_timer_sync(
     connection: &Connection,
     id: u64,
 ) -> Result<()> {
-    if packet.player_id == id {
-        let mut update_stream = connection.open_uni().await?.await?;
+    // if packet.player_id == id {
+    //     let mut update_stream = connection.open_uni().await?.await?;
 
-        update_stream.write_all(&packet.to_bytes()).await?;
-        update_stream.finish().await?;
-    }
+    //     update_stream.write_all(&packet.to_bytes()).await?;
+    //     update_stream.finish().await?;
+    // }
 
     Ok(())
 }
@@ -442,10 +442,10 @@ async fn spawn_hero(
 
     // game.spawn_hero(id, name, connection.clone()).await;
 
-    let area_key = &game.get_player(id)?.area_key;
-    let area = game.get_or_create_area(area_key)?;
+    // let area_key = &game.get_player(id)?.area_key;
+    // let area = game.get_or_create_area(area_key)?;
 
-    send_definition_stream(area, connection).await?;
+    // send_definition_stream(area, connection).await?;
 
     let mut response = Vec::new();
 

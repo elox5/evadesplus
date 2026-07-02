@@ -13,6 +13,8 @@ use std::{
 };
 use tokio::sync::Mutex;
 
+// TODO fix commands
+
 static COMMANDS: LazyLock<Vec<Command>> = LazyLock::new(|| {
     vec![
         Command::new(
@@ -23,13 +25,13 @@ static COMMANDS: LazyLock<Vec<Command>> = LazyLock::new(|| {
             None,
         ),
         Command::new("clear", None, "Clears all chat messages.", None, None),
-        Command::new(
-            "reset",
-            Some(vec!["r"]),
-            "Resets the player.",
-            None,
-            Some(Box::new(reset)),
-        ),
+        // Command::new(
+        //     "reset",
+        //     Some(vec!["r"]),
+        //     "Resets the player.",
+        //     None,
+        //     Some(Box::new(reset)),
+        // ),
         Command::new(
             "disconnect",
             Some(vec!["dc", "ff", "quit"]),
@@ -37,13 +39,13 @@ static COMMANDS: LazyLock<Vec<Command>> = LazyLock::new(|| {
             None,
             None,
         ),
-        Command::new(
-            "whisper",
-            Some(vec!["w", "pm", "msg", "message"]),
-            "Sends a private message to another player.",
-            Some("<player> <message>"),
-            Some(Box::new(whisper)),
-        ),
+        // Command::new(
+        //     "whisper",
+        //     Some(vec!["w", "pm", "msg", "message"]),
+        //     "Sends a private message to another player.",
+        //     Some("<player> <message>"),
+        //     Some(Box::new(whisper)),
+        // ),
         Command::new(
             "reply",
             Some(vec!["re"]),
@@ -58,13 +60,13 @@ static COMMANDS: LazyLock<Vec<Command>> = LazyLock::new(|| {
             None,
             None,
         ),
-        Command::new(
-            "warp",
-            Some(vec!["tp"]),
-            "Warps you to the start of the provided map",
-            Some("<map>"),
-            Some(Box::new(warp)),
-        ),
+        // Command::new(
+        //     "warp",
+        //     Some(vec!["tp"]),
+        //     "Warps you to the start of the provided map",
+        //     Some("<map>"),
+        //     Some(Box::new(warp)),
+        // ),
         Command::new(
             "filter",
             None,
@@ -150,90 +152,90 @@ pub struct CommandRequest {
     pub player_id: u64,
 }
 
-async fn reset(req: CommandRequest) -> Result<Option<ChatRequest>> {
-    let mut game = req.game.lock().await;
-    game.reset_hero(req.player_id).await?;
+// async fn reset(req: CommandRequest) -> Result<Option<ChatRequest>> {
+//     let mut game = req.game.lock().await;
+//     game.reset_hero(req.player_id).await?;
 
-    Ok(None)
-}
+//     Ok(None)
+// }
 
-async fn whisper(req: CommandRequest) -> Result<Option<ChatRequest>> {
-    let sender_id = req.player_id;
+// async fn whisper(req: CommandRequest) -> Result<Option<ChatRequest>> {
+//     let sender_id = req.player_id;
 
-    let recipient_text = match req.args.get(0) {
-        Some(text) => text,
-        None => {
-            return response("You must specify a target player".to_owned(), sender_id);
-        }
-    };
+//     let recipient_text = match req.args.get(0) {
+//         Some(text) => text,
+//         None => {
+//             return response("You must specify a target player".to_owned(), sender_id);
+//         }
+//     };
 
-    let game = req.game.lock().await;
+//     let game = req.game.lock().await;
 
-    let maybe_recipient = if recipient_text.starts_with('@') {
-        let recipient_id = recipient_text[1..].parse::<u64>();
+//     let maybe_recipient = if recipient_text.starts_with('@') {
+//         let recipient_id = recipient_text[1..].parse::<u64>();
 
-        if let Ok(id) = recipient_id {
-            game.get_player(id)
-        } else {
-            return response(
-                format!("{recipient_text} is not a valid player ID"),
-                sender_id,
-            );
-        }
-    } else {
-        game.get_player_by_name(recipient_text)
-    };
+//         if let Ok(id) = recipient_id {
+//             game.get_player(id)
+//         } else {
+//             return response(
+//                 format!("{recipient_text} is not a valid player ID"),
+//                 sender_id,
+//             );
+//         }
+//     } else {
+//         game.get_player_by_name(recipient_text)
+//     };
 
-    let recipient = match maybe_recipient {
-        Ok(recipient) => recipient,
-        Err(err) => {
-            return response(err.to_string(), sender_id);
-        }
-    };
+//     let recipient = match maybe_recipient {
+//         Ok(recipient) => recipient,
+//         Err(err) => {
+//             return response(err.to_string(), sender_id);
+//         }
+//     };
 
-    let message = req.args[1..].join(" ");
+//     let message = req.args[1..].join(" ");
 
-    if message.is_empty() {
-        return response("Whisper message cannot be empty.".to_owned(), sender_id);
-    }
+//     if message.is_empty() {
+//         return response("Whisper message cannot be empty.".to_owned(), sender_id);
+//     }
 
-    if recipient.id == sender_id {
-        return response("You cannot whisper to yourself.".to_owned(), sender_id);
-    }
+//     if recipient.id == sender_id {
+//         return response("You cannot whisper to yourself.".to_owned(), sender_id);
+//     }
 
-    let player = game.get_player(sender_id)?;
+//     let player = game.get_player(sender_id)?;
 
-    Ok(Some(ChatRequest::new(
-        message,
-        format!("{} -> {}", player.name, recipient.name),
-        sender_id,
-        ChatMessageType::Whisper,
-        Some(vec![sender_id, recipient.id]),
-    )))
-}
+//     Ok(Some(ChatRequest::new(
+//         message,
+//         format!("{} -> {}", player.name, recipient.name),
+//         sender_id,
+//         ChatMessageType::Whisper,
+//         Some(vec![sender_id, recipient.id]),
+//     )))
+// }
 
-async fn warp(req: CommandRequest) -> Result<Option<ChatRequest>> {
-    let map_id = match req.args.get(0) {
-        Some(id) => id,
-        None => return response("You must specify a target map".to_owned(), req.player_id),
-    };
+// async fn warp(req: CommandRequest) -> Result<Option<ChatRequest>> {
+//     let map_id = match req.args.get(0) {
+//         Some(id) => id,
+//         None => return response("You must specify a target map".to_owned(), req.player_id),
+//     };
 
-    if !map_exists(map_id) {
-        return response(format!("Map '{}' does not exist", map_id), req.player_id);
-    }
+//     if !map_exists(map_id) {
+//         return response(format!("Map '{}' does not exist", map_id), req.player_id);
+//     }
 
-    let transfer_request = TransferRequest {
-        player_id: req.player_id,
-        target: TransferTarget::MapStart(map_id.to_owned()),
-        target_pos: None,
-    };
+//     let transfer_request = TransferRequest {
+//         player: req.player_id,
+//         target: TransferTarget::MapStart(map_id.to_owned()),
+//         target_pos: None,
+//     };
 
-    let mut game = req.game.lock().await;
+//     let mut game = req.game.lock().await;
 
-    game.transfer_hero(transfer_request).await?;
+//     game.transfer_hero(transfer_request).await?;
 
-    Ok(None)
-}
+//     Ok(None)
+// }
 
 //
 

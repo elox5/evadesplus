@@ -2,7 +2,6 @@ use crate::physics::vec2::Vec2;
 use serde::Deserialize;
 use wtransport::Connection;
 
-pub struct PlayerId(pub u64);
 pub struct Timer(pub f32);
 
 pub struct Hero;

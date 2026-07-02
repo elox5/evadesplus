@@ -1,6 +1,8 @@
+use crate::game::player::PlayerId;
+
 #[derive(Clone)]
 pub struct TimerSyncPacket {
-    pub player_id: u64,
+    pub player_id: PlayerId,
     pub time: f32,
 }
 

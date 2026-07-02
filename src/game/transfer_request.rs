@@ -1,6 +1,7 @@
 use crate::{
     game::{
         area::AreaKey,
+        player::PlayerId,
         portal::{PortalTargetPosX, PortalTargetPosY},
     },
     physics::rect::Rect,
@@ -8,7 +9,7 @@ use crate::{
 
 #[derive(Clone, Debug)]
 pub struct TransferRequest {
-    pub player_id: u64,
+    pub player: PlayerId,
     pub target: TransferTarget,
     pub target_pos: Option<TransferRequestTargetPos>,
 }

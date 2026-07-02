@@ -8,7 +8,7 @@ use crate::{
     config::CONFIG,
     game::{
         components::Timer,
-        player::{Player, PlayerId},
+        player::PlayerId,
         timer_sync_packet::TimerSyncPacket,
         transfer_request::{TransferRequest, TransferTarget},
     },
@@ -16,8 +16,7 @@ use crate::{
     networking::leaderboard::AreaInfo,
     physics::vec2::Vec2,
 };
-use anyhow::{anyhow, Result};
-use arc_swap::{ArcSwap, Guard};
+use anyhow::Result;
 use std::{collections::HashMap, sync::Arc, time::Duration};
 use tokio::{
     join,
@@ -32,14 +31,12 @@ use tokio::{
 pub struct Game {
     areas: HashMap<AreaKey, Arc<Mutex<Area>>>,
 
-    players: HashMap<u64, ArcSwap<Player>>,
-
     spawn_area_key: AreaKey,
 
     output_tx: broadcast::Sender<GameOutputMessage>,
 
     transfer_tx: mpsc::Sender<TransferRequest>,
-    transfer_queue: Vec<u64>,
+    transfer_queue: Vec<PlayerId>,
 
     timer_sync_tx: broadcast::Sender<TimerSyncPacket>,
     pub timer_sync_rx: broadcast::Receiver<TimerSyncPacket>,
@@ -71,7 +68,6 @@ impl Game {
 
         let game = Game {
             areas: HashMap::new(),
-            players: HashMap::new(),
             spawn_area_key,
             output_tx,
             transfer_tx: transfer_tx.clone(),
@@ -213,13 +209,11 @@ impl Game {
         area.try_lock().unwrap().loop_handle = Some(handle.abort_handle());
     }
 
-    pub async fn despawn_hero(&mut self, player_id: u64) -> Result<()> {
-        let player = self.get_player(player_id)?;
-
-        let area_arc = self.get_or_create_area(&player.area_key)?;
+    pub async fn despawn_hero(&mut self, player_id: PlayerId) -> Result<()> {
+        let area_arc = self.get_or_create_area(&player_id.area)?;
         let mut area = area_arc.lock().await;
 
-        let (_, should_close) = area.despawn_player(player.entity);
+        let (_, should_close) = area.despawn_player(player_id.entity);
 
         // let _ = self
         //     .leaderboard_tx
@@ -227,38 +221,31 @@ impl Game {
 
         // TODO: LB FIX
 
-        Logger::info(format!(
-            "Despawning hero '{}' (id @{})...",
-            player.name, player_id
-        ));
+        Logger::info(format!("Despawning player @{}...", player_id));
 
         if should_close {
             self.close_area(&area.key);
         }
 
-        self.players.remove(&player_id);
-
         Ok(())
     }
 
-    pub async fn reset_hero(&mut self, player_id: u64) -> Result<()> {
+    pub async fn reset_hero(&mut self, player: PlayerId) -> Result<()> {
         let req = TransferRequest {
-            player_id,
+            player: player.clone(),
             target: TransferTarget::Spawn,
             target_pos: None,
         };
 
         self.transfer_hero(req).await?;
 
-        let player = self.get_player(player_id)?;
-
         // let _ = self
         //     .leaderboard_tx
-        //     .send(LeaderboardUpdate::set_downed(player_id, false));
+        //     .send(LeaderboardUpdate::set_downed(player, false));
 
         // TODO: LB FIX
 
-        let area = self.get_or_create_area(&player.area_key)?;
+        let area = self.get_or_create_area(&player.area)?;
         let mut area = area.lock().await;
 
         let _ = area.world.remove_one::<Downed>(player.entity);
@@ -267,25 +254,13 @@ impl Game {
             timer.0 = 0.0;
         }
 
-        let new_player = Player::new(
-            player_id,
-            player.name.clone(),
-            player.entity,
-            player.area_key.clone(),
-        );
-
-        let player_arcswap = self.get_player_arcswap(player_id)?;
-        player_arcswap.store(Arc::new(new_player));
-
         Ok(())
     }
 
     pub async fn transfer_hero(&mut self, req: TransferRequest) -> Result<()> {
-        if !self.transfer_queue.contains(&req.player_id) {
-            self.transfer_queue.push(req.player_id);
+        if !self.transfer_queue.contains(&req.player) {
+            self.transfer_queue.push(req.player.clone());
         }
-
-        let player = self.get_player(req.player_id)?;
 
         let target_key = match req.target {
             TransferTarget::Spawn => self.spawn_area_key.clone(),
@@ -297,17 +272,17 @@ impl Game {
             TransferTarget::Area(ref key) => key.clone(),
         };
 
-        if target_key == player.area_key {
+        if target_key == req.player.area {
             return self.move_hero_across_area(req).await;
         }
 
         let target_area_arc = self.get_or_create_area(&target_key)?;
 
-        let player_area = self.get_or_create_area(&player.area_key)?;
+        let player_area = self.get_or_create_area(&req.player.area)?;
 
         let (mut player_area, mut target_area) = join!(player_area.lock(), target_area_arc.lock());
 
-        let (taken_entity, should_close) = player_area.despawn_player(player.entity);
+        let (taken_entity, should_close) = player_area.despawn_player(req.player.entity);
         let entity = taken_entity?;
         let entity = target_area.world.spawn(entity);
 
@@ -329,45 +304,35 @@ impl Game {
             }
             None => target_area.spawn_pos,
         };
-        let mut new_player = Player {
-            id: player.id,
-            name: player.name.clone(),
-            entity,
-            area_key: target_area.key.clone(),
-            victories: player.victories.clone(),
-        };
 
-        if target_area.flags.victory && !new_player.victories.contains(&target_area.key) {
-            new_player.victories.push(target_area.key.clone());
+        // if target_area.flags.victory && !new_player.victories.contains(&target_area.key) {
+        //     new_player.victories.push(target_area.key.clone());
 
-            // let world = &mut target_area.world;
-            // let timer = world.query_one_mut::<&mut Timer>(entity).ok();
+        // let world = &mut target_area.world;
+        // let timer = world.query_one_mut::<&mut Timer>(entity).ok();
 
-            // if let Some(timer) = timer {
-            //     let minutes = timer.0 / 60.0;
-            //     let seconds = (timer.0.floor() as u32) % 60;
+        // if let Some(timer) = timer {
+        //     let minutes = timer.0 / 60.0;
+        //     let seconds = (timer.0.floor() as u32) % 60;
 
-            //     let announcement_name = match &target_area.route_name {
-            //         Some(route) => route,
-            //         None => match &target_area.flags.final_victory {
-            //             true => &target_area.map_name,
-            //             false => &target_area.full_name,
-            //         },
-            //     };
+        //     let announcement_name = match &target_area.route_name {
+        //         Some(route) => route,
+        //         None => match &target_area.flags.final_victory {
+        //             true => &target_area.map_name,
+        //             false => &target_area.full_name,
+        //         },
+        //     };
 
-            //     self.send_server_announcement(format!(
-            //         "{} just completed {} in {:02.0}:{:02.0}!",
-            //         player.name, announcement_name, minutes, seconds
-            //     ));
-            // } else {
-            //     Logger::error("Expected Timer component on hero when transferring to victory area");
-            // }
+        //     self.send_server_announcement(format!(
+        //         "{} just completed {} in {:02.0}:{:02.0}!",
+        //         player.name, announcement_name, minutes, seconds
+        //     ));
+        // } else {
+        //     Logger::error("Expected Timer component on hero when transferring to victory area");
+        // }
 
-            // TODO: CHAT FIX
-        }
-
-        let player_arcswap = self.get_player_arcswap(req.player_id)?;
-        player_arcswap.store(Arc::new(new_player));
+        // TODO: CHAT FIX
+        // }
 
         if should_close {
             self.close_area(&player_area.key);
@@ -385,7 +350,7 @@ impl Game {
         self.transfer_queue.swap_remove(
             self.transfer_queue
                 .iter()
-                .position(|&hash| hash == req.player_id)
+                .position(|id| *id == req.player)
                 .unwrap(),
         );
 
@@ -399,15 +364,15 @@ impl Game {
     }
 
     pub async fn move_hero_across_area(&mut self, req: TransferRequest) -> Result<()> {
-        let player = self.get_player(req.player_id)?;
-
-        let area = self.get_or_create_area(&player.area_key)?;
+        let area = self.get_or_create_area(&req.player.area)?;
         let mut area = area.lock().await;
         let bounds = area.bounds.clone();
 
         let area_spawn_pos = area.spawn_pos;
 
-        let pos = area.world.query_one_mut::<&mut Position>(player.entity)?;
+        let pos = area
+            .world
+            .query_one_mut::<&mut Position>(req.player.entity)?;
 
         let target_pos = match req.target_pos {
             Some(target_pos) => {
@@ -424,45 +389,13 @@ impl Game {
         Ok(())
     }
 
-    pub async fn update_player_input(&mut self, player_id: u64, input: Vec2) -> Result<()> {
-        let player = self.get_player(player_id)?;
-
-        let area = self.get_or_create_area(&player.area_key)?;
+    pub async fn update_player_input(&mut self, player_id: PlayerId, input: Vec2) -> Result<()> {
+        let area = self.get_or_create_area(&player_id.area)?;
         let mut area = area.lock().await;
 
-        area.update_player_input(player.entity, input);
+        area.update_player_input(player_id.entity, input);
 
         Ok(())
-    }
-
-    pub fn get_player_arcswap(&self, player_id: u64) -> Result<&ArcSwap<Player>> {
-        let player = self
-            .players
-            .get(&player_id)
-            .ok_or(anyhow!("Player with ID @{player_id} not found"))?;
-
-        Ok(player)
-    }
-
-    pub fn get_player(&self, player_id: u64) -> Result<Guard<Arc<Player>>> {
-        let player = self.get_player_arcswap(player_id)?.load();
-
-        Ok(player)
-    }
-
-    pub fn get_player_by_name(&self, name: &str) -> Result<Guard<Arc<Player>>> {
-        self.players
-            .values()
-            .find_map(|player| {
-                let player = player.load();
-
-                if player.name == name {
-                    Some(player)
-                } else {
-                    None
-                }
-            })
-            .ok_or(anyhow!("Player '{name}' not found"))
     }
 }
 

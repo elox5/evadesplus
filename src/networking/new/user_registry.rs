@@ -1,4 +1,7 @@
-use crate::{game::player::PlayerId, networking::new::client_id::ClientId};
+use crate::{
+    game::{area::AreaKey, player::PlayerId},
+    networking::new::client_id::ClientId,
+};
 use arc_swap::ArcSwap;
 use std::{
     collections::HashMap,
@@ -19,6 +22,8 @@ pub struct UserData {
 
     pub name: String,
     pub joined_at: Instant,
+
+    victories: Vec<AreaKey>,
 }
 
 static NEXT_USER_ID: AtomicU64 = AtomicU64::new(1);
@@ -77,6 +82,7 @@ impl UserRegistryHandle {
             joined_at: Instant::now(),
             client_id: Some(client_id),
             player_id: Some(player_id),
+            victories: Vec::new(),
         };
 
         let id = NEXT_USER_ID.fetch_add(1, Ordering::Relaxed);

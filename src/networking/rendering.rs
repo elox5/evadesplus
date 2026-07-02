@@ -1,6 +1,7 @@
-use hecs::Entity;
-
-use crate::{game::components::Color, physics::vec2::Vec2};
+use crate::{
+    game::{components::Color, player::PlayerId},
+    physics::vec2::Vec2,
+};
 
 pub struct RenderPacket {
     pub nodes: Vec<RenderNode>,
@@ -81,7 +82,7 @@ pub struct RenderNode {
     pub has_border: bool,
     pub is_hero: bool,
     pub downed: bool,
-    pub player_id: Option<u64>,
+    pub player_id: Option<PlayerId>,
 }
 
 impl RenderNode {
@@ -96,9 +97,9 @@ impl RenderNode {
 
         bytes.push(flags);
 
-        if let Some(id) = &self.player_id {
-            bytes.extend_from_slice(&id.to_le_bytes());
-        }
+        // if let Some(id) = &self.player_id {
+        //     bytes.extend_from_slice(&id.to_le_bytes());
+        // }
 
         bytes
     }
@@ -109,9 +110,8 @@ impl RenderNode {
         // radius: 4 bytes
         // color: 4 bytes
         // flags: 1 byte
-        // player_id: 8 bytes
 
-        let length = 4 + 4 + 4 + 4 + 1 + 8;
+        let length = 4 + 4 + 4 + 4 + 1;
 
         length
     }

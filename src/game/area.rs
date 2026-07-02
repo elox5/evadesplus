@@ -1,7 +1,7 @@
 use super::{
     components::{
-        BounceOffBounds, Bounded, Color, Direction, Enemy, Hero, PlayerId, Position,
-        RenderReceiver, Size, Speed, Timer, Velocity,
+        BounceOffBounds, Bounded, Color, Direction, Enemy, Hero, Position, Size, Speed, Timer,
+        Velocity,
     },
     portal::{Portal, PortalCreationContext, PortalData},
     timer_sync_packet::TimerSyncPacket,
@@ -18,7 +18,6 @@ use tokio::{
     sync::{broadcast, mpsc},
     task::AbortHandle,
 };
-use wtransport::Connection;
 
 pub struct Area {
     pub key: AreaKey,
