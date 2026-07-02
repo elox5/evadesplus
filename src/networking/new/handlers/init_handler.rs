@@ -54,11 +54,13 @@ impl InitHandler {
     pub async fn handle(&self, msg: ClientMessage) -> anyhow::Result<()> {
         let name = String::from_utf8_lossy(&msg.data).to_string();
 
-        let user_id = self
-            .user_registry
-            .create_user(name.clone(), msg.client_id.clone());
-
         let spawn_result = self.game.send_spawn_request().await;
+
+        let user_id = self.user_registry.create_user(
+            name.clone(),
+            msg.client_id.clone(),
+            spawn_result.entity,
+        );
 
         let chat_broadcast = create_server_announcement(format!("{name} joined the game"));
         let _ = self.chat_tx.send(chat_broadcast);

@@ -72,12 +72,12 @@ impl UserRegistryHandle {
         };
     }
 
-    pub fn create_user(&self, name: String, client_id: ClientId) -> UserId {
+    pub fn create_user(&self, name: String, client_id: ClientId, entity: Entity) -> UserId {
         let data = UserData {
             name,
             joined_at: Instant::now(),
             client_id: Some(client_id),
-            entity: None,
+            entity: Some(entity),
         };
 
         let id = NEXT_USER_ID.fetch_add(1, Ordering::Relaxed);
