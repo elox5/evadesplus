@@ -5,10 +5,11 @@ use tokio::sync::{broadcast, mpsc, Mutex};
 use crate::{
     game::game::GameHandle,
     networking::{
-        leaderboard::{AreaInfo, LeaderboardStore, LeaderboardUpdate},
+        chat::ChatRequest,
+        helpers::create_server_announcement,
+        leaderboard::{LeaderboardStore, LeaderboardUpdate},
         new::{
             client_message::ClientMessage,
-            handlers::handler::ClientMessageHandler,
             message_header::MessageHeader,
             server_message::{ServerMessage, ServerMessageTarget},
             user_registry::UserRegistryHandle,
@@ -22,6 +23,7 @@ pub struct InitHandler {
     lb_tx: broadcast::Sender<LeaderboardUpdate>,
     lb_store: Arc<Mutex<LeaderboardStore>>,
     game: GameHandle,
+    chat_tx: broadcast::Sender<ChatRequest>,
 }
 
 impl InitHandler {
@@ -31,6 +33,7 @@ impl InitHandler {
         lb_tx: broadcast::Sender<LeaderboardUpdate>,
         lb_store: Arc<Mutex<LeaderboardStore>>,
         game: GameHandle,
+        chat_tx: broadcast::Sender<ChatRequest>,
     ) -> Self {
         Self {
             user_registry,
@@ -38,6 +41,7 @@ impl InitHandler {
             lb_tx,
             lb_store,
             game,
+            chat_tx,
         }
     }
 }
@@ -55,6 +59,9 @@ impl InitHandler {
             .create_user(name.clone(), msg.client_id.clone());
 
         let spawn_result = self.game.send_spawn_request().await;
+
+        let chat_broadcast = create_server_announcement(format!("{name} joined the game"));
+        let _ = self.chat_tx.send(chat_broadcast);
 
         let lb_update =
             LeaderboardUpdate::add(user_id.clone(), name, false, spawn_result.area_info);

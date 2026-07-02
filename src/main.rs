@@ -85,14 +85,14 @@ async fn main() -> Result<()> {
     {
         let mut client_rx = connection_manager.client_messages().resubscribe();
         let server_tx = connection_manager.server_messages().clone();
-        let lb_store = lb_store.clone();
-        let lb_tx = leaderboard.tx.clone();
+
         let init_handler = InitHandler::new(
             user_registry.clone(),
             server_tx,
-            lb_tx,
-            lb_store,
+            leaderboard.tx.clone(),
+            lb_store.clone(),
             game.clone(),
+            chat.tx.clone(),
         );
 
         tokio::task::spawn(async move {
@@ -107,7 +107,8 @@ async fn main() -> Result<()> {
     {
         let mut client_rx = connection_manager.client_messages().resubscribe();
         let lb_tx = leaderboard.tx.clone();
-        let close_handler = CloseHandler::new(user_registry.clone(), lb_tx);
+        let chat_tx = chat.tx.clone();
+        let close_handler = CloseHandler::new(user_registry.clone(), lb_tx, chat_tx);
 
         tokio::task::spawn(async move {
             while let Ok(message) = client_rx.recv().await {

@@ -230,10 +230,6 @@ impl Game {
             player.name, player_id
         ));
 
-        // self.send_server_announcement(format!("{} left the game", player.name));
-
-        // TODO: CHAT FIX
-
         if should_close {
             self.close_area(&area.key);
         }
@@ -466,16 +462,6 @@ impl Game {
             })
             .ok_or(anyhow!("Player '{name}' not found"))
     }
-
-    // fn send_server_announcement(&self, message: String) {
-    //     let chat_broadcast = ChatRequest::new(
-    //         message,
-    //         String::new(),
-    //         u64::MAX,
-    //         ChatMessageType::ServerAnnouncement,
-    //         None,
-    //     );
-    // }
 }
 
 pub struct GameHandle {
