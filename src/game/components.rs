@@ -1,6 +1,5 @@
 use crate::physics::vec2::Vec2;
 use serde::Deserialize;
-use wtransport::Connection;
 
 pub struct Timer(pub f32);
 
@@ -11,12 +10,9 @@ pub struct Downed;
 
 pub struct Bounded;
 pub struct BounceOffBounds;
+pub struct SafeZoneBounded;
 
 pub struct CrossingPortal;
-
-pub struct RenderReceiver {
-    pub connection: Connection,
-}
 
 pub struct Position(pub Vec2);
 pub struct Velocity(pub Vec2);

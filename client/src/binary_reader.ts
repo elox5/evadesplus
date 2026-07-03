@@ -25,6 +25,10 @@ export class BinaryReader {
         this.index += length;
     }
 
+    reset() {
+        this.index = 0;
+    }
+
     read_u8(): number {
         const value = new Uint8Array(this.buffer.slice(this.index, this.index + 1))[0];
         this.index += 1;

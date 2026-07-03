@@ -18,7 +18,7 @@ pub struct UserId(pub u64);
 #[derive(Clone)]
 pub struct UserData {
     pub client_id: Option<ClientId>,
-    pub player_id: Option<PlayerId>,
+    pub player_id: PlayerId,
 
     pub name: String,
     pub joined_at: Instant,
@@ -81,7 +81,7 @@ impl UserRegistryHandle {
             name,
             joined_at: Instant::now(),
             client_id: Some(client_id),
-            player_id: Some(player_id),
+            player_id,
             victories: Vec::new(),
         };
 

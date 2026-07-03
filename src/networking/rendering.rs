@@ -1,17 +1,46 @@
 use crate::{
-    game::{components::Color, player::PlayerId},
+    game::{area::AreaKey, components::Color, player::PlayerId},
     physics::vec2::Vec2,
 };
 
-pub struct RenderPacket {
+#[derive(Clone)]
+pub struct AreaRenderMessage {
+    pub key: AreaKey,
+    pub packet: AreaRenderPacket,
+}
+
+#[derive(Clone)]
+pub struct AreaRenderPacket {
     pub nodes: Vec<RenderNode>,
 }
 
-impl RenderPacket {
+impl AreaRenderPacket {
     const HEADER_SIZE: u32 = 11;
 
     pub fn new() -> Self {
         Self { nodes: Vec::new() }
+    }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut bytes: Vec<u8> = Vec::new();
+
+        bytes.push(0); // offset x
+        bytes.push(0); // offset y
+        bytes.push(0); // offset y
+        bytes.push(0); // offset y
+        bytes.push(0); // offset y
+        bytes.push(0); // offset y
+        bytes.push(0); // offset y
+        bytes.push(0); // offset y
+        bytes.push(1); // should render
+
+        bytes.extend_from_slice(&(self.nodes.len() as u16).to_le_bytes());
+
+        for node in &self.nodes {
+            bytes.extend_from_slice(&node.to_bytes());
+        }
+
+        bytes
     }
 
     pub fn to_datagrams(&self, max_size: u32, offset: Vec2) -> Vec<Vec<u8>> {

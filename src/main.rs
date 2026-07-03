@@ -2,7 +2,10 @@ use anyhow::Result;
 use evadesplus::{
     cache::Cache,
     config::CONFIG,
-    game::{game::Game, map_table::get_map_list},
+    game::{
+        game::{Game, GameOutputMessage},
+        map_table::get_map_list,
+    },
     logger::{LogCategory, Logger},
     networking::{
         chat::Chat,
@@ -12,7 +15,7 @@ use evadesplus::{
             handlers::{
                 client_chat_handler::ClientChatHandler, client_message_logger::ClientMessageLogger,
                 close_handler::CloseHandler, handler::ClientMessageHandler,
-                init_handler::InitHandler,
+                init_handler::InitHandler, render_handler::RenderHandler,
             },
             server_message::{ServerMessage, ServerMessageTarget},
             user_registry::create_user_registry,
@@ -159,6 +162,23 @@ async fn main() -> Result<()> {
                 };
 
                 let _ = server_tx.send(msg).await;
+            }
+        });
+    }
+
+    {
+        let mut game_rx = game.output_rx.resubscribe();
+        let server_tx = connection_manager.server_messages().clone();
+        let render_handler = RenderHandler {
+            users: user_registry.clone(),
+            server_tx,
+        };
+
+        tokio::spawn(async move {
+            while let Ok(message) = game_rx.recv().await {
+                if let GameOutputMessage::AreaRender(message) = message {
+                    let _ = render_handler.handle(message).await;
+                }
             }
         });
     }

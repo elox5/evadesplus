@@ -7,8 +7,8 @@ use super::{
     timer_sync_packet::TimerSyncPacket,
 };
 use crate::{
-    game::transfer_request::TransferRequest,
-    networking::rendering::RenderPacket,
+    game::{components::SafeZoneBounded, transfer_request::TransferRequest},
+    networking::rendering::{AreaRenderMessage, AreaRenderPacket},
     physics::{rect::Rect, vec2::Vec2},
 };
 use anyhow::Result;
@@ -49,11 +49,12 @@ pub struct Area {
     pub time: f32,
     pub delta_time: f32,
 
-    pub render_packet: Option<RenderPacket>,
+    pub render_packet: Option<AreaRenderPacket>,
 
     pub loop_handle: Option<AbortHandle>,
 
     pub transfer_tx: mpsc::Sender<TransferRequest>,
+    pub render_tx: mpsc::Sender<AreaRenderMessage>,
     pub timer_sync_tx: broadcast::Sender<TimerSyncPacket>,
 }
 
@@ -61,6 +62,7 @@ impl Area {
     pub fn new(
         template: &AreaTemplate,
         transfer_tx: mpsc::Sender<TransferRequest>,
+        render_tx: mpsc::Sender<AreaRenderMessage>,
         timer_sync_tx: broadcast::Sender<TimerSyncPacket>,
     ) -> Self {
         let mut area = Self {
@@ -91,6 +93,7 @@ impl Area {
             render_packet: None,
             loop_handle: None,
             transfer_tx,
+            render_tx,
             timer_sync_tx,
         };
 
@@ -137,6 +140,7 @@ impl Area {
                 color,
                 Bounded,
                 BounceOffBounds,
+                SafeZoneBounded,
             )
         });
 

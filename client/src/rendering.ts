@@ -488,7 +488,7 @@ class RenderingModule implements WsModule {
 
             const [has_outline, is_hero, downed] = data.read_flags();
 
-            const player_id = is_hero ? data.read_u64() : null;
+            const player_id = null;
 
             const node: RenderNode = {
                 x,

@@ -8,7 +8,7 @@ use crate::{
             TransferRequestTargetPosY, TransferTarget,
         },
     },
-    networking::rendering::{RenderNode, RenderPacket},
+    networking::rendering::{AreaRenderPacket, RenderNode},
 };
 use hecs::{With, Without};
 
@@ -134,7 +134,7 @@ pub fn system_safe_zone_collision(area: &mut Area) {
 
     for (_, (dir, pos, size)) in area
         .world
-        .query_mut::<Without<With<(&mut Direction, &Position, &Size), &BounceOffBounds>, &RenderReceiver>>()
+        .query_mut::<With<(&mut Direction, &Position, &Size), (&BounceOffBounds, &SafeZoneBounded)>>()
     {
         for wall in &area.safe_zones {
             if wall.contains_circle(pos.0, size.0 / 2.0) {
@@ -154,7 +154,7 @@ pub fn system_safe_zone_collision(area: &mut Area) {
 
     for (_, (pos, size)) in area
         .world
-        .query_mut::<Without<With<(&mut Position, &Size), &Bounded>, &RenderReceiver>>()
+        .query_mut::<With<(&mut Position, &Size), (&Bounded, &SafeZoneBounded)>>()
     {
         for wall in &area.safe_zones {
             if wall.contains_circle(pos.0, size.0 / 2.0) {
@@ -256,7 +256,7 @@ pub fn system_hero_collision(area: &mut Area) {
 }
 
 pub fn system_render(area: &mut Area) {
-    area.render_packet = Some(RenderPacket::new());
+    area.render_packet = Some(AreaRenderPacket::new());
     let nodes = &mut area.render_packet.as_mut().unwrap().nodes;
 
     for (_, (pos, size, color, hero, enemy, downed, player_id)) in area.world.query_mut::<(
@@ -285,20 +285,6 @@ pub fn system_render(area: &mut Area) {
             player_id: player_id.cloned(),
         };
         nodes.push(node);
-    }
-}
-
-pub fn system_send_render_packet(area: &mut Area) {
-    if let Some(packet) = &area.render_packet {
-        for (_, (render, pos)) in area.world.query_mut::<(&RenderReceiver, &Position)>() {
-            if let Some(max_datagram_size) = render.connection.max_datagram_size() {
-                let datagrams = packet.to_datagrams(max_datagram_size as u32, pos.0);
-
-                for datagram in datagrams {
-                    let _ = render.connection.send_datagram(datagram);
-                }
-            }
-        }
     }
 }
 

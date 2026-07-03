@@ -1,6 +1,6 @@
 use super::{
     area::{Area, AreaKey},
-    components::{CrossingPortal, Downed, Position, RenderReceiver},
+    components::{CrossingPortal, Downed, Position},
     map_table::try_get_map,
     systems::*,
 };
@@ -13,7 +13,7 @@ use crate::{
         transfer_request::{TransferRequest, TransferTarget},
     },
     logger::Logger,
-    networking::leaderboard::AreaInfo,
+    networking::{leaderboard::AreaInfo, rendering::AreaRenderMessage},
     physics::vec2::Vec2,
 };
 use anyhow::Result;
@@ -38,6 +38,8 @@ pub struct Game {
     transfer_tx: mpsc::Sender<TransferRequest>,
     transfer_queue: Vec<PlayerId>,
 
+    render_tx: mpsc::Sender<AreaRenderMessage>,
+
     timer_sync_tx: broadcast::Sender<TimerSyncPacket>,
     pub timer_sync_rx: broadcast::Receiver<TimerSyncPacket>,
 
@@ -47,6 +49,7 @@ pub struct Game {
 impl Game {
     pub fn new() -> GameHandle {
         let (transfer_tx, mut transfer_rx) = mpsc::channel::<TransferRequest>(8);
+        let (render_tx, mut render_rx) = mpsc::channel::<AreaRenderMessage>(64);
         let (timer_sync_tx, timer_sync_rx) = broadcast::channel(8);
 
         let (output_tx, output_rx) = broadcast::channel(64);
@@ -69,11 +72,12 @@ impl Game {
         let game = Game {
             areas: HashMap::new(),
             spawn_area_key,
-            output_tx,
+            output_tx: output_tx.clone(),
             transfer_tx: transfer_tx.clone(),
             transfer_queue: Vec::new(),
             timer_sync_tx,
             timer_sync_rx,
+            render_tx,
             frame_duration,
         };
 
@@ -86,6 +90,12 @@ impl Game {
                 let mut game = transfer_arc.lock().await;
 
                 let _ = game.transfer_hero(req).await;
+            }
+        });
+
+        tokio::spawn(async move {
+            while let Some(msg) = render_rx.recv().await {
+                let _ = output_tx.send(GameOutputMessage::AreaRender(msg));
             }
         });
 
@@ -122,8 +132,10 @@ impl Game {
         let area = Area::new(
             template,
             self.transfer_tx.clone(),
+            self.render_tx.clone(),
             self.timer_sync_tx.clone(),
         );
+
         let area = Arc::new(Mutex::new(area));
         Self::start_update_loop(area.clone(), self.frame_duration);
         self.areas.insert(key.clone(), area.clone());
@@ -180,7 +192,6 @@ impl Game {
         system_enemy_collision(area);
 
         system_render(area);
-        system_send_render_packet(area);
 
         if area.frame_count % 300 == 0 {
             system_sync_timers(area);
@@ -199,6 +210,16 @@ impl Game {
                 {
                     let mut area = area_clone.lock().await;
                     Self::update_area(&mut area, last_time.elapsed().as_secs_f32()).await;
+
+                    if let Some(packet) = &&area.render_packet {
+                        let _ = area
+                            .render_tx
+                            .send(AreaRenderMessage {
+                                key: area.key.clone(),
+                                packet: packet.clone(),
+                            })
+                            .await;
+                    }
                 }
 
                 last_time = Instant::now();
@@ -340,9 +361,9 @@ impl Game {
 
         drop(player_area);
 
-        let (render, pos) = target_area
+        let pos = target_area
             .world
-            .query_one_mut::<(&RenderReceiver, &mut Position)>(entity)
+            .query_one_mut::<&mut Position>(entity)
             .unwrap();
 
         pos.0 = target_pos;
@@ -354,11 +375,11 @@ impl Game {
                 .unwrap(),
         );
 
-        let mut response_stream = render.connection.open_uni().await?.await?;
-        response_stream
-            .write_all(&target_area.definition_packet())
-            .await?;
-        response_stream.finish().await?;
+        // let mut response_stream = render.connection.open_uni().await?.await?;
+        // response_stream
+        //     .write_all(&target_area.definition_packet())
+        //     .await?;
+        // response_stream.finish().await?;
 
         Ok(())
     }
@@ -425,7 +446,10 @@ impl Clone for GameHandle {
 }
 
 #[derive(Clone)]
-pub enum GameOutputMessage {}
+pub enum GameOutputMessage {
+    AreaRender(AreaRenderMessage),
+    Dummy,
+}
 
 pub struct GameSpawnResult {
     pub player_id: PlayerId,

@@ -4,3 +4,4 @@ pub mod close_handler;
 pub mod handler;
 pub mod init_handler;
 pub mod message;
+pub mod render_handler;
