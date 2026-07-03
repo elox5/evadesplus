@@ -13,7 +13,10 @@ use crate::{
         transfer_request::{TransferRequest, TransferTarget},
     },
     logger::Logger,
-    networking::{leaderboard::AreaInfo, rendering::AreaRenderMessage},
+    networking::{
+        leaderboard::AreaInfo,
+        rendering::{AreaDefinitionMessage, AreaRenderMessage},
+    },
     physics::vec2::Vec2,
 };
 use anyhow::Result;
@@ -110,11 +113,22 @@ impl Game {
 
         Logger::info(format!("Spawning hero..."));
 
+        let player_id = PlayerId {
+            entity,
+            area: area.key.clone(),
+        };
+
+        let area_definition = AreaDefinitionMessage {
+            id: player_id.clone(),
+            data: area.definition_packet(),
+        };
+
+        let _ = self
+            .output_tx
+            .send(GameOutputMessage::AreaDefinition(area_definition));
+
         GameSpawnResult {
-            player_id: PlayerId {
-                entity,
-                area: area.key.clone(),
-            },
+            player_id,
             area_info: AreaInfo::from_area(&area),
         }
     }
@@ -448,7 +462,7 @@ impl Clone for GameHandle {
 #[derive(Clone)]
 pub enum GameOutputMessage {
     AreaRender(AreaRenderMessage),
-    Dummy,
+    AreaDefinition(AreaDefinitionMessage),
 }
 
 pub struct GameSpawnResult {

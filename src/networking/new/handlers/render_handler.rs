@@ -3,7 +3,7 @@ use crate::networking::{
         server_message::{ServerMessage, ServerMessageTarget},
         user_registry::{UserData, UserRegistryHandle},
     },
-    rendering::{AreaRenderMessage, AreaRenderPacket},
+    rendering::{AreaDefinitionMessage, AreaRenderMessage, AreaRenderPacket},
 };
 use tokio::sync::mpsc;
 
@@ -13,19 +13,35 @@ pub struct RenderHandler {
 }
 
 impl RenderHandler {
-    pub async fn handle(&self, message: AreaRenderMessage) {
+    pub async fn handle_render(&self, message: AreaRenderMessage) {
         let users = self.users.get_all();
         let targets: Vec<&UserData> = users
             .iter()
             .filter(|u| u.player_id.area == message.key)
             .collect();
 
-        let message = Self::build_message(targets, message.packet);
+        let message = Self::build_render_message(targets, message.packet);
 
         let _ = self.server_tx.send(message).await;
     }
 
-    fn build_message(targets: Vec<&UserData>, packet: AreaRenderPacket) -> ServerMessage {
+    pub async fn handle_area_definition(&self, message: AreaDefinitionMessage) {
+        if let Some(user_id) = self.users.player_to_user_id(message.id) {
+            if let Some(user) = self.users.get(&user_id) {
+                //
+
+                let message = ServerMessage {
+                    header: "ADEF".into(),
+                    data: message.data,
+                    target: ServerMessageTarget::Single(user.client_id.unwrap()),
+                };
+
+                let _ = self.server_tx.send(message).await;
+            }
+        }
+    }
+
+    fn build_render_message(targets: Vec<&UserData>, packet: AreaRenderPacket) -> ServerMessage {
         ServerMessage {
             header: "REND".into(),
             data: packet.to_bytes(),

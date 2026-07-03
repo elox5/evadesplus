@@ -145,3 +145,9 @@ impl RenderNode {
         length
     }
 }
+
+#[derive(Clone)]
+pub struct AreaDefinitionMessage {
+    pub id: PlayerId,
+    pub data: Vec<u8>,
+}

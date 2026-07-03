@@ -4,7 +4,7 @@ use hecs::Entity;
 
 use crate::game::area::AreaKey;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct PlayerId {
     pub entity: Entity,
     pub area: AreaKey,

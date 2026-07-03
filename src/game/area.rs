@@ -185,7 +185,6 @@ impl Area {
     pub fn definition_packet(&self) -> Vec<u8> {
         let mut packet = Vec::new();
 
-        packet.extend_from_slice(b"ADEF"); // area definition
         packet.extend_from_slice(&self.bounds.w.to_le_bytes());
         packet.extend_from_slice(&self.bounds.h.to_le_bytes());
 

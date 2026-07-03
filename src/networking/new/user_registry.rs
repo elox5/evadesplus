@@ -33,6 +33,7 @@ struct UserRegistry {
     users: HashMap<UserId, UserData>,
 
     client_to_user_id_map: HashMap<ClientId, UserId>,
+    player_to_user_id_map: HashMap<PlayerId, UserId>,
 }
 
 impl UserRegistry {
@@ -40,6 +41,7 @@ impl UserRegistry {
         Self {
             users: HashMap::new(),
             client_to_user_id_map: HashMap::new(),
+            player_to_user_id_map: HashMap::new(),
         }
     }
 
@@ -62,6 +64,10 @@ impl UserRegistry {
     fn add_to_client_map(&mut self, id: UserId, client_id: ClientId) {
         self.client_to_user_id_map.insert(client_id, id);
     }
+
+    fn add_to_player_map(&mut self, id: UserId, player_id: PlayerId) {
+        self.player_to_user_id_map.insert(player_id, id);
+    }
 }
 
 #[derive(Clone)]
@@ -81,7 +87,7 @@ impl UserRegistryHandle {
             name,
             joined_at: Instant::now(),
             client_id: Some(client_id),
-            player_id,
+            player_id: player_id.clone(),
             victories: Vec::new(),
         };
 
@@ -93,6 +99,7 @@ impl UserRegistryHandle {
             let mut new = (**r).clone();
             new.add(id.clone(), data.clone());
             new.add_to_client_map(id.clone(), client_id);
+            new.add_to_player_map(id.clone(), player_id.clone());
             new
         });
 
@@ -120,6 +127,14 @@ impl UserRegistryHandle {
             .load()
             .client_to_user_id_map
             .get(&client_id)
+            .cloned()
+    }
+
+    pub fn player_to_user_id(&self, player_id: PlayerId) -> Option<UserId> {
+        self.registry
+            .load()
+            .player_to_user_id_map
+            .get(&player_id)
             .cloned()
     }
 }

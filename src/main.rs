@@ -176,8 +176,13 @@ async fn main() -> Result<()> {
 
         tokio::spawn(async move {
             while let Ok(message) = game_rx.recv().await {
-                if let GameOutputMessage::AreaRender(message) = message {
-                    let _ = render_handler.handle(message).await;
+                match message {
+                    GameOutputMessage::AreaRender(message) => {
+                        let _ = render_handler.handle_render(message).await;
+                    }
+                    GameOutputMessage::AreaDefinition(message) => {
+                        let _ = render_handler.handle_area_definition(message).await;
+                    }
                 }
             }
         });
