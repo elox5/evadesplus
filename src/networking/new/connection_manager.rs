@@ -1,23 +1,23 @@
 use anyhow::Result;
 use arc_swap::ArcSwap;
-use futures_util::{stream::SplitSink, SinkExt, StreamExt};
+use futures_util::{SinkExt, StreamExt, stream::SplitSink};
 use std::{
     collections::HashMap,
     future::Future,
     net::SocketAddr,
     sync::{
-        atomic::{AtomicU16, Ordering},
         Arc,
+        atomic::{AtomicU16, Ordering},
     },
 };
-use tokio::sync::{broadcast, mpsc, Mutex};
+use tokio::sync::{Mutex, broadcast, mpsc};
 use warp::{
-    filters::ws::{self, WebSocket},
     Filter,
+    filters::ws::{self, WebSocket},
 };
 
 use crate::{
-    logger::{LogCategory, Logger},
+    logger::Logger,
     networking::new::{
         client_id::ClientId,
         client_message::ClientMessage,
@@ -139,14 +139,14 @@ impl WsConnectionManager {
             bytes.extend_from_slice(&message.header.bytes);
             bytes.extend_from_slice(&message.data);
 
-            Logger::log(
-                format!(
-                    "Sending {} message to clients {:?}",
-                    message.header.to_string(),
-                    message.target
-                ),
-                LogCategory::Network,
-            );
+            // Logger::log(
+            //     format!(
+            //         "Sending {} message to clients {:?}",
+            //         message.header.to_string(),
+            //         message.target
+            //     ),
+            //     LogCategory::Network,
+            // );
 
             let ws_message = ws::Message::binary(bytes);
 

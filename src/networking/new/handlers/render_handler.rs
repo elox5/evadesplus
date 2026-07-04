@@ -20,7 +20,10 @@ impl RenderHandler {
             .filter(|u| u.player_id.area == message.key)
             .collect();
 
-        let message = Self::build_render_message(targets, message.packet);
+        let message = Self::build_render_message(
+            targets,
+            message.enrich(self.users.player_to_user_id_map()).packet,
+        );
 
         let _ = self.server_tx.send(message).await;
     }

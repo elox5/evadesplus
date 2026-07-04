@@ -24,11 +24,10 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 use tokio::{
     join,
     sync::{
-        broadcast,
+        Mutex, broadcast,
         mpsc::{self},
-        Mutex,
     },
-    time::{interval, Instant},
+    time::{Instant, interval},
 };
 
 pub struct Game {

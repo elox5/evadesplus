@@ -1,4 +1,4 @@
-use super::{area::Area, components::*, timer_sync_packet::TimerSyncPacket};
+use super::{area::Area, components::*};
 use crate::{
     game::{
         components::{Direction, Position, Speed, Velocity},
@@ -259,14 +259,13 @@ pub fn system_render(area: &mut Area) {
     area.render_packet = Some(AreaRenderPacket::new());
     let nodes = &mut area.render_packet.as_mut().unwrap().nodes;
 
-    for (_, (pos, size, color, hero, enemy, downed, player_id)) in area.world.query_mut::<(
+    for (entity, (pos, size, color, hero, enemy, downed)) in area.world.query_mut::<(
         &Position,
         &Size,
         &Color,
         Option<&Hero>,
         Option<&Enemy>,
         Option<&Downed>,
-        Option<&PlayerId>,
     )>() {
         let mut color = color.clone();
 
@@ -282,19 +281,20 @@ pub fn system_render(area: &mut Area) {
             has_border: enemy.is_some(),
             is_hero: hero.is_some(),
             downed: downed.is_some(),
-            player_id: player_id.cloned(),
+            entity: Some(entity),
+            user_id: None,
         };
         nodes.push(node);
     }
 }
 
 pub fn system_sync_timers(area: &mut Area) {
-    for (_, (timer, player_id)) in area.world.query_mut::<(&mut Timer, &PlayerId)>() {
-        let _ = area.timer_sync_tx.send(TimerSyncPacket {
-            player_id: player_id.clone(),
-            time: timer.0,
-        });
-    }
+    // for (_, (timer)) in area.world.query_mut::<(&mut Timer)>() {
+    //     let _ = area.timer_sync_tx.send(TimerSyncPacket {
+    //         player_id: player_id.clone(),
+    //         time: timer.0,
+    //     });
+    // }
 }
 
 pub async fn system_portals(area: &mut Area) {

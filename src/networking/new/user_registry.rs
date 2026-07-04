@@ -6,8 +6,8 @@ use arc_swap::ArcSwap;
 use std::{
     collections::HashMap,
     sync::{
-        atomic::{AtomicU64, Ordering},
         Arc,
+        atomic::{AtomicU64, Ordering},
     },
 };
 use tokio::time::Instant;
@@ -136,6 +136,10 @@ impl UserRegistryHandle {
             .player_to_user_id_map
             .get(&player_id)
             .cloned()
+    }
+
+    pub fn player_to_user_id_map(&self) -> HashMap<PlayerId, UserId> {
+        self.registry.load().player_to_user_id_map.clone()
     }
 }
 

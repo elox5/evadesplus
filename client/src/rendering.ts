@@ -472,11 +472,9 @@ class RenderingModule implements WsModule {
     }
 
     private handle_render_update(data: BinaryReader) {
-        const offset = data.read_vector2();
-
-        const [render] = data.read_flags();
-
         const node_count = data.read_u16();
+
+        let offset: Vector2 = { x: 0, y: 0 }
 
         for (let i = 0; i < node_count; i++) {
             const x = data.read_f32();
@@ -488,7 +486,10 @@ class RenderingModule implements WsModule {
 
             const [has_outline, is_hero, downed] = data.read_flags();
 
-            const player_id = null;
+            let player_id = null;
+            if (is_hero) {
+                player_id = data.read_u64();
+            }
 
             const node: RenderNode = {
                 x,
@@ -501,15 +502,17 @@ class RenderingModule implements WsModule {
                 player_id,
             };
 
+            if (player_id == player_info.get_self_id()) {
+                offset = { x, y }
+            }
+
             this.nodes.push(node);
         }
 
-        if (render) {
-            report_frame_start();
+        report_frame_start();
 
-            render_frame(offset, this.nodes);
-            this.nodes.length = 0;
-        }
+        render_frame(offset, this.nodes);
+        this.nodes.length = 0;
     }
 }
 

@@ -1,6 +1,10 @@
+use std::collections::HashMap;
+
+use hecs::Entity;
+
 use crate::{
     game::{area::AreaKey, components::Color, player::PlayerId},
-    physics::vec2::Vec2,
+    networking::new::user_registry::UserId,
 };
 
 #[derive(Clone)]
@@ -9,30 +13,57 @@ pub struct AreaRenderMessage {
     pub packet: AreaRenderPacket,
 }
 
+impl AreaRenderMessage {
+    pub fn enrich(self, map: HashMap<PlayerId, UserId>) -> AreaRenderMessage {
+        let nodes = self
+            .packet
+            .nodes
+            .into_iter()
+            .map(|n| {
+                if n.is_hero
+                    && let Some(entity) = n.entity
+                {
+                    let player_id = PlayerId {
+                        entity,
+                        area: self.key.clone(),
+                    };
+
+                    RenderNode {
+                        x: n.x,
+                        y: n.y,
+                        radius: n.radius,
+                        color: n.color,
+                        has_border: n.has_border,
+                        is_hero: n.is_hero,
+                        downed: n.downed,
+                        entity: n.entity,
+                        user_id: map.get(&player_id).cloned(),
+                    }
+                } else {
+                    n
+                }
+            })
+            .collect();
+
+        return AreaRenderMessage {
+            key: self.key,
+            packet: AreaRenderPacket { nodes },
+        };
+    }
+}
+
 #[derive(Clone)]
 pub struct AreaRenderPacket {
     pub nodes: Vec<RenderNode>,
 }
 
 impl AreaRenderPacket {
-    const HEADER_SIZE: u32 = 11;
-
     pub fn new() -> Self {
         Self { nodes: Vec::new() }
     }
 
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut bytes: Vec<u8> = Vec::new();
-
-        bytes.push(0); // offset x
-        bytes.push(0); // offset y
-        bytes.push(0); // offset y
-        bytes.push(0); // offset y
-        bytes.push(0); // offset y
-        bytes.push(0); // offset y
-        bytes.push(0); // offset y
-        bytes.push(0); // offset y
-        bytes.push(1); // should render
 
         bytes.extend_from_slice(&(self.nodes.len() as u16).to_le_bytes());
 
@@ -41,64 +72,6 @@ impl AreaRenderPacket {
         }
 
         bytes
-    }
-
-    pub fn to_datagrams(&self, max_size: u32, offset: Vec2) -> Vec<Vec<u8>> {
-        let mut nodes = self.nodes.clone();
-        let mut datagrams = Vec::new();
-
-        while !nodes.is_empty() {
-            let mut datagram = Vec::new();
-
-            let should_render: u8 = 0;
-
-            datagram.extend_from_slice(&offset.x.to_le_bytes());
-            datagram.extend_from_slice(&offset.y.to_le_bytes());
-            datagram.push(should_render);
-
-            let mut datagram_nodes: Vec<RenderNode> = Vec::new();
-            let mut node_total_size = 0;
-
-            while node_total_size < max_size && !nodes.is_empty() {
-                let node = nodes.pop().unwrap();
-                let node_size = node.length();
-
-                // Logger::debug(format!(
-                //     "Node size: {node_size} bytes. Remaining: {}",
-                //     nodes.len()
-                // ));
-
-                if Self::HEADER_SIZE + node_total_size + node_size > max_size {
-                    nodes.push(node);
-                    break;
-                }
-
-                node_total_size += node_size;
-                datagram_nodes.push(node);
-            }
-
-            let node_count = datagram_nodes.len() as u16;
-
-            datagram.extend_from_slice(&node_count.to_le_bytes());
-            for node in &datagram_nodes {
-                datagram.extend_from_slice(&node.to_bytes());
-            }
-
-            // Logger::debug(format!(
-            //     "Creating datagram. Size: {} bytes. Node count: {node_count}",
-            //     datagram.len()
-            // ));
-
-            datagrams.push(datagram);
-        }
-
-        let datagrams_len = datagrams.len();
-        datagrams[datagrams_len - 1][8] = 1;
-        // the last datagram has to tell the client to render the frame
-
-        // Logger::debug(format!("Packet ready. Datagrams sent: {}", datagrams.len()));
-
-        datagrams
     }
 }
 
@@ -111,7 +84,8 @@ pub struct RenderNode {
     pub has_border: bool,
     pub is_hero: bool,
     pub downed: bool,
-    pub player_id: Option<PlayerId>,
+    pub entity: Option<Entity>,
+    pub user_id: Option<UserId>,
 }
 
 impl RenderNode {
@@ -126,9 +100,11 @@ impl RenderNode {
 
         bytes.push(flags);
 
-        // if let Some(id) = &self.player_id {
-        //     bytes.extend_from_slice(&id.to_le_bytes());
-        // }
+        if self.is_hero
+            && let Some(id) = &self.user_id
+        {
+            bytes.extend_from_slice(&id.0.to_le_bytes());
+        }
 
         bytes
     }
@@ -139,8 +115,9 @@ impl RenderNode {
         // radius: 4 bytes
         // color: 4 bytes
         // flags: 1 byte
+        // entity: 8 bytes
 
-        let length = 4 + 4 + 4 + 4 + 1;
+        let length = 4 + 4 + 4 + 4 + 1 + 8;
 
         length
     }
