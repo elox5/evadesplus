@@ -286,6 +286,8 @@ impl Game {
     }
 
     pub async fn transfer_hero(&mut self, req: TransferRequest) -> Result<()> {
+        Logger::debug(format!("Transfer request: {:?}", req));
+
         if !self.transfer_queue.contains(&req.player) {
             self.transfer_queue.push(req.player.clone());
         }
@@ -382,8 +384,20 @@ impl Game {
                 .unwrap(),
         );
 
+        let new_id = PlayerId {
+            entity,
+            area: target_key,
+        };
+
+        let msg = PlayerTransferMessage {
+            player_id: req.player.clone(),
+            new_id,
+        };
+
+        let _ = self.output_tx.send(GameOutputMessage::PlayerTransfer(msg));
+
         let msg = AreaDefinitionMessage {
-            id: req.player.clone(),
+            id: req.player,
             data: target_area.definition_packet(),
         };
 
@@ -489,9 +503,16 @@ impl GameCreator {
 pub enum GameOutputMessage {
     AreaRender(AreaRenderMessage),
     AreaDefinition(AreaDefinitionMessage),
+    PlayerTransfer(PlayerTransferMessage),
 }
 
 pub struct GameSpawnResult {
     pub player_id: PlayerId,
     pub area_info: AreaInfo,
+}
+
+#[derive(Clone)]
+pub struct PlayerTransferMessage {
+    pub player_id: PlayerId,
+    pub new_id: PlayerId,
 }

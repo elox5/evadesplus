@@ -197,6 +197,18 @@ async fn main() -> Result<()> {
                     GameOutputMessage::AreaDefinition(message) => {
                         let _ = render_handler.handle_area_definition(message).await;
                     }
+                    GameOutputMessage::PlayerTransfer(message) => {
+                        let users = user_registry.clone();
+
+                        if let Some(user_id) = users.player_to_user_id(message.player_id.clone()) {
+                            Logger::debug(format!(
+                                "Updating player id from '{}' to '{}'",
+                                message.player_id, message.new_id
+                            ));
+
+                            users.update_player_id(user_id, message.new_id);
+                        }
+                    }
                 }
             }
         });

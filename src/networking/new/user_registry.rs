@@ -68,6 +68,22 @@ impl UserRegistry {
     fn add_to_player_map(&mut self, id: UserId, player_id: PlayerId) {
         self.player_to_user_id_map.insert(player_id, id);
     }
+
+    fn update_player_id(&mut self, id: UserId, new_player_id: PlayerId) {
+        if let Some(user) = self.get(&id) {
+            let new_user = UserData {
+                client_id: user.client_id,
+                player_id: new_player_id.clone(),
+                name: user.name,
+                joined_at: user.joined_at,
+                victories: user.victories,
+            };
+
+            self.add(id.clone(), new_user);
+
+            self.add_to_player_map(id, new_player_id);
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -120,6 +136,14 @@ impl UserRegistryHandle {
 
     pub fn get_all(&self) -> Vec<UserData> {
         self.registry.load().get_all()
+    }
+
+    pub fn update_player_id(&self, id: UserId, new_player_id: PlayerId) {
+        self.registry.rcu(|r| {
+            let mut new = (**r).clone();
+            new.update_player_id(id.clone(), new_player_id.clone());
+            new
+        });
     }
 
     pub fn client_to_user_id(&self, client_id: ClientId) -> Option<UserId> {
