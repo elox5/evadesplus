@@ -423,7 +423,7 @@ impl Game {
         Ok(())
     }
 
-    pub async fn update_player_input(&mut self, player_id: PlayerId, input: Vec2) -> Result<()> {
+    pub async fn send_input_update(&mut self, player_id: PlayerId, input: Vec2) -> Result<()> {
         let area = self.get_or_create_area(&player_id.area)?;
         let mut area = area.lock().await;
 
@@ -446,6 +446,11 @@ impl GameHandle {
     pub async fn send_spawn_request(&self) -> GameSpawnResult {
         let mut game = self.game.lock().await;
         game.handle_spawn_request().await
+    }
+
+    pub async fn send_input_update(&self, id: PlayerId, input: Vec2) {
+        let mut game = self.game.lock().await;
+        let _ = game.send_input_update(id, input).await;
     }
 }
 

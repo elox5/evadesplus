@@ -13,9 +13,13 @@ use evadesplus::{
         new::{
             connection_manager::{ConnectionManager, WsConnectionManager},
             handlers::{
-                client_chat_handler::ClientChatHandler, client_message_logger::ClientMessageLogger,
-                close_handler::CloseHandler, handler::ClientMessageHandler,
-                init_handler::InitHandler, render_handler::RenderHandler,
+                client_chat_handler::ClientChatHandler,
+                client_message_logger::ClientMessageLogger,
+                close_handler::CloseHandler,
+                handler::ClientMessageHandler,
+                init_handler::InitHandler,
+                move_handler::{self, MoveHandler},
+                render_handler::RenderHandler,
             },
             server_message::{ServerMessage, ServerMessageTarget},
             user_registry::create_user_registry,
@@ -117,6 +121,19 @@ async fn main() -> Result<()> {
             while let Ok(message) = client_rx.recv().await {
                 if close_handler.accept_header(&message.header) {
                     let _ = close_handler.handle(message);
+                }
+            }
+        });
+    }
+
+    {
+        let mut client_rx = connection_manager.client_messages().resubscribe();
+        let move_handler = MoveHandler::new(user_registry.clone(), game.clone());
+
+        tokio::spawn(async move {
+            while let Ok(message) = client_rx.recv().await {
+                if move_handler.accept_header(&message.header) {
+                    let _ = move_handler.handle(message).await;
                 }
             }
         });

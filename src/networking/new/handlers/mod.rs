@@ -5,3 +5,4 @@ pub mod handler;
 pub mod init_handler;
 pub mod message;
 pub mod render_handler;
+pub mod move_handler;
