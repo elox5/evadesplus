@@ -3,7 +3,7 @@ use evadesplus::{
     cache::Cache,
     config::CONFIG,
     game::{
-        game::{Game, GameOutputMessage},
+        game::{GameCreator, GameOutputMessage},
         map_table::get_map_list,
     },
     logger::{LogCategory, Logger},
@@ -43,7 +43,7 @@ async fn main() -> Result<()> {
 
     let user_registry = create_user_registry();
 
-    let game = Game::new();
+    let game = GameCreator::new().create_game();
 
     let network_config = &CONFIG.network;
 

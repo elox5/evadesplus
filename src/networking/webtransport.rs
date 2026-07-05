@@ -1,10 +1,10 @@
 use super::{
     chat::{ChatMessageType, ChatRequest},
-    commands::{handle_command, CommandRequest},
+    commands::{CommandRequest, handle_command},
     leaderboard::LeaderboardUpdate,
 };
 use crate::{
-    game::{area::Area, game::Game, timer_sync_packet::TimerSyncPacket},
+    game::{area::Area, game::GameHandle, timer_sync_packet::TimerSyncPacket},
     logger::{LogCategory, Logger},
     networking::{
         helpers::validate_player_name,
@@ -13,25 +13,25 @@ use crate::{
             connection_manager::ConnectionManager, server_message::ServerMessage,
         },
     },
-    physics::vec2::Vec2,
 };
 use anyhow::Result;
+use anyhow::anyhow;
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::Arc,
     time::Duration,
 };
-use tokio::sync::{broadcast, mpsc, Mutex};
+use tokio::sync::{Mutex, broadcast, mpsc};
 use wtransport::{
-    datagram::Datagram,
-    endpoint::{endpoint_side::Server, IncomingSession},
-    error::ConnectionError,
     Connection, Endpoint, Identity, RecvStream, SendStream, ServerConfig,
+    datagram::Datagram,
+    endpoint::{IncomingSession, endpoint_side::Server},
+    error::ConnectionError,
 };
 
 pub struct WtConnectionManager {
     endpoint: Endpoint<Server>,
-    game: Arc<Mutex<Game>>,
+    game: GameHandle,
     timer_sync_rx: broadcast::Receiver<TimerSyncPacket>,
 
     client_tx: broadcast::Sender<ClientMessage>,
@@ -41,12 +41,7 @@ pub struct WtConnectionManager {
 }
 
 impl WtConnectionManager {
-    pub fn new(
-        identity: Identity,
-        game_arc: Arc<Mutex<Game>>,
-        host_ip: Ipv4Addr,
-        port: u16,
-    ) -> Result<Self> {
+    pub fn new(identity: Identity, game: GameHandle, host_ip: Ipv4Addr, port: u16) -> Result<Self> {
         let config = ServerConfig::builder()
             .with_bind_address(SocketAddr::new(IpAddr::V4(host_ip), port))
             .with_identity(identity)
@@ -55,22 +50,15 @@ impl WtConnectionManager {
 
         let endpoint = Endpoint::server(config)?;
 
-        let game = game_arc.try_lock().unwrap();
-        let timer_sync_rx = game.timer_sync_rx.resubscribe();
-        drop(game);
+        // let game = game.try_lock().unwrap();
+        // let timer_sync_rx = game.timer_sync_rx.resubscribe();
+        // drop(game);
 
-        let (client_tx, client_rx) = broadcast::channel(64);
-        let (server_tx, server_rx) = mpsc::channel(64);
+        // let (client_tx, client_rx) = broadcast::channel(64);
+        // let (server_tx, server_rx) = mpsc::channel(64);
         // TODO: unhandled server messages
 
-        Ok(Self {
-            endpoint,
-            game: game_arc,
-            timer_sync_rx,
-            client_tx,
-            client_rx,
-            server_tx,
-        })
+        Err(anyhow!("Creating WS connection manager is unsupported now"))
     }
 
     pub fn local_addr(&self) -> SocketAddr {
@@ -79,7 +67,7 @@ impl WtConnectionManager {
 
     async fn handle_session(
         session: IncomingSession,
-        game: Arc<Mutex<Game>>,
+        game: GameHandle,
         client_tx: broadcast::Sender<ClientMessage>,
         timer_sync_rx: broadcast::Receiver<TimerSyncPacket>,
         id: u64,
@@ -104,7 +92,7 @@ impl WtConnectionManager {
 
     async fn handle_session_impl(
         session: IncomingSession,
-        game: Arc<Mutex<Game>>,
+        game: GameHandle,
         client_tx: broadcast::Sender<ClientMessage>,
         mut timer_sync_rx: broadcast::Receiver<TimerSyncPacket>,
         id: u64,
@@ -160,9 +148,9 @@ impl WtConnectionManager {
         }
     }
 
-    async fn finalize_connection(game: &Arc<Mutex<Game>>, id: u64) {
-        let mut game = game.lock().await;
-        // let _ = game.despawn_hero(id).await;
+    async fn finalize_connection(game: &GameHandle, id: u64) {
+        // let mut game = game.lock().await;
+        // let _ = game.send_despawn_request(id).await;
     }
 }
 
@@ -209,7 +197,7 @@ async fn handle_uni_stream(
     mut stream: RecvStream,
     buffer: &mut Box<[u8]>,
     connection: &Connection,
-    game: &Arc<Mutex<Game>>,
+    game: &GameHandle,
     id: u64,
     client_tx: &broadcast::Sender<ClientMessage>,
 ) -> Result<()> {
@@ -247,15 +235,17 @@ async fn handle_uni_stream(
                 let response = handle_command(command, req).await;
 
                 let message = match response {
-                        Ok(response) => response,
-                        Err(err) => Some(ChatRequest::new(
-                            format!("A server error has occurred. Please report it to the developers: *{err:?}*"),
-                            String::new(),
-                            id,
-                            ChatMessageType::ServerError,
-                            Some(vec![id]),
-                        )),
-                    };
+                    Ok(response) => response,
+                    Err(err) => Some(ChatRequest::new(
+                        format!(
+                            "A server error has occurred. Please report it to the developers: *{err:?}*"
+                        ),
+                        String::new(),
+                        id,
+                        ChatMessageType::ServerError,
+                        Some(vec![id]),
+                    )),
+                };
 
                 if let Some(message) = message {
                     if message.recipient_filter == Some(vec![id]) {
@@ -265,7 +255,7 @@ async fn handle_uni_stream(
                     }
                 }
             } else {
-                let game = game.lock().await;
+                // let game = game.lock().await;
                 // let name = game.get_player(id)?.name.clone();
 
                 // let request =
@@ -288,7 +278,7 @@ async fn handle_bi_stream(
     mut recv_stream: RecvStream,
     buffer: &mut Box<[u8]>,
     connection: &Connection,
-    game: &Arc<Mutex<Game>>,
+    game: &GameHandle,
     id: u64,
     client_tx: &broadcast::Sender<ClientMessage>,
 ) -> Result<()> {
@@ -358,7 +348,7 @@ async fn handle_bi_stream(
 
 async fn handle_datagram(
     datagram: Datagram,
-    game: &Arc<Mutex<Game>>,
+    game: &GameHandle,
     id: u64,
     client_tx: &broadcast::Sender<ClientMessage>,
 ) {
@@ -371,7 +361,7 @@ async fn handle_datagram(
     //     "Received input '({x:.2}, {y:.2})' from client {id}"
     // ));
 
-    let mut game = game.lock().await;
+    // let mut game = game.lock().await;
     // let _ = game.update_player_input(id, Vec2::new(x, y)).await;
 
     let msg = ClientMessage::new(ClientId(id as u16), "MOVE", payload.to_vec());
@@ -432,10 +422,10 @@ async fn send_chat_message(request: ChatRequest, connection: &Connection) -> Res
 async fn spawn_hero(
     name: &str,
     connection: &Connection,
-    game: &Arc<Mutex<Game>>,
+    game: &GameHandle,
     id: u64,
 ) -> Result<Vec<u8>> {
-    let mut game = game.lock().await;
+    // let mut game = game.lock().await;
     // let leaderboard_state = game.leaderboard_state.clone();
 
     // this is gonna be completely broken now but it's dead code anyways

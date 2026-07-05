@@ -30,7 +30,7 @@ use tokio::{
     time::{Instant, interval},
 };
 
-pub struct Game {
+struct Game {
     areas: HashMap<AreaKey, Arc<Mutex<Area>>>,
 
     spawn_area_key: AreaKey,
@@ -458,6 +458,28 @@ impl Clone for GameHandle {
         Self {
             game: self.game.clone(),
             output_rx: self.output_rx.resubscribe(),
+        }
+    }
+}
+
+pub struct GameCreator {
+    handle: Option<GameHandle>,
+}
+
+impl GameCreator {
+    pub fn new() -> Self {
+        Self { handle: None }
+    }
+
+    pub fn create_game(&mut self) -> GameHandle {
+        match &self.handle {
+            Some(handle) => handle.clone(),
+            None => {
+                let handle = Game::new();
+                self.handle = Some(handle.clone());
+
+                handle
+            }
         }
     }
 }

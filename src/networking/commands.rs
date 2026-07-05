@@ -1,11 +1,11 @@
 use super::chat::{ChatMessageType, ChatRequest};
 use crate::cache::CommandCache;
-use crate::game::game::Game;
+use crate::game::game::GameHandle;
 use crate::game::map_table::map_exists;
 use crate::game::transfer_request::TransferRequest;
 use crate::game::transfer_request::TransferTarget;
-use anyhow::anyhow;
 use anyhow::Result;
+use anyhow::anyhow;
 use std::{
     future::Future,
     pin::Pin,
@@ -148,7 +148,7 @@ pub async fn handle_command(
 
 pub struct CommandRequest {
     pub args: Vec<String>,
-    pub game: Arc<Mutex<Game>>,
+    pub game: GameHandle,
     pub player_id: u64,
 }
 
