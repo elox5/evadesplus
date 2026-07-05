@@ -382,11 +382,12 @@ impl Game {
                 .unwrap(),
         );
 
-        // let mut response_stream = render.connection.open_uni().await?.await?;
-        // response_stream
-        //     .write_all(&target_area.definition_packet())
-        //     .await?;
-        // response_stream.finish().await?;
+        let msg = AreaDefinitionMessage {
+            id: req.player.clone(),
+            data: target_area.definition_packet(),
+        };
+
+        let _ = self.output_tx.send(GameOutputMessage::AreaDefinition(msg));
 
         Ok(())
     }
