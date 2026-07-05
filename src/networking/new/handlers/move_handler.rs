@@ -1,6 +1,5 @@
 use crate::{
     game::game::GameHandle,
-    logger::Logger,
     networking::new::{
         client_message::ClientMessage, message_header::MessageHeader,
         user_registry::UserRegistryHandle,

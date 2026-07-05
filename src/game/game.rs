@@ -249,12 +249,6 @@ impl Game {
 
         let (_, should_close) = area.despawn_player(player_id.entity);
 
-        // let _ = self
-        //     .leaderboard_tx
-        //     .send(LeaderboardUpdate::remove(player_id));
-
-        // TODO: LB FIX
-
         Logger::info(format!("Despawning player @{}...", player_id));
 
         if should_close {
@@ -446,6 +440,11 @@ impl GameHandle {
     pub async fn send_spawn_request(&self) -> GameSpawnResult {
         let mut game = self.game.lock().await;
         game.handle_spawn_request().await
+    }
+
+    pub async fn send_despawn_request(&self, id: PlayerId) {
+        let mut game = self.game.lock().await;
+        let _ = game.despawn_hero(id).await;
     }
 
     pub async fn send_input_update(&self, id: PlayerId, input: Vec2) {

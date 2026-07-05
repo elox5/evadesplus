@@ -130,9 +130,7 @@ impl WsConnectionManager {
             let targets = match message.target.clone() {
                 ServerMessageTarget::All => map.get_all(),
                 ServerMessageTarget::Single(id) => Vec::from([map.get(id).unwrap()]),
-                ServerMessageTarget::Group(ids) => {
-                    ids.iter().map(|id| map.get(*id).unwrap()).collect()
-                }
+                ServerMessageTarget::Group(ids) => ids.iter().flat_map(|id| map.get(*id)).collect(),
             };
 
             let mut bytes: Vec<u8> = Vec::new();
