@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "build": "tsc --watch",
+    "build": "tsc",
+    "build-watch": "tsc --watch",
     "clean": "rm -rf dist/scripts"
   },
   "devDependencies": {
