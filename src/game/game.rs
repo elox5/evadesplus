@@ -259,6 +259,17 @@ impl Game {
     }
 
     pub async fn reset_hero(&mut self, player: PlayerId) -> Result<()> {
+        {
+            let area = self.get_or_create_area(&player.area)?;
+            let mut area = area.lock().await;
+
+            let _ = area.world.remove_one::<Downed>(player.entity);
+
+            if let Ok(timer) = area.world.query_one_mut::<&mut Timer>(player.entity) {
+                timer.0 = 0.0;
+            }
+        }
+
         let req = TransferRequest {
             player: player.clone(),
             target: TransferTarget::Spawn,
@@ -272,15 +283,6 @@ impl Game {
         //     .send(LeaderboardUpdate::set_downed(player, false));
 
         // TODO: LB FIX
-
-        let area = self.get_or_create_area(&player.area)?;
-        let mut area = area.lock().await;
-
-        let _ = area.world.remove_one::<Downed>(player.entity);
-
-        if let Ok(timer) = area.world.query_one_mut::<&mut Timer>(player.entity) {
-            timer.0 = 0.0;
-        }
 
         Ok(())
     }
