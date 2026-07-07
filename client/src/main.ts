@@ -1,4 +1,3 @@
-import { InitError } from "./network_controller.js";
 import { init_cache } from "./cache.js";
 import { setup_input } from "./input.js";
 import { MessageHandler, ws_connector, WsModule } from "./ws_connector.js";
@@ -116,6 +115,10 @@ function display_connection_message(message: string, color: string) {
 
 function clear_connection_message() {
     connection_message_display.textContent = "";
+}
+
+type InitError = {
+    message: string
 }
 
 class UiDisconnectModule implements WsModule {

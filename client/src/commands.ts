@@ -1,9 +1,9 @@
 import { chat } from "./chat.js";
 import { lock_mouse_input } from "./player_input.js";
 import { cache, CommandData } from "./cache.js";
-import { network_controller } from "./network_controller.js";
 import { player_info } from "./player_info.js";
 import { reset_timer } from "./timer.js";
+import { ws_connector } from "./ws_connector.js";
 
 export function try_execute_command(message: string): boolean {
     if (cache.commands === null) {
@@ -76,7 +76,7 @@ export function try_execute_command(message: string): boolean {
         return true;
     }
     else if (matches_command_with_name(commandName, "disconnect")) {
-        network_controller.disconnect();
+        ws_connector.close();
 
         return true;
     }
