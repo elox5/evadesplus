@@ -328,34 +328,8 @@ impl Game {
             None => target_area.spawn_pos,
         };
 
-        // if target_area.flags.victory && !new_player.victories.contains(&target_area.key) {
-        //     new_player.victories.push(target_area.key.clone());
-
-        // let world = &mut target_area.world;
-        // let timer = world.query_one_mut::<&mut Timer>(entity).ok();
-
-        // if let Some(timer) = timer {
-        //     let minutes = timer.0 / 60.0;
-        //     let seconds = (timer.0.floor() as u32) % 60;
-
-        //     let announcement_name = match &target_area.route_name {
-        //         Some(route) => route,
-        //         None => match &target_area.flags.final_victory {
-        //             true => &target_area.map_name,
-        //             false => &target_area.full_name,
-        //         },
-        //     };
-
-        //     self.send_server_announcement(format!(
-        //         "{} just completed {} in {:02.0}:{:02.0}!",
-        //         player.name, announcement_name, minutes, seconds
-        //     ));
-        // } else {
-        //     Logger::error("Expected Timer component on hero when transferring to victory area");
-        // }
-
-        // TODO: CHAT FIX
-        // }
+        let world = &mut target_area.world;
+        let timer = world.query_one_mut::<&mut Timer>(entity).ok().cloned();
 
         if should_close {
             self.close_area(&player_area.key);
@@ -382,10 +356,21 @@ impl Game {
             area: target_key,
         };
 
+        let route_name = match &target_area.route_name {
+            Some(route) => route,
+            None => match &target_area.flags.final_victory {
+                true => &target_area.map_name,
+                false => &target_area.full_name,
+            },
+        }
+        .clone();
+
         let msg = PlayerTransferMessage {
             player_id: req.player.clone(),
             new_id,
             area_info: AreaInfo::from_area(&target_area),
+            timer,
+            route_name,
         };
 
         let _ = self.output_tx.send(GameOutputMessage::PlayerTransfer(msg));
@@ -510,4 +495,6 @@ pub struct PlayerTransferMessage {
     pub player_id: PlayerId,
     pub new_id: PlayerId,
     pub area_info: AreaInfo,
+    pub timer: Option<Timer>,
+    pub route_name: String,
 }

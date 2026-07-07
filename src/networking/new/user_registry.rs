@@ -23,7 +23,7 @@ pub struct UserData {
     pub name: String,
     pub joined_at: Instant,
 
-    victories: Vec<AreaKey>,
+    pub victories: Vec<AreaKey>,
 }
 
 static NEXT_USER_ID: AtomicU64 = AtomicU64::new(1);
@@ -84,6 +84,12 @@ impl UserRegistry {
             self.add_to_player_map(id, new_player_id);
         }
     }
+
+    fn push_victory(&mut self, id: &UserId, area: AreaKey) {
+        if let Some(data) = self.users.get_mut(id) {
+            data.victories.push(area);
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -142,6 +148,14 @@ impl UserRegistryHandle {
         self.registry.rcu(|r| {
             let mut new = (**r).clone();
             new.update_player_id(id.clone(), new_player_id.clone());
+            new
+        });
+    }
+
+    pub fn push_victory(&self, id: &UserId, area: &AreaKey) {
+        self.registry.rcu(|r| {
+            let mut new = (**r).clone();
+            new.push_victory(id, area.clone());
             new
         });
     }

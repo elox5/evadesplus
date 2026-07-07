@@ -1,6 +1,7 @@
 use crate::physics::vec2::Vec2;
 use serde::Deserialize;
 
+#[derive(Clone)]
 pub struct Timer(pub f32);
 
 pub struct Hero;

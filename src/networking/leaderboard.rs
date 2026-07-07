@@ -8,7 +8,7 @@ pub struct AreaInfo {
     name: String,
     order: u16,
     color: Option<String>,
-    victory: bool,
+    pub victory: bool,
 }
 
 impl AreaInfo {

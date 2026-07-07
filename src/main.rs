@@ -9,6 +9,7 @@ use evadesplus::{
     logger::{LogCategory, Logger},
     networking::{
         chat::Chat,
+        helpers::create_server_announcement,
         leaderboard::{Leaderboard, LeaderboardStore, LeaderboardUpdate},
         new::{
             connection_manager::{ConnectionManager, WsConnectionManager},
@@ -184,6 +185,7 @@ async fn main() -> Result<()> {
         let mut game_rx = game.output_rx.resubscribe();
         let server_tx = connection_manager.server_messages().clone();
         let lb_tx = leaderboard.tx.clone();
+        let chat_tx = chat.tx.clone();
         let render_handler = RenderHandler {
             users: user_registry.clone(),
             server_tx,
@@ -209,10 +211,34 @@ async fn main() -> Result<()> {
 
                             let _ = lb_tx.send(LeaderboardUpdate::transfer(
                                 user_id.clone(),
-                                message.area_info,
+                                message.area_info.clone(),
                             ));
 
-                            users.update_player_id(user_id, message.new_id);
+                            users.update_player_id(user_id.clone(), message.new_id.clone());
+
+                            if let Some(user) = users.get(&user_id) {
+                                let new_area = &message.new_id.area;
+
+                                if message.area_info.victory && !user.victories.contains(new_area) {
+                                    users.push_victory(&user_id, new_area);
+
+                                    if let Some(timer) = message.timer {
+                                        let minutes = timer.0 / 60.0;
+                                        let seconds = (timer.0.floor() as u32) % 60;
+
+                                        let announcement = create_server_announcement(format!(
+                                            "{} just completed {} in {:02.0}:{:02.0}!",
+                                            user.name, message.route_name, minutes, seconds
+                                        ));
+
+                                        let _ = chat_tx.send(announcement);
+                                    } else {
+                                        Logger::error(
+                                            "Expected Timer component on hero when transferring to victory area",
+                                        );
+                                    }
+                                }
+                            }
                         }
                     }
                 }
