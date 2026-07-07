@@ -67,6 +67,8 @@ export function try_execute_command(message: string): boolean {
 
         reset_timer();
         lock_mouse_input();
+
+        return true;
     }
     else if (matches_command_with_name(commandName, "clear")) {
         chat.clear();
