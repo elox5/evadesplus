@@ -1,3 +1,4 @@
+import { chat } from "./chat.js";
 import { register_keydown_handler } from "./input.js";
 
 class Settings {
@@ -107,7 +108,7 @@ class Settings {
 
         if (setting.hotkey !== undefined) {
             register_keydown_handler(e => {
-                if (e.key === setting.hotkey) {
+                if (e.key === setting.hotkey && !chat.focused()) {
                     this.update_setting(setting, !setting.value);
                 }
             });
