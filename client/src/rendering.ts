@@ -389,6 +389,8 @@ class RenderingModule implements WsModule {
     }
 
     private handle_area_update(data: BinaryReader) {
+        console.log("Handling area update...");
+
         const width = data.read_f32();
         const height = data.read_f32();
 
