@@ -59,6 +59,15 @@ areas:
         target: !Map mm
         target_x: !FromLeft 5
         target_y: Center
+      - rect:
+          x: 98
+          y: 13
+          w: 1
+          h: 1
+        color: "#00ff0055"
+        target: !Map nm
+        target_x: !FromLeft 5
+        target_y: Center
   - name: "Named Area"
     alias: "named_area"
     background_color: "#64C864"

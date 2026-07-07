@@ -1,0 +1,382 @@
+id: "nm"
+name: "New Map"
+background_color: "#aed6ae"
+text_color: "#9eed8c"
+areas:
+  - enemy_groups:
+      - color: "#777777"
+        count: 20
+        speed: 0.5
+        size: 0.5
+    safe_zones:
+      - x: 0
+        y: 0
+        w: 10
+        h: 15
+      - x: 90
+        y: 0
+        w: 10
+        h: 15
+    portals:
+      - rect:
+          x: 0
+          y: 0
+          w: 1
+          h: 15
+        target: !Map "tt"
+        target_x: Center
+        target_y: Center
+      - rect:
+          x: 99
+          y: 0
+          w: 1
+          h: 15
+        target: Next
+        target_x: !FromLeft 2
+        target_y: KeepPlayer
+    route_name: Test Route
+  - enemy_groups:
+      - color: "#777777"
+        count: 30
+        speed: 0.5
+        size: 0.5
+    safe_zones:
+      - x: 0
+        y: 0
+        w: 10
+        h: 15
+      - x: 90
+        y: 0
+        w: 10
+        h: 15
+    portals:
+      - rect:
+          x: 0
+          y: 0
+          w: 1
+          h: 15
+        target: Previous
+        target_x: !FromRight 2
+        target_y: KeepPlayer
+      - rect:
+          x: 99
+          y: 0
+          w: 1
+          h: 15
+        target: Next
+        target_x: !FromLeft 2
+        target_y: KeepPlayer
+  - enemy_groups:
+      - color: "#777777"
+        count: 50
+        speed: 0.5
+        size: 0.5
+      - color: "#ff0000"
+        count: 1
+        speed: 10
+        size: 1.5
+    safe_zones:
+      - x: 0
+        y: 0
+        w: 10
+        h: 15
+      - x: 90
+        y: 0
+        w: 10
+        h: 15
+    portals:
+      - rect:
+          x: 0
+          y: 0
+          w: 1
+          h: 15
+        target: Previous
+        target_x: !FromRight 2
+        target_y: KeepPlayer
+      - rect:
+          x: 99
+          y: 0
+          w: 1
+          h: 15
+        target: Next
+        target_x: !FromLeft 2
+        target_y: KeepPlayer
+  - enemy_groups:
+      - color: "#777777"
+        count: 50
+        speed: 0.5
+        size: 0.5
+      - color: "#ff0000"
+        count: 3
+        speed: 10
+        size: 1.5
+    safe_zones:
+      - x: 0
+        y: 0
+        w: 10
+        h: 15
+      - x: 90
+        y: 0
+        w: 10
+        h: 15
+    portals:
+      - rect:
+          x: 0
+          y: 0
+          w: 1
+          h: 15
+        target: Previous
+        target_x: !FromRight 2
+        target_y: KeepPlayer
+      - rect:
+          x: 99
+          y: 0
+          w: 1
+          h: 15
+        target: Next
+        target_x: !FromLeft 2
+        target_y: KeepPlayer
+  - enemy_groups:
+      - color: "#777777"
+        count: 120
+        speed: 0.5
+        size: 0.5
+    safe_zones:
+      - x: 0
+        y: 0
+        w: 10
+        h: 15
+      - x: 90
+        y: 0
+        w: 10
+        h: 15
+    portals:
+      - rect:
+          x: 0
+          y: 0
+          w: 1
+          h: 15
+        target: Previous
+        target_x: !FromRight 2
+        target_y: KeepPlayer
+      - rect:
+          x: 99
+          y: 0
+          w: 1
+          h: 15
+        target: Next
+        target_x: !FromLeft 2
+        target_y: KeepPlayer
+  - enemy_groups:
+      - color: "#777777"
+        count: 80
+        speed: 0.5
+        size: 0.5
+      - color: "#ff0000"
+        count: 3
+        speed: 10
+        size: 1.5
+    safe_zones:
+      - x: 0
+        y: 0
+        w: 10
+        h: 15
+      - x: 90
+        y: 0
+        w: 10
+        h: 15
+    portals:
+      - rect:
+          x: 0
+          y: 0
+          w: 1
+          h: 15
+        target: Previous
+        target_x: !FromRight 2
+        target_y: KeepPlayer
+      - rect:
+          x: 99
+          y: 0
+          w: 1
+          h: 15
+        target: Next
+        target_x: !FromLeft 2
+        target_y: KeepPlayer
+  - enemy_groups:
+      - color: "#777777"
+        count: 80
+        speed: 0.5
+        size: 0.5
+      - color: "#ff0000"
+        count: 6
+        speed: 10
+        size: 1.5
+    safe_zones:
+      - x: 0
+        y: 0
+        w: 10
+        h: 15
+      - x: 90
+        y: 0
+        w: 10
+        h: 15
+    portals:
+      - rect:
+          x: 0
+          y: 0
+          w: 1
+          h: 15
+        target: Previous
+        target_x: !FromRight 2
+        target_y: KeepPlayer
+      - rect:
+          x: 99
+          y: 0
+          w: 1
+          h: 15
+        target: Next
+        target_x: !FromLeft 2
+        target_y: KeepPlayer
+  - enemy_groups:
+      - color: "#777777"
+        count: 80
+        speed: 0.5
+        size: 0.5
+      - color: "#000000"
+        count: 2
+        speed: 20
+        size: 2
+    safe_zones:
+      - x: 0
+        y: 0
+        w: 10
+        h: 15
+      - x: 90
+        y: 0
+        w: 10
+        h: 15
+    portals:
+      - rect:
+          x: 0
+          y: 0
+          w: 1
+          h: 15
+        target: Previous
+        target_x: !FromRight 2
+        target_y: KeepPlayer
+      - rect:
+          x: 99
+          y: 0
+          w: 1
+          h: 15
+        target: Next
+        target_x: !FromLeft 2
+        target_y: KeepPlayer
+  - enemy_groups:
+      - color: "#777777"
+        count: 100
+        speed: 0.5
+        size: 0.5
+      - color: "#ff0000"
+        count: 4
+        speed: 10
+        size: 1.5
+      - color: "#000000"
+        count: 2
+        speed: 20
+        size: 2
+    safe_zones:
+      - x: 0
+        y: 0
+        w: 10
+        h: 15
+      - x: 90
+        y: 0
+        w: 10
+        h: 15
+    portals:
+      - rect:
+          x: 0
+          y: 0
+          w: 1
+          h: 15
+        target: Previous
+        target_x: !FromRight 2
+        target_y: KeepPlayer
+      - rect:
+          x: 99
+          y: 0
+          w: 1
+          h: 15
+        target: Next
+        target_x: !FromLeft 2
+        target_y: KeepPlayer
+  - enemy_groups:
+      - color: "#777777"
+        count: 150
+        speed: 0.5
+        size: 0.5
+      - color: "#ff0000"
+        count: 6
+        speed: 10
+        size: 1.5
+      - color: "#000000"
+        count: 5
+        speed: 20
+        size: 2
+    safe_zones:
+      - x: 0
+        y: 0
+        w: 10
+        h: 15
+      - x: 90
+        y: 0
+        w: 10
+        h: 15
+    portals:
+      - rect:
+          x: 0
+          y: 0
+          w: 1
+          h: 15
+        target: Previous 
+        target_x: !FromRight 2
+        target_y: KeepPlayer
+      - rect:
+          x: 99
+          y: 0
+          w: 1
+          h: 15
+        target: Next
+        target_x: !FromLeft 2
+        target_y: KeepPlayer
+    flags:
+      boss: true
+  - safe_zones:
+      - x: 0
+        y: 0
+        w: 10
+        h: 15
+      - x: 90
+        y: 0
+        w: 10
+        h: 15
+    portals:
+      - rect:
+          x: 0
+          y: 0
+          w: 1
+          h: 15
+        target: Previous 
+        target_x: !FromRight 2
+        target_y: KeepPlayer
+      - rect:
+          x: 99
+          y: 0
+          w: 1
+          h: 15
+        target: !Area "tt:1"
+        target_x: !FromLeft 2
+        target_y: KeepPlayer
+    flags:
+      victory: true
