@@ -1,6 +1,9 @@
 use crate::{
-    config::{FileLogMode, LogHeaderType, LogLevel, CONFIG},
-    networking::chat::{ChatMessageType, ChatRequest},
+    config::{CONFIG, FileLogMode, LogHeaderType, LogLevel},
+    networking::{
+        chat::{ChatMessageType, ChatRequest},
+        new::user_registry::UserId,
+    },
 };
 use colored::{Color, Colorize};
 use std::{
@@ -326,7 +329,7 @@ impl LogSink for ChatLogSink {
         self.tx
             .send(ChatRequest {
                 sender_name: String::new(),
-                sender_id: u64::MAX,
+                sender_id: UserId(u64::MAX),
                 message_type: Self::get_message_type(entry),
                 message: entry.get_message(&CONFIG.logger.chat.headers, true),
                 recipient_filter: None,

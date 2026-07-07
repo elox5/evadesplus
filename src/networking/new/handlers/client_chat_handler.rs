@@ -34,7 +34,7 @@ impl ClientMessageHandler for ClientChatHandler {
                 message: message.to_string(),
                 message_type: ChatMessageType::Normal,
                 recipient_filter: None,
-                sender_id: user_id.0,
+                sender_id: user_id,
                 sender_name: user_data.map_or("[Anonymous]".to_owned(), |d| d.name),
             };
 

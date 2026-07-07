@@ -4,6 +4,8 @@ use crate::game::game::GameHandle;
 use crate::game::map_table::map_exists;
 use crate::game::transfer_request::TransferRequest;
 use crate::game::transfer_request::TransferTarget;
+use crate::networking::new::user_registry::UserId;
+use crate::networking::new::user_registry::UserRegistryHandle;
 use anyhow::Result;
 use anyhow::anyhow;
 use std::{
@@ -149,7 +151,8 @@ pub async fn handle_command(
 pub struct CommandRequest {
     pub args: Vec<String>,
     pub game: GameHandle,
-    pub player_id: u64,
+    pub users: UserRegistryHandle,
+    pub user_id: UserId,
 }
 
 // async fn reset(req: CommandRequest) -> Result<Option<ChatRequest>> {
@@ -239,11 +242,11 @@ pub struct CommandRequest {
 
 //
 
-fn response(message: String, recipient_id: u64) -> Result<Option<ChatRequest>> {
+fn response(message: String, recipient_id: UserId) -> Result<Option<ChatRequest>> {
     Ok(Some(ChatRequest::new(
         message,
         String::new(),
-        u64::MAX,
+        UserId(u64::MAX),
         ChatMessageType::CommandResponse,
         Some(vec![recipient_id]),
     )))

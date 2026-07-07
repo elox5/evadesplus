@@ -8,7 +8,8 @@ use evadesplus::{
     },
     logger::{LogCategory, Logger},
     networking::{
-        chat::Chat,
+        chat::{Chat, ChatMessageType, ChatRequest},
+        commands::{CommandRequest, handle_command},
         helpers::create_server_announcement,
         leaderboard::{Leaderboard, LeaderboardStore, LeaderboardUpdate},
         new::{
@@ -20,7 +21,7 @@ use evadesplus::{
                 render_handler::RenderHandler,
             },
             server_message::{ServerMessage, ServerMessageTarget},
-            user_registry::create_user_registry,
+            user_registry::{UserId, create_user_registry},
         },
     },
 };
@@ -140,6 +141,8 @@ async fn main() -> Result<()> {
     {
         let mut chat_rx = chat.rx.resubscribe();
         let server_tx = connection_manager.server_messages().clone();
+        let game = game.clone();
+        let users = user_registry.clone();
 
         tokio::task::spawn(async move {
             while let Ok(message) = chat_rx.recv().await {
@@ -150,13 +153,52 @@ async fn main() -> Result<()> {
 
                 let bytes = message.to_bytes();
 
-                let response = ServerMessage {
-                    header: "CHAT".into(),
-                    data: bytes,
-                    target: ServerMessageTarget::All,
-                };
+                if bytes.starts_with(b"/") {
+                    let text = String::from_utf8_lossy(&bytes).to_string();
+                    let splits = text.split(" ").collect::<Vec<&str>>();
+                    let command = splits[0];
+                    let args = splits[1..].iter().map(|s| s.to_string()).collect();
 
-                let _ = server_tx.send(response).await;
+                    let req = CommandRequest {
+                        args,
+                        game: game.clone(),
+                        users: users.clone(),
+                        user_id: message.sender_id.clone(),
+                    };
+
+                    let response = handle_command(command, req).await;
+
+                    let message = match response {
+                        Ok(response) => response,
+                        Err(err) => Some(ChatRequest::new(
+                            format!(
+                                "A server error has occurred. Please report it to the developers: *{err:?}*"
+                            ),
+                            String::new(),
+                            UserId(u64::MAX),
+                            ChatMessageType::ServerError,
+                            Some(vec![message.sender_id]),
+                        )),
+                    };
+
+                    if let Some(message) = message {
+                        let response = ServerMessage {
+                            header: "CHAT".into(),
+                            data: message.to_bytes(),
+                            target: ServerMessageTarget::All,
+                        };
+
+                        let _ = server_tx.send(response).await;
+                    }
+                } else {
+                    let response = ServerMessage {
+                        header: "CHAT".into(),
+                        data: bytes,
+                        target: ServerMessageTarget::All,
+                    };
+
+                    let _ = server_tx.send(response).await;
+                }
             }
         });
     }

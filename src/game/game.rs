@@ -441,6 +441,8 @@ impl GameHandle {
         let _ = game.despawn_hero(id).await;
     }
 
+    pub async fn send_reset_request(&self, id: PlayerId) {}
+
     pub async fn send_input_update(&self, id: PlayerId, input: Vec2) {
         let mut game = self.game.lock().await;
         let _ = game.send_input_update(id, input).await;

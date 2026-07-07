@@ -1,4 +1,7 @@
-use crate::networking::chat::{ChatMessageType, ChatRequest};
+use crate::networking::{
+    chat::{ChatMessageType, ChatRequest},
+    new::user_registry::UserId,
+};
 
 const FORBIDDEN_PLAYER_NAME_CHARACTERS: [char; 8] = ['#', '@', '$', '^', ':', '/', '\\', '*'];
 
@@ -11,7 +14,7 @@ pub fn create_server_announcement(message: String) -> ChatRequest {
     ChatRequest::new(
         message,
         String::new(),
-        u64::MAX,
+        UserId(u64::MAX),
         ChatMessageType::ServerAnnouncement,
         None,
     )
