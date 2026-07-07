@@ -318,13 +318,6 @@ impl Game {
 
         let _ = target_area.world.remove_one::<CrossingPortal>(entity);
 
-        // let _ = self.leaderboard_tx.send(LeaderboardUpdate::transfer(
-        //     req.player_id,
-        //     AreaInfo::new(&target_area),
-        // ));
-
-        // TODO: LB FIX
-
         let target_pos = match req.target_pos {
             Some(target_pos) => {
                 let target_x = target_pos.x.resolve(&target_area.bounds);
@@ -392,6 +385,7 @@ impl Game {
         let msg = PlayerTransferMessage {
             player_id: req.player.clone(),
             new_id,
+            area_info: AreaInfo::from_area(&target_area),
         };
 
         let _ = self.output_tx.send(GameOutputMessage::PlayerTransfer(msg));
@@ -515,4 +509,5 @@ pub struct GameSpawnResult {
 pub struct PlayerTransferMessage {
     pub player_id: PlayerId,
     pub new_id: PlayerId,
+    pub area_info: AreaInfo,
 }

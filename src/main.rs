@@ -9,7 +9,7 @@ use evadesplus::{
     logger::{LogCategory, Logger},
     networking::{
         chat::Chat,
-        leaderboard::{Leaderboard, LeaderboardStore},
+        leaderboard::{Leaderboard, LeaderboardStore, LeaderboardUpdate},
         new::{
             connection_manager::{ConnectionManager, WsConnectionManager},
             handlers::{
@@ -183,6 +183,7 @@ async fn main() -> Result<()> {
     {
         let mut game_rx = game.output_rx.resubscribe();
         let server_tx = connection_manager.server_messages().clone();
+        let lb_tx = leaderboard.tx.clone();
         let render_handler = RenderHandler {
             users: user_registry.clone(),
             server_tx,
@@ -204,6 +205,11 @@ async fn main() -> Result<()> {
                             Logger::debug(format!(
                                 "Updating player id from '{}' to '{}'",
                                 message.player_id, message.new_id
+                            ));
+
+                            let _ = lb_tx.send(LeaderboardUpdate::transfer(
+                                user_id.clone(),
+                                message.area_info,
                             ));
 
                             users.update_player_id(user_id, message.new_id);
