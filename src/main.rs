@@ -153,8 +153,8 @@ async fn main() -> Result<()> {
 
                 let bytes = message.to_bytes();
 
-                if bytes.starts_with(b"/") {
-                    let text = String::from_utf8_lossy(&bytes).to_string();
+                if message.message.starts_with('/') {
+                    let text = &message.message[1..];
                     let splits = text.split(" ").collect::<Vec<&str>>();
                     let command = splits[0];
                     let args = splits[1..].iter().map(|s| s.to_string()).collect();

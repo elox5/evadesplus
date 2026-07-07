@@ -13,7 +13,6 @@ use std::{
     pin::Pin,
     sync::{Arc, LazyLock},
 };
-use tokio::sync::Mutex;
 
 // TODO fix commands
 
@@ -27,13 +26,13 @@ static COMMANDS: LazyLock<Vec<Command>> = LazyLock::new(|| {
             None,
         ),
         Command::new("clear", None, "Clears all chat messages.", None, None),
-        // Command::new(
-        //     "reset",
-        //     Some(vec!["r"]),
-        //     "Resets the player.",
-        //     None,
-        //     Some(Box::new(reset)),
-        // ),
+        Command::new(
+            "reset",
+            Some(vec!["r"]),
+            "Resets the player.",
+            None,
+            Some(Box::new(reset)),
+        ),
         Command::new(
             "disconnect",
             Some(vec!["dc", "ff", "quit"]),
@@ -155,12 +154,14 @@ pub struct CommandRequest {
     pub user_id: UserId,
 }
 
-// async fn reset(req: CommandRequest) -> Result<Option<ChatRequest>> {
-//     let mut game = req.game.lock().await;
-//     game.reset_hero(req.player_id).await?;
-
-//     Ok(None)
-// }
+async fn reset(req: CommandRequest) -> Result<Option<ChatRequest>> {
+    if let Some(user) = req.users.get(&req.user_id) {
+        let _ = req.game.send_reset_request(user.player_id).await;
+        Ok(None)
+    } else {
+        Err(anyhow!("Couldn't find target user of /reset command"))
+    }
+}
 
 // async fn whisper(req: CommandRequest) -> Result<Option<ChatRequest>> {
 //     let sender_id = req.player_id;
