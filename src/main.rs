@@ -290,6 +290,15 @@ async fn main() -> Result<()> {
                             users.clear_victories(&user_id);
                         }
                     }
+                    GameOutputMessage::PlayerStatus(message) => {
+                        let users = user_registry.clone();
+
+                        if let Some(user_id) = users.player_to_user_id(&message.player_id) {
+                            let update = LeaderboardUpdate::set_downed(user_id, !message.alive);
+
+                            let _ = lb_tx.send(update);
+                        }
+                    }
                 }
             }
         });

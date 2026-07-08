@@ -2,12 +2,14 @@ use super::{area::Area, components::*};
 use crate::{
     game::{
         components::{Direction, Position, Speed, Velocity},
+        game::PlayerStatusMessage,
         player::PlayerId,
         transfer_request::{
             TransferRequest, TransferRequestTargetPos, TransferRequestTargetPosX,
             TransferRequestTargetPosY, TransferTarget,
         },
     },
+    logger::Logger,
     networking::rendering::{AreaRenderPacket, RenderNode},
 };
 use hecs::{With, Without};
@@ -181,7 +183,7 @@ pub fn system_safe_zone_collision(area: &mut Area) {
     }
 }
 
-pub fn system_enemy_collision(area: &mut Area) {
+pub async fn system_enemy_collision(area: &mut Area) {
     let mut to_down = Vec::new();
 
     for (entity, (hero_pos, hero_size)) in area
@@ -212,15 +214,20 @@ pub fn system_enemy_collision(area: &mut Area) {
     for entity in to_down {
         let _ = area.world.insert_one(entity, Downed);
 
-        // let _ = area
-        //     .leaderboard_tx
-        //     .send(LeaderboardUpdate::set_downed(player_id, true));
-
-        // TODO: LB FIX
+        let _ = area
+            .status_tx
+            .send(PlayerStatusMessage {
+                player_id: PlayerId {
+                    entity,
+                    area: area.key.clone(),
+                },
+                alive: false,
+            })
+            .await;
     }
 }
 
-pub fn system_hero_collision(area: &mut Area) {
+pub async fn system_hero_collision(area: &mut Area) {
     let mut to_revive = Vec::new();
 
     for (_, (pos_1, size_1)) in area
@@ -246,11 +253,16 @@ pub fn system_hero_collision(area: &mut Area) {
         let result = area.world.remove_one::<Downed>(entity);
 
         if result.is_ok() {
-            // let _ = area
-            //     .leaderboard_tx
-            //     .send(LeaderboardUpdate::set_downed(player_id, false));
-
-            // TODO: LB FIX
+            let _ = area
+                .status_tx
+                .send(PlayerStatusMessage {
+                    player_id: PlayerId {
+                        entity,
+                        area: area.key.clone(),
+                    },
+                    alive: true,
+                })
+                .await;
         }
     }
 }

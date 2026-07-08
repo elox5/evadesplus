@@ -41,6 +41,7 @@ struct Game {
     transfer_queue: Vec<PlayerId>,
 
     render_tx: mpsc::Sender<AreaRenderMessage>,
+    status_tx: mpsc::Sender<PlayerStatusMessage>,
 
     timer_sync_tx: broadcast::Sender<TimerSyncPacket>,
     pub timer_sync_rx: broadcast::Receiver<TimerSyncPacket>,
@@ -52,6 +53,7 @@ impl Game {
     pub fn new() -> GameHandle {
         let (transfer_tx, mut transfer_rx) = mpsc::channel::<TransferRequest>(8);
         let (render_tx, mut render_rx) = mpsc::channel::<AreaRenderMessage>(64);
+        let (status_tx, mut status_rx) = mpsc::channel::<PlayerStatusMessage>(64);
         let (timer_sync_tx, timer_sync_rx) = broadcast::channel(8);
 
         let (output_tx, output_rx) = broadcast::channel(64);
@@ -80,6 +82,7 @@ impl Game {
             timer_sync_tx,
             timer_sync_rx,
             render_tx,
+            status_tx,
             frame_duration,
         };
 
@@ -95,11 +98,22 @@ impl Game {
             }
         });
 
-        tokio::spawn(async move {
-            while let Some(msg) = render_rx.recv().await {
-                let _ = output_tx.send(GameOutputMessage::AreaRender(msg));
-            }
-        });
+        {
+            let output_tx = output_tx.clone();
+            tokio::spawn(async move {
+                while let Some(msg) = render_rx.recv().await {
+                    let _ = output_tx.send(GameOutputMessage::AreaRender(msg));
+                }
+            });
+        }
+
+        {
+            tokio::spawn(async move {
+                while let Some(msg) = status_rx.recv().await {
+                    let _ = output_tx.send(GameOutputMessage::PlayerStatus(msg));
+                }
+            });
+        }
 
         GameHandle::new(handle_arc, output_rx)
     }
@@ -146,6 +160,7 @@ impl Game {
             template,
             self.transfer_tx.clone(),
             self.render_tx.clone(),
+            self.status_tx.clone(),
             self.timer_sync_tx.clone(),
         );
 
@@ -201,8 +216,8 @@ impl Game {
         system_safe_zone_collision(area);
         system_portals(area).await;
 
-        system_hero_collision(area);
-        system_enemy_collision(area);
+        system_hero_collision(area).await;
+        system_enemy_collision(area).await;
 
         system_render(area);
 
@@ -278,13 +293,16 @@ impl Game {
 
         self.transfer_hero(req).await?;
 
-        let _ = self.output_tx.send(GameOutputMessage::PlayerReset(player));
+        let _ = self
+            .output_tx
+            .send(GameOutputMessage::PlayerReset(player.clone()));
 
-        // let _ = self
-        //     .leaderboard_tx
-        //     .send(LeaderboardUpdate::set_downed(player, false));
-
-        // TODO: LB FIX
+        let _ = self
+            .output_tx
+            .send(GameOutputMessage::PlayerStatus(PlayerStatusMessage {
+                player_id: player,
+                alive: true,
+            }));
 
         Ok(())
     }
@@ -493,6 +511,7 @@ pub enum GameOutputMessage {
     AreaDefinition(AreaDefinitionMessage),
     PlayerTransfer(PlayerTransferMessage),
     PlayerReset(PlayerId),
+    PlayerStatus(PlayerStatusMessage),
 }
 
 pub struct GameSpawnResult {
@@ -507,4 +526,10 @@ pub struct PlayerTransferMessage {
     pub area_info: AreaInfo,
     pub timer: Option<Timer>,
     pub route_name: String,
+}
+
+#[derive(Clone)]
+pub struct PlayerStatusMessage {
+    pub player_id: PlayerId,
+    pub alive: bool,
 }
