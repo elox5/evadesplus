@@ -1,5 +1,7 @@
+use itertools::Itertools;
+
 use super::map::MapTemplate;
-use crate::{config::CONFIG, logger::Logger, parsing::parse_map};
+use crate::{config::CONFIG, game::map::MapData, logger::Logger, parsing::parse_map};
 use std::{collections::HashMap, ffi::OsStr, sync::LazyLock};
 
 static MAP_IDS: LazyLock<Vec<String>> = LazyLock::new(fill_map_ids);
@@ -22,12 +24,34 @@ fn fill_map_ids() -> Vec<String> {
 fn fill_map_table() -> HashMap<String, MapTemplate> {
     let path = &CONFIG.maps.path;
 
-    let maps: HashMap<String, MapTemplate> = MAP_IDS
+    let map_datas: Vec<MapData> = MAP_IDS
         .iter()
         .map(|id| {
             parse_map(&format!("{path}/{id}.yaml",))
                 .unwrap_or_else(|err| panic!("Could not parse map {id}: {err}"))
         })
+        .collect();
+
+    let duplicate_groups = verify_no_duplicates(&map_datas);
+
+    if !duplicate_groups.is_empty() {
+        let list: Vec<String> = duplicate_groups
+            .iter()
+            .map(|(key, group)| {
+                let names: Vec<String> = group.iter().map(|d| d.name.clone()).collect();
+                format!("(key: {key}, maps: {names:?})")
+            })
+            .collect();
+
+        let msg = format!("Map ID collision detected. Two maps can't share the same ID. {list:?}");
+
+        Logger::error(msg.clone());
+    }
+
+    let maps: HashMap<String, MapTemplate> = map_datas
+        .into_iter()
+        .unique_by(|d| d.id.clone())
+        .into_iter()
         .map(|map| {
             let template = MapTemplate::new(map);
             (template.id.clone(), template)
@@ -35,6 +59,21 @@ fn fill_map_table() -> HashMap<String, MapTemplate> {
         .collect();
 
     maps
+}
+
+fn verify_no_duplicates(map_datas: &Vec<MapData>) -> HashMap<String, Vec<&MapData>> {
+    let mut id_groups: HashMap<String, Vec<&MapData>> = HashMap::new();
+    for data in map_datas {
+        let id = data.id.clone();
+        id_groups.entry(id).or_insert_with(|| Vec::new()).push(data);
+    }
+
+    let duplicate_groups: HashMap<String, Vec<&MapData>> = id_groups
+        .into_iter()
+        .filter(|(_, group)| group.len() > 1)
+        .collect();
+
+    duplicate_groups
 }
 
 fn get_all_map_ids(map_path: &str) -> Vec<String> {
