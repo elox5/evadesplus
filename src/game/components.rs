@@ -23,6 +23,12 @@ pub struct Direction(pub Vec2);
 
 pub struct Size(pub f32);
 
+impl Size {
+    pub fn radius(&self) -> f32 {
+        self.0 / 2.0
+    }
+}
+
 #[derive(Clone, Default, Deserialize)]
 pub struct Color {
     pub r: u8,

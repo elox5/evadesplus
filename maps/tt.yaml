@@ -12,6 +12,10 @@ areas:
         count: 50
         speed: 10
         size: 0.3
+      - color: "#00FF7F55"
+        count: 5
+        speed: 2
+        size: 5
     inner_walls:
       - x: 40
         y: 5
