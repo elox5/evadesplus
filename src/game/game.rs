@@ -278,6 +278,8 @@ impl Game {
 
         self.transfer_hero(req).await?;
 
+        let _ = self.output_tx.send(GameOutputMessage::PlayerReset(player));
+
         // let _ = self
         //     .leaderboard_tx
         //     .send(LeaderboardUpdate::set_downed(player, false));
@@ -490,6 +492,7 @@ pub enum GameOutputMessage {
     AreaRender(AreaRenderMessage),
     AreaDefinition(AreaDefinitionMessage),
     PlayerTransfer(PlayerTransferMessage),
+    PlayerReset(PlayerId),
 }
 
 pub struct GameSpawnResult {

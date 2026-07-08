@@ -29,7 +29,7 @@ impl RenderHandler {
     }
 
     pub async fn handle_area_definition(&self, message: AreaDefinitionMessage) {
-        if let Some(user_id) = self.users.player_to_user_id(message.id) {
+        if let Some(user_id) = self.users.player_to_user_id(&message.id) {
             if let Some(user) = self.users.get(&user_id) {
                 //
 

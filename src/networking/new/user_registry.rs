@@ -90,6 +90,12 @@ impl UserRegistry {
             data.victories.push(area);
         }
     }
+
+    fn clear_victories(&mut self, id: &UserId) {
+        if let Some(data) = self.users.get_mut(id) {
+            data.victories.clear();
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -160,6 +166,14 @@ impl UserRegistryHandle {
         });
     }
 
+    pub fn clear_victories(&self, id: &UserId) {
+        self.registry.rcu(|r| {
+            let mut new = (**r).clone();
+            new.clear_victories(id);
+            new
+        });
+    }
+
     pub fn client_to_user_id(&self, client_id: ClientId) -> Option<UserId> {
         self.registry
             .load()
@@ -168,11 +182,11 @@ impl UserRegistryHandle {
             .cloned()
     }
 
-    pub fn player_to_user_id(&self, player_id: PlayerId) -> Option<UserId> {
+    pub fn player_to_user_id(&self, player_id: &PlayerId) -> Option<UserId> {
         self.registry
             .load()
             .player_to_user_id_map
-            .get(&player_id)
+            .get(player_id)
             .cloned()
     }
 

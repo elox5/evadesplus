@@ -245,7 +245,7 @@ async fn main() -> Result<()> {
                     GameOutputMessage::PlayerTransfer(message) => {
                         let users = user_registry.clone();
 
-                        if let Some(user_id) = users.player_to_user_id(message.player_id.clone()) {
+                        if let Some(user_id) = users.player_to_user_id(&message.player_id) {
                             Logger::debug(format!(
                                 "Updating player id from '{}' to '{}'",
                                 message.player_id, message.new_id
@@ -281,6 +281,13 @@ async fn main() -> Result<()> {
                                     }
                                 }
                             }
+                        }
+                    }
+                    GameOutputMessage::PlayerReset(player_id) => {
+                        let users = user_registry.clone();
+
+                        if let Some(user_id) = users.player_to_user_id(&player_id) {
+                            users.clear_victories(&user_id);
                         }
                     }
                 }
