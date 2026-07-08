@@ -48,9 +48,13 @@ impl Vec2 {
 
     pub fn normalized(&self) -> Self {
         let magnitude = self.magnitude();
-        Self {
-            x: self.x / magnitude,
-            y: self.y / magnitude,
+        if magnitude > 0.00001 {
+            Vec2 {
+                x: self.x / magnitude,
+                y: self.y / magnitude,
+            }
+        } else {
+            Vec2::ZERO
         }
     }
 
