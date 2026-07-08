@@ -49,8 +49,8 @@ async fn main() -> Result<()> {
 
     let network_config = &CONFIG.network;
 
-    if !std::path::Path::new(&network_config.client_path).is_dir() {
-        panic!("Client code has not been compiled.");
+    if !std::path::Path::new(&format!("{}/scripts", &network_config.client_path)).is_dir() {
+        Logger::error("Client scripts have not been compiled");
     }
 
     let cache = Cache::new(get_map_list());
