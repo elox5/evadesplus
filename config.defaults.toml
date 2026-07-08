@@ -11,11 +11,11 @@ ssl_key_path = "ssl/key.pem"
 
 [maps]
 path = "maps"
-maps = []
+maps = ["tt", "mm", "lm", "nm"]
 
 [game]
 simulation_framerate = 60
-# spawn_map = "my_map"
+spawn_map = "tt"
 
 [logger]
 console = { enabled = true, level = "Info", headers = [
