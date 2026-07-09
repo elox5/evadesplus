@@ -8,7 +8,7 @@ use super::{
 };
 use crate::{
     game::{
-        components::{SafeZoneBounded, TargetPosition},
+        components::{Energy, MaxEnergy, Regen, SafeZoneBounded, TargetPosition},
         game::PlayerStatusMessage,
         transfer_request::TransferRequest,
     },
@@ -164,6 +164,9 @@ impl Area {
             Direction(Vec2::ZERO),
             Size(1.0),
             Color::rgb(rand::random(), rand::random(), rand::random()),
+            Energy(0.0),
+            Regen(10.0),
+            MaxEnergy(100.0),
             Hero,
             Bounded,
             Timer(0.0),

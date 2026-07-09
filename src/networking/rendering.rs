@@ -38,6 +38,7 @@ impl AreaRenderMessage {
                         downed: n.downed,
                         entity: n.entity,
                         user_id: map.get(&player_id).cloned(),
+                        energy: n.energy,
                     }
                 } else {
                     n
@@ -86,6 +87,7 @@ pub struct RenderNode {
     pub downed: bool,
     pub entity: Option<Entity>,
     pub user_id: Option<UserId>,
+    pub energy: Option<f32>,
 }
 
 impl RenderNode {
@@ -96,7 +98,12 @@ impl RenderNode {
         bytes.extend_from_slice(&self.radius.to_le_bytes());
         bytes.extend_from_slice(&self.color.to_bytes());
 
-        let flags = (self.has_border as u8) | (self.is_hero as u8) << 1 | (self.downed as u8) << 2;
+        let has_energy = self.energy.is_some();
+
+        let flags = (self.has_border as u8)
+            | (self.is_hero as u8) << 1
+            | (self.downed as u8) << 2
+            | (has_energy as u8) << 3;
 
         bytes.push(flags);
 
@@ -104,6 +111,10 @@ impl RenderNode {
             && let Some(id) = &self.user_id
         {
             bytes.extend_from_slice(&id.0.to_le_bytes());
+        }
+
+        if let Some(energy) = self.energy {
+            bytes.extend_from_slice(&energy.to_le_bytes());
         }
 
         bytes

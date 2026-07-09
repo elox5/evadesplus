@@ -287,7 +287,18 @@ function render_frame(offset: Vector2, nodes: RenderNode[]) {
             const name = player?.name ?? "Unknown Player";
             const name_color = node.downed ? "red" : "black";
 
-            draw_text(main_canvas, node.x, node.y + node.radius + 0.3, name, name_color, 16, "bold");
+            let name_height = 0.2;
+
+            if (node.energy !== null) {
+
+                draw_rect(main_canvas, node.x - 0.8, node.y + node.radius + 0.1, 1.6 * node.energy, 0.2, { fill_color: "blue" })
+                draw_rect(main_canvas, node.x - 0.8, node.y + node.radius + 0.1, 1.6, 0.2, { outline_color: "black", outline_width: 1 })
+
+                name_height = 0.4;
+            }
+
+            draw_text(main_canvas, node.x, node.y + node.radius + name_height, name, name_color, 16, "bold");
+
         }
     }
 
@@ -486,11 +497,16 @@ class RenderingModule implements WsModule {
             const [r, g, b, a] = data.read_rgba();
             const color = `rgba(${r}, ${g}, ${b}, ${a / 255})`;
 
-            const [has_outline, is_hero, downed] = data.read_flags();
+            const [has_outline, is_hero, downed, has_energy] = data.read_flags();
 
             let player_id = null;
             if (is_hero) {
                 player_id = data.read_u64();
+            }
+
+            let energy = null;
+            if (has_energy) {
+                energy = data.read_f32();
             }
 
             const node: RenderNode = {
@@ -502,6 +518,7 @@ class RenderingModule implements WsModule {
                 is_hero,
                 downed,
                 player_id,
+                energy,
             };
 
             if (player_id == player_info.get_self_id()) {

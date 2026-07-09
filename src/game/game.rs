@@ -208,6 +208,8 @@ impl Game {
 
         system_increment_timer(area);
 
+        system_update_energy(area);
+
         system_update_velocity(area);
         system_evaluate_target_position(area);
 

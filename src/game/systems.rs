@@ -44,6 +44,18 @@ pub fn system_update_velocity(area: &mut Area) {
     }
 }
 
+pub fn system_update_energy(area: &mut Area) {
+    for (_, (energy, regen, max_energy)) in
+        area.world.query_mut::<(&mut Energy, &Regen, &MaxEnergy)>()
+    {
+        energy.0 = (energy.0 + regen.0 * area.delta_time).clamp(0.0, max_energy.0);
+
+        if energy.0 > 90.0 {
+            energy.0 = 0.0;
+        }
+    }
+}
+
 pub fn system_bounds_check(area: &mut Area) {
     for (_, (dir, pos, size)) in area
         .world
@@ -303,19 +315,25 @@ pub fn system_render(area: &mut Area) {
     area.render_packet = Some(AreaRenderPacket::new());
     let nodes = &mut area.render_packet.as_mut().unwrap().nodes;
 
-    for (entity, (pos, size, color, hero, enemy, downed)) in area.world.query_mut::<(
-        &Position,
-        &Size,
-        &Color,
-        Option<&Hero>,
-        Option<&Enemy>,
-        Option<&Downed>,
-    )>() {
+    for (entity, (pos, size, color, hero, enemy, downed, energy, max_energy)) in
+        area.world.query_mut::<(
+            &Position,
+            &Size,
+            &Color,
+            Option<&Hero>,
+            Option<&Enemy>,
+            Option<&Downed>,
+            Option<&Energy>,
+            Option<&MaxEnergy>,
+        )>()
+    {
         let mut color = color.clone();
 
         if downed.is_some() {
             color.a = 127;
         }
+
+        let energy = energy.zip(max_energy).map(|(e, m)| e.0 / m.0);
 
         let node = RenderNode {
             x: pos.0.x,
@@ -327,6 +345,7 @@ pub fn system_render(area: &mut Area) {
             downed: downed.is_some(),
             entity: Some(entity),
             user_id: None,
+            energy,
         };
         nodes.push(node);
     }

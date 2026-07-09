@@ -28,4 +28,5 @@ export type RenderNode = {
     is_hero: boolean;
     downed: boolean;
     player_id: bigint | null;
+    energy: number | null;
 }

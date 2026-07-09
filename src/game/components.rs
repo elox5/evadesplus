@@ -7,6 +7,10 @@ pub struct Timer(pub f32);
 pub struct Hero;
 pub struct Enemy;
 
+pub struct Energy(pub f32);
+pub struct Regen(pub f32);
+pub struct MaxEnergy(pub f32);
+
 pub struct Downed;
 
 pub struct Bounded;
