@@ -310,8 +310,6 @@ impl Game {
     }
 
     pub async fn transfer_hero(&mut self, req: TransferRequest) -> Result<()> {
-        Logger::debug(format!("Transfer request: {:?}", req));
-
         if !self.transfer_queue.contains(&req.player) {
             self.transfer_queue.push(req.player.clone());
         }
