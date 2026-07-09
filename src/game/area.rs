@@ -8,7 +8,9 @@ use super::{
 };
 use crate::{
     game::{
-        components::SafeZoneBounded, game::PlayerStatusMessage, transfer_request::TransferRequest,
+        components::{SafeZoneBounded, TargetPosition},
+        game::PlayerStatusMessage,
+        transfer_request::TransferRequest,
     },
     networking::rendering::{AreaRenderMessage, AreaRenderPacket},
     physics::{rect::Rect, vec2::Vec2},
@@ -137,6 +139,7 @@ impl Area {
 
             (
                 Enemy,
+                TargetPosition(pos.0),
                 pos,
                 vel,
                 dir,
@@ -155,6 +158,7 @@ impl Area {
     pub fn spawn_player(&mut self) -> Entity {
         self.world.spawn((
             Position(self.spawn_pos),
+            TargetPosition(self.spawn_pos),
             Velocity(Vec2::ZERO),
             Speed(17.0),
             Direction(Vec2::ZERO),

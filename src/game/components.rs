@@ -16,6 +16,8 @@ pub struct SafeZoneBounded;
 pub struct CrossingPortal;
 
 pub struct Position(pub Vec2);
+pub struct TargetPosition(pub Vec2);
+
 pub struct Velocity(pub Vec2);
 
 pub struct Speed(pub f32);

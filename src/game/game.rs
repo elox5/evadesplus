@@ -209,13 +209,15 @@ impl Game {
         system_increment_timer(area);
 
         system_update_velocity(area);
-        system_update_position(area);
-        system_bounds_check(area);
+        system_evaluate_target_position(area);
 
+        system_bounds_check(area);
         system_inner_wall_collision(area);
         system_safe_zone_collision(area);
-        system_portals(area).await;
 
+        system_commit_position(area);
+
+        system_portals(area).await;
         system_hero_collision(area).await;
         system_enemy_collision(area).await;
 

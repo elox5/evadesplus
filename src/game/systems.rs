@@ -20,12 +20,18 @@ pub fn system_increment_timer(area: &mut Area) {
     }
 }
 
-pub fn system_update_position(area: &mut Area) {
-    for (_, (pos, vel)) in area
+pub fn system_evaluate_target_position(area: &mut Area) {
+    for (_, (pos, target_pos, vel)) in area
         .world
-        .query_mut::<Without<(&mut Position, &Velocity), &Downed>>()
+        .query_mut::<Without<(&Position, &mut TargetPosition, &Velocity), &Downed>>()
     {
-        pos.0 += vel.0 * area.delta_time;
+        target_pos.0 = pos.0 + vel.0 * area.delta_time;
+    }
+}
+
+pub fn system_commit_position(area: &mut Area) {
+    for (_, (pos, target_pos)) in area.world.query_mut::<(&mut Position, &TargetPosition)>() {
+        pos.0 = target_pos.0;
     }
 }
 
@@ -41,7 +47,7 @@ pub fn system_update_velocity(area: &mut Area) {
 pub fn system_bounds_check(area: &mut Area) {
     for (_, (dir, pos, size)) in area
         .world
-        .query_mut::<With<(&mut Direction, &Position, &Size), &BounceOffBounds>>()
+        .query_mut::<With<(&mut Direction, &TargetPosition, &Size), &BounceOffBounds>>()
     {
         let bounds = &area.bounds;
 
@@ -56,7 +62,7 @@ pub fn system_bounds_check(area: &mut Area) {
 
     for (_, (pos, size)) in area
         .world
-        .query_mut::<With<(&mut Position, &Size), &Bounded>>()
+        .query_mut::<With<(&mut TargetPosition, &Size), &Bounded>>()
     {
         let bounds = &area.bounds;
 
@@ -80,9 +86,10 @@ pub fn system_inner_wall_collision(area: &mut Area) {
         return;
     }
 
-    for (_, (pos, size, dir, bounce, hero)) in area.world.query_mut::<With<
+    for (_, (pos, target_pos, size, dir, bounce, hero)) in area.world.query_mut::<With<
         (
-            &mut Position,
+            &Position,
+            &mut TargetPosition,
             &Size,
             &mut Direction,
             Option<&BounceOffBounds>,
@@ -90,43 +97,61 @@ pub fn system_inner_wall_collision(area: &mut Area) {
         ),
         &Bounded,
     >>() {
-        for wall in &area.inner_walls {
-            if wall.contains_circle(pos.0, size.0 / 2.0) {
-                let closest_x = pos.0.x.clamp(wall.min().x, wall.max().x);
-                let closest_y = pos.0.y.clamp(wall.min().y, wall.max().y);
+        let radius = size.0 / 2.0;
+
+        let mut current_sub_pos = pos.0;
+        let total_vel = target_pos.0 - pos.0;
+        let speed = total_vel.magnitude();
+
+        if speed < 0.0001 {
+            continue;
+        }
+
+        let max_step_distance = (radius * 0.5).max(0.05);
+        let substeps = ((speed / max_step_distance).ceil() as usize).clamp(1, 32);
+
+        let sub_vel = total_vel / substeps as f32;
+
+        for _step in 0..substeps {
+            current_sub_pos += sub_vel;
+
+            for wall in &area.inner_walls {
+                let closest_x = current_sub_pos.x.clamp(wall.min().x, wall.max().x);
+                let closest_y = current_sub_pos.y.clamp(wall.min().y, wall.max().y);
                 let closest_point = Vec2::new(closest_x, closest_y);
 
-                let to_circle = pos.0 - closest_point;
+                let to_circle = current_sub_pos - closest_point;
                 let distance = to_circle.magnitude();
 
-                let (normal, penetration) = if distance == 0.0 {
-                    (Vec2::UP, size.0 / 2.0)
-                } else {
-                    (to_circle.normalized(), size.0 / 2.0 - distance)
-                };
+                if distance < radius {
+                    let normal = if distance > 0.0001 {
+                        to_circle.normalized()
+                    } else {
+                        Vec2::UP
+                    };
+                    let penetration = radius - distance;
 
-                if penetration > 0.0 {
-                    pos.0 += normal * penetration;
+                    current_sub_pos += normal * penetration;
 
                     let mut local_dir = dir.0;
-
-                    let dot = local_dir.dot(&normal);
+                    let dot = dir.0.dot(&normal);
                     if dot < 0.0 {
                         if bounce.is_some() {
                             local_dir = local_dir - (normal * 2.0 * dot);
                         } else {
                             local_dir = local_dir - (normal * dot);
                         }
-
                         local_dir = local_dir.normalized();
                     }
 
                     if hero.is_none() {
-                        dir.0 = local_dir
+                        dir.0 = local_dir;
                     }
                 }
             }
         }
+
+        target_pos.0 = current_sub_pos;
     }
 }
 
@@ -135,27 +160,47 @@ pub fn system_safe_zone_collision(area: &mut Area) {
         return;
     }
 
-    for (_, (pos, size, dir)) in area
-        .world
-        .query_mut::<With<(&mut Position, &Size, &mut Direction), (&Bounded, &SafeZoneBounded)>>()
+    for (_, (pos, target_pos, size, dir)) in
+        area.world.query_mut::<With<
+            (&Position, &mut TargetPosition, &Size, &mut Direction),
+            (&Bounded, &SafeZoneBounded),
+        >>()
     {
-        for wall in &area.safe_zones {
-            if wall.contains_circle(pos.0, size.0 / 2.0) {
-                let closest_x = pos.0.x.clamp(wall.min().x, wall.max().x);
-                let closest_y = pos.0.y.clamp(wall.min().y, wall.max().y);
+        let radius = size.0 / 2.0;
+
+        let mut current_sub_pos = pos.0;
+        let total_vel = target_pos.0 - pos.0;
+        let speed = total_vel.magnitude();
+
+        if speed < 0.0001 {
+            continue;
+        }
+
+        let max_step_distance = (radius * 0.5).max(0.05);
+        let substeps = ((speed / max_step_distance).ceil() as usize).clamp(1, 32);
+
+        let sub_vel = total_vel / substeps as f32;
+
+        for _step in 0..substeps {
+            current_sub_pos += sub_vel;
+
+            for wall in &area.safe_zones {
+                let closest_x = current_sub_pos.x.clamp(wall.min().x, wall.max().x);
+                let closest_y = current_sub_pos.y.clamp(wall.min().y, wall.max().y);
                 let closest_point = Vec2::new(closest_x, closest_y);
 
-                let to_circle = pos.0 - closest_point;
+                let to_circle = current_sub_pos - closest_point;
                 let distance = to_circle.magnitude();
 
-                let (normal, penetration) = if distance == 0.0 {
-                    (Vec2::UP, size.0 / 2.0)
-                } else {
-                    (to_circle.normalized(), size.0 / 2.0 - distance)
-                };
+                if distance < radius {
+                    let normal = if distance > 0.0001 {
+                        to_circle.normalized()
+                    } else {
+                        Vec2::UP
+                    };
+                    let penetration = radius - distance;
 
-                if penetration > 0.0 {
-                    pos.0 += normal * penetration;
+                    current_sub_pos += normal * penetration;
 
                     let dot = dir.0.dot(&normal);
                     if dot < 0.0 {
@@ -165,6 +210,8 @@ pub fn system_safe_zone_collision(area: &mut Area) {
                 }
             }
         }
+
+        target_pos.0 = current_sub_pos;
     }
 }
 
