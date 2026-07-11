@@ -4,7 +4,6 @@ use super::{
         Velocity,
     },
     portal::{Portal, PortalCreationContext, PortalData},
-    timer_sync_packet::TimerSyncPacket,
 };
 use crate::{
     game::{
@@ -18,10 +17,7 @@ use crate::{
 use anyhow::Result;
 use hecs::{Entity, TakenEntity, World};
 use serde::Deserialize;
-use tokio::{
-    sync::{broadcast, mpsc},
-    task::AbortHandle,
-};
+use tokio::{sync::mpsc, task::AbortHandle};
 
 pub struct Area {
     pub key: AreaKey,
@@ -60,7 +56,6 @@ pub struct Area {
     pub transfer_tx: mpsc::Sender<TransferRequest>,
     pub render_tx: mpsc::Sender<AreaRenderMessage>,
     pub status_tx: mpsc::Sender<PlayerStatusMessage>,
-    pub timer_sync_tx: broadcast::Sender<TimerSyncPacket>,
 }
 
 impl Area {
@@ -69,7 +64,6 @@ impl Area {
         transfer_tx: mpsc::Sender<TransferRequest>,
         render_tx: mpsc::Sender<AreaRenderMessage>,
         status_tx: mpsc::Sender<PlayerStatusMessage>,
-        timer_sync_tx: broadcast::Sender<TimerSyncPacket>,
     ) -> Self {
         let mut area = Self {
             key: template.key.clone(),
@@ -101,7 +95,6 @@ impl Area {
             transfer_tx,
             render_tx,
             status_tx,
-            timer_sync_tx,
         };
 
         for group in &template.enemy_groups {
@@ -155,8 +148,12 @@ impl Area {
         self.world.spawn_batch(enemies);
     }
 
-    pub fn spawn_player(&mut self) -> Entity {
-        self.world.spawn((
+    pub fn spawn_player(&mut self) -> (Entity, u64) {
+        let timer = Timer::new();
+
+        let timestamp = timer.timestamp();
+
+        let entity = self.world.spawn((
             Position(self.spawn_pos),
             TargetPosition(self.spawn_pos),
             Velocity(Vec2::ZERO),
@@ -169,8 +166,10 @@ impl Area {
             MaxEnergy(100.0),
             Hero,
             Bounded,
-            Timer(0.0),
-        ))
+            timer,
+        ));
+
+        (entity, timestamp)
     }
 
     pub fn despawn_player(

@@ -1,8 +1,44 @@
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+
 use crate::physics::vec2::Vec2;
 use serde::Deserialize;
 
 #[derive(Clone)]
-pub struct Timer(pub f32);
+pub struct Timer {
+    start_instant: Instant,
+    start_timestamp: u64,
+}
+
+impl Timer {
+    pub fn new() -> Timer {
+        let start_instant = Instant::now();
+        let start_timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("Clock time before unix epoch")
+            .as_secs();
+
+        Timer {
+            start_instant,
+            start_timestamp,
+        }
+    }
+
+    pub fn reset(&mut self) {
+        self.start_instant = Instant::now();
+        self.start_timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("Clock time before unix epoch")
+            .as_secs();
+    }
+
+    pub fn timestamp(&self) -> u64 {
+        self.start_timestamp
+    }
+
+    pub fn elapsed(&self) -> Duration {
+        self.start_instant.elapsed()
+    }
+}
 
 pub struct Hero;
 pub struct Enemy;

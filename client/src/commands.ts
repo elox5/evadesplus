@@ -2,7 +2,6 @@ import { chat } from "./chat.js";
 import { lock_mouse_input } from "./player_input.js";
 import { cache, CommandData } from "./cache.js";
 import { player_info } from "./player_info.js";
-import { reset_timer } from "./timer.js";
 import { ws_connector } from "./ws_connector.js";
 
 export function try_execute_command(message: string): boolean {
@@ -65,7 +64,6 @@ export function try_execute_command(message: string): boolean {
     else if (matches_command_with_name(commandName, "reset")) {
         chat.send_message_raw("/reset");
 
-        reset_timer();
         lock_mouse_input();
 
         return true;

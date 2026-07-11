@@ -247,7 +247,7 @@ async fn main() -> Result<()> {
         let chat_tx = chat.tx.clone();
         let render_handler = RenderHandler {
             users: user_registry.clone(),
-            server_tx,
+            server_tx: server_tx.clone(),
         };
 
         tokio::spawn(async move {
@@ -282,8 +282,10 @@ async fn main() -> Result<()> {
                                     users.push_victory(&user_id, new_area);
 
                                     if let Some(timer) = message.timer {
-                                        let minutes = timer.0 / 60.0;
-                                        let seconds = (timer.0.floor() as u32) % 60;
+                                        let time = timer.elapsed().as_secs();
+
+                                        let minutes = time / 60;
+                                        let seconds = time % 60;
 
                                         let announcement = create_server_announcement(format!(
                                             "{} just completed {} in {:02.0}:{:02.0}!",
@@ -314,6 +316,23 @@ async fn main() -> Result<()> {
                             let update = LeaderboardUpdate::set_downed(user_id, !message.alive);
 
                             let _ = lb_tx.send(update);
+                        }
+                    }
+                    GameOutputMessage::TimerUpdate(message) => {
+                        let users = user_registry.clone();
+
+                        if let Some(user_id) = users.player_to_user_id(&message.player_id) {
+                            if let Some(user) = users.get(&user_id) {
+                                if let Some(client_id) = user.client_id {
+                                    let _ = server_tx
+                                        .send(ServerMessage {
+                                            header: "TIME".into(),
+                                            data: message.timestamp.to_le_bytes().to_vec(),
+                                            target: ServerMessageTarget::Single(client_id),
+                                        })
+                                        .await;
+                                }
+                            }
                         }
                     }
                 }

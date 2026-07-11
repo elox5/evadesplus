@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use tokio::sync::{broadcast, mpsc, Mutex};
+use tokio::sync::{Mutex, broadcast, mpsc};
 
 use crate::{
     game::game::GameHandle,
@@ -83,7 +83,16 @@ impl InitHandler {
             target: ServerMessageTarget::Single(msg.client_id),
         };
 
-        let _ = self.server_tx.try_send(response);
+        let _ = self.server_tx.send(response).await;
+
+        let _ = self
+            .server_tx
+            .send(ServerMessage {
+                header: "TIME".into(),
+                data: spawn_result.timestamp.to_le_bytes().to_vec(),
+                target: ServerMessageTarget::Single(msg.client_id),
+            })
+            .await;
 
         Ok(())
     }

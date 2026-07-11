@@ -14,12 +14,6 @@ use crate::{
 };
 use hecs::{With, Without};
 
-pub fn system_increment_timer(area: &mut Area) {
-    for (_, timer) in area.world.query_mut::<&mut Timer>() {
-        timer.0 += area.delta_time;
-    }
-}
-
 pub fn system_evaluate_target_position(area: &mut Area) {
     for (_, (pos, target_pos, vel)) in area
         .world
@@ -349,15 +343,6 @@ pub fn system_render(area: &mut Area) {
         };
         nodes.push(node);
     }
-}
-
-pub fn system_sync_timers(area: &mut Area) {
-    // for (_, (timer)) in area.world.query_mut::<(&mut Timer)>() {
-    //     let _ = area.timer_sync_tx.send(TimerSyncPacket {
-    //         player_id: player_id.clone(),
-    //         time: timer.0,
-    //     });
-    // }
 }
 
 pub async fn system_portals(area: &mut Area) {

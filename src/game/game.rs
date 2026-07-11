@@ -9,7 +9,6 @@ use crate::{
     game::{
         components::Timer,
         player::PlayerId,
-        timer_sync_packet::TimerSyncPacket,
         transfer_request::{TransferRequest, TransferTarget},
     },
     logger::Logger,
@@ -43,9 +42,6 @@ struct Game {
     render_tx: mpsc::Sender<AreaRenderMessage>,
     status_tx: mpsc::Sender<PlayerStatusMessage>,
 
-    timer_sync_tx: broadcast::Sender<TimerSyncPacket>,
-    pub timer_sync_rx: broadcast::Receiver<TimerSyncPacket>,
-
     frame_duration: Duration,
 }
 
@@ -54,7 +50,6 @@ impl Game {
         let (transfer_tx, mut transfer_rx) = mpsc::channel::<TransferRequest>(8);
         let (render_tx, mut render_rx) = mpsc::channel::<AreaRenderMessage>(64);
         let (status_tx, mut status_rx) = mpsc::channel::<PlayerStatusMessage>(64);
-        let (timer_sync_tx, timer_sync_rx) = broadcast::channel(8);
 
         let (output_tx, output_rx) = broadcast::channel(64);
 
@@ -79,8 +74,6 @@ impl Game {
             output_tx: output_tx.clone(),
             transfer_tx: transfer_tx.clone(),
             transfer_queue: Vec::new(),
-            timer_sync_tx,
-            timer_sync_rx,
             render_tx,
             status_tx,
             frame_duration,
@@ -122,7 +115,7 @@ impl Game {
         let area = self.get_spawn_area();
         let mut area = area.lock().await;
 
-        let entity = area.spawn_player();
+        let (entity, timestamp) = area.spawn_player();
 
         Logger::info(format!("Spawning hero..."));
 
@@ -143,6 +136,7 @@ impl Game {
         GameSpawnResult {
             player_id,
             area_info: AreaInfo::from_area(&area),
+            timestamp,
         }
     }
 
@@ -161,7 +155,6 @@ impl Game {
             self.transfer_tx.clone(),
             self.render_tx.clone(),
             self.status_tx.clone(),
-            self.timer_sync_tx.clone(),
         );
 
         let area = Arc::new(Mutex::new(area));
@@ -206,8 +199,6 @@ impl Game {
         area.time += delta_time;
         area.delta_time = delta_time;
 
-        system_increment_timer(area);
-
         system_update_energy(area);
 
         system_update_velocity(area);
@@ -224,10 +215,6 @@ impl Game {
         system_enemy_collision(area).await;
 
         system_render(area);
-
-        if area.frame_count % 300 == 0 {
-            system_sync_timers(area);
-        }
     }
 
     fn start_update_loop(area: Arc<Mutex<Area>>, frame_duration: Duration) {
@@ -285,7 +272,14 @@ impl Game {
             let _ = area.world.remove_one::<Downed>(player.entity);
 
             if let Ok(timer) = area.world.query_one_mut::<&mut Timer>(player.entity) {
-                timer.0 = 0.0;
+                timer.reset();
+
+                let _ = self
+                    .output_tx
+                    .send(GameOutputMessage::TimerUpdate(TimerUpdateMessage {
+                        player_id: player.clone(),
+                        timestamp: timer.timestamp(),
+                    }));
             }
         }
 
@@ -514,11 +508,13 @@ pub enum GameOutputMessage {
     PlayerTransfer(PlayerTransferMessage),
     PlayerReset(PlayerId),
     PlayerStatus(PlayerStatusMessage),
+    TimerUpdate(TimerUpdateMessage),
 }
 
 pub struct GameSpawnResult {
     pub player_id: PlayerId,
     pub area_info: AreaInfo,
+    pub timestamp: u64,
 }
 
 #[derive(Clone)]
@@ -534,4 +530,10 @@ pub struct PlayerTransferMessage {
 pub struct PlayerStatusMessage {
     pub player_id: PlayerId,
     pub alive: bool,
+}
+
+#[derive(Clone)]
+pub struct TimerUpdateMessage {
+    pub player_id: PlayerId,
+    pub timestamp: u64,
 }

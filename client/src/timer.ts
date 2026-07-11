@@ -4,29 +4,41 @@ import { ws_connector, WsModule } from "./ws_connector.js";
 const timer_display = document.getElementById("speedrun-timer") as HTMLDivElement;
 
 const timer = {
-    time: 0,
+    start: null as bigint | null,
     interval: null as number | null,
 }
 
-function start_timer() {
-    timer.time = 0;
+function start_timer(start: bigint) {
+    timer.start = start;
+
     update_timer();
 
-    timer.interval = setInterval(() => {
-        timer.time += 1;
-        update_timer();
-    }, 1000);
+    if (timer.interval === null) {
+        timer.interval = setInterval(() => {
+            update_timer();
+        }, 1000);
+    }
 }
 
-export function reset_timer() {
-    if (timer.interval !== null) clearInterval(timer.interval);
+function now(): bigint {
+    return BigInt(Math.floor(Date.now() / 1000));
+}
 
-    start_timer();
+function elapsed_seconds(): number | null {
+    if (timer.start === null) {
+        return null;
+    }
+
+    return Number(now() - timer.start);
 }
 
 function update_timer() {
-    const minutes = Math.floor(timer.time / 60);
-    const seconds = Math.floor(timer.time % 60);
+    const time = elapsed_seconds();
+
+    if (time === null) return;
+
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
 
     timer_display.textContent = `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
 }
@@ -36,19 +48,16 @@ class TimerModule implements WsModule {
         {
             header: "TIME",
             callback: (data: BinaryReader) => {
-                timer.time = data.read_f32();
-                update_timer();
+                console.log("TEST");
+
+                const start = data.read_u64();
+                start_timer(start);
             }
         },
     ]
 
-    on_game_load = {
-        callback: start_timer,
-        once: false
-    }
-
     cleanup = () => {
-        timer.time = 0;
+        timer.start = null;
         if (timer.interval !== null) clearInterval(timer.interval);
     }
 }

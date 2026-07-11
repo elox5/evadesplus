@@ -6,5 +6,4 @@ pub mod map_table;
 pub mod player;
 pub mod portal;
 pub mod systems;
-pub mod timer_sync_packet;
 pub mod transfer_request;
