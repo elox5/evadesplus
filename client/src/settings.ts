@@ -360,7 +360,7 @@ export const settings = new Settings([
             { id: "fps_enabled", name: "Show FPS", type: "boolean", default_value: true },
             { id: "ping_enabled", name: "Show Ping", type: "boolean", default_value: true },
             { id: "bandwidth_enabled", name: "Show Bandwidth", type: "boolean", default_value: true },
-            { id: "render_time_enabled", name: "Show Render Time", type: "boolean", default_value: false },
+            { id: "render_time_enabled", name: "Show Render Time", type: "boolean", default_value: true },
         ],
     },
 ]);

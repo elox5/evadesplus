@@ -356,7 +356,16 @@ async fn main() -> Result<()> {
     let key = identity.private_key().clone_key();
     let key = key.to_secret_pem();
 
-    let root_route = warp::fs::dir(network_config.client_path.clone());
+    let root_route = warp::fs::dir(network_config.client_path.clone())
+        .with(warp::reply::with::header(
+            "Cross-Origin-Opener-Policy",
+            "same-origin",
+        ))
+        .with(warp::reply::with::header(
+            "Cross-Origin-Embedder-Policy",
+            "require-corp",
+        ));
+
     let cache_route = warp::path("cache").and(warp::get()).then(move || {
         let cache = cache.clone();
         async move { warp::reply::json(&cache) }
