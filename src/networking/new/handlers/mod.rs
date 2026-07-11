@@ -4,5 +4,6 @@ pub mod close_handler;
 pub mod handler;
 pub mod init_handler;
 pub mod message;
-pub mod render_handler;
 pub mod move_handler;
+pub mod ping_handler;
+pub mod render_handler;

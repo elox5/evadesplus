@@ -17,7 +17,7 @@ use evadesplus::{
             handlers::{
                 client_chat_handler::ClientChatHandler, client_message_logger::ClientMessageLogger,
                 close_handler::CloseHandler, handler::ClientMessageHandler,
-                init_handler::InitHandler, move_handler::MoveHandler,
+                init_handler::InitHandler, move_handler::MoveHandler, ping_handler::PingHandler,
                 render_handler::RenderHandler,
             },
             server_message::{ServerMessage, ServerMessageTarget},
@@ -136,6 +136,20 @@ async fn main() -> Result<()> {
             while let Ok(message) = client_rx.recv().await {
                 if move_handler.accept_header(&message.header) {
                     let _ = move_handler.handle(message).await;
+                }
+            }
+        });
+    }
+
+    {
+        let mut client_rx = connection_manager.client_messages().resubscribe();
+        let server_tx = connection_manager.server_messages().clone();
+        let ping_handler = PingHandler::new(server_tx);
+
+        tokio::spawn(async move {
+            while let Ok(message) = client_rx.recv().await {
+                if ping_handler.accept_header(&message.header) {
+                    let _ = ping_handler.handle(message).await;
                 }
             }
         });
