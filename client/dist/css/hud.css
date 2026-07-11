@@ -28,6 +28,7 @@
     translate: -50% 0;
 
     flex-direction: column-reverse;
+    align-items: center;
 }
 
 
