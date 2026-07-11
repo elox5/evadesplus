@@ -304,6 +304,40 @@ export const settings = new Settings([
                     slider_step: 0.1
                 }
             },
+            {
+                id: "ability_overlay.primary",
+                name: "Show Primary Ability Overlay",
+                type: "boolean",
+                default_value: false,
+                hotkey: "9",
+            },
+            {
+                id: "ability_overlay.secondary",
+                name: "Show Primary Ability Overlay",
+                type: "boolean",
+                default_value: false,
+                hotkey: "0",
+            },
+            {
+                id: "ability_overlay.distance",
+                name: "Ability Overlay Distance",
+                type: "number",
+                default_value: 0,
+                options: {
+                    min: -0.3, max: 0.3,
+                    slider_step: 0.05
+                }
+            },
+            {
+                id: "ability_overlay.size",
+                name: "Ability Overlay Size",
+                type: "number",
+                default_value: 5,
+                options: {
+                    min: 2, max: 10,
+                    slider_step: 0.25
+                }
+            },
         ],
     },
     {
@@ -313,6 +347,7 @@ export const settings = new Settings([
             { id: "show_minimap", name: "Show Minimap", type: "boolean", default_value: true, hotkey: "m" },
             { id: "show_chat", name: "Show Chat", type: "boolean", default_value: true, hotkey: "v" },
             { id: "show_leaderboard", name: "Show Leaderboard", type: "boolean", default_value: true, hotkey: "b" },
+            { id: "show_hero_card", name: "Show Hero Card", type: "boolean", default_value: true, hotkey: "h" },
             { id: "show_metrics", name: "Show Metrics", type: "boolean", default_value: true, hotkey: "n" },
             { id: "show_timer", name: "Show Timer", type: "boolean", default_value: true, hotkey: "t" },
             { id: "panel_blur", name: "Blur Panel Background", type: "boolean", default_value: true },

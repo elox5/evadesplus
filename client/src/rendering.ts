@@ -81,6 +81,38 @@ function draw_circle(canvas: Canvas, _x: number, _y: number, _r: number, setting
     }
 }
 
+function draw_arc(canvas: Canvas, _x: number, _y: number, _r: number, start_angle: number, end_angle: number, settings: DrawSettings) {
+    const ctx = canvas.ctx;
+    const { x, y } = canvas.game_to_canvas_pos(_x, _y);
+    const r = _r * canvas.tile_size * canvas.radius_scale;
+
+    ctx.beginPath();
+    ctx.arc(x, y, r, start_angle / 180 * Math.PI, end_angle / 180 * Math.PI);
+
+    if (settings.fill_color !== undefined) {
+        ctx.fillStyle = settings.fill_color;
+        ctx.fill();
+    }
+
+    if (settings.outline_color !== undefined) {
+        ctx.strokeStyle = settings.outline_color;
+        ctx.lineWidth = settings.outline_width ?? 1;
+
+        ctx.stroke();
+    }
+
+    if (settings.has_frame === true) {
+        ctx.strokeStyle = settings.outline_color ?? "black";
+        ctx.lineWidth = settings.outline_width ?? 1;
+
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x - r, y);
+        ctx.moveTo(x, y + r);
+        ctx.lineTo(x, y - r);
+        ctx.stroke();
+    }
+}
 
 function draw_rect(canvas: Canvas, _x: number, _y: number, _w: number, _h: number, settings: DrawSettings) {
     const ctx = canvas.ctx;
@@ -278,6 +310,8 @@ function render_frame(offset: Vector2, nodes: RenderNode[]) {
                 draw_downed_radar(own_hero, closest_downed_hero);
             }
         }
+
+        draw_ability_overlay(offset, own_hero?.radius);
     }
 
     for (const node of heroes) {
@@ -307,6 +341,22 @@ function render_frame(offset: Vector2, nodes: RenderNode[]) {
     }
 
     report_render_end();
+}
+
+function draw_ability_overlay(offset: Vector2, radius: number) {
+
+    const distance = settings.get<number>("visual.ability_overlay.distance");
+    const size = settings.get<number>("visual.ability_overlay.size");
+
+    if (settings.get<boolean>("visual.ability_overlay.primary") === true) {
+        draw_arc(main_canvas, offset.x, offset.y, radius + distance, 100, 210, { outline_width: size, outline_color: "#777777bf" });
+        draw_arc(main_canvas, offset.x, offset.y, radius + distance, 100, 190, { outline_width: size, outline_color: "#7fff7fbf" });
+    }
+
+    if (settings.get<boolean>("visual.ability_overlay.secondary") === true) {
+        draw_arc(main_canvas, offset.x, offset.y, radius + distance, -30, 80, { outline_width: size, outline_color: "#777777bf" });
+        draw_arc(main_canvas, offset.x, offset.y, radius + distance, 70, 80, { outline_width: size, outline_color: "#7fff7fbf" });
+    }
 }
 
 function draw_input_overlay(offset: Vector2) {

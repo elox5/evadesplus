@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="css/metrics.css">
     <link rel="stylesheet" href="css/chat.css">
     <link rel="stylesheet" href="css/leaderboard.css">
+    <link rel="stylesheet" href="css/hero_card.css">
     <link rel="stylesheet" href="css/settings.css">
 
     <script type="module" src="scripts/cache.js"></script>
@@ -59,8 +60,6 @@
                     <h2 id="speedrun-timer">00:00</h2>
                 </div>
 
-                <h2 id="area-message-display"></h2>
-
                 <div class="hud-dock bottom-left">
                     <div id="minimap-container">
                         <canvas id="area-minimap"></canvas>
@@ -68,8 +67,14 @@
                     </div>
                 </div>
 
-                <div class="hud-dock bottom-right">
+                <div class="hud-dock bottom">
+                    <div id="hero-card" class="hud-panel">
+                        Hero
+                    </div>
+                    <h2 id="area-message-display"></h2>
+                </div>
 
+                <div class="hud-dock bottom-right">
                     <div id="metrics-container">
                         <div id="fps-container" class="metric">
                             <span>FPS:</span>
